@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int 		con_linewidth;
 float		con_cursorspeed = 4;
 
-#define		CON_TEXTSIZE	16384
+#define		CON_TEXTSIZE	65536 //Erad - bigger buffer size for con history
 
 qboolean 	con_forcedup;		// because no entities to refresh
 int			con_totallines;		// total lines in console scrollback
@@ -380,10 +380,14 @@ void Con_DebugLog(char *file, char *fmt, ...)
 
     va_start(argptr, fmt);
 #ifdef _MSC_VER
+
     vsprintf(data, fmt, argptr);
+
 #else
+
     vsnprintf(data, MAXPRINTMSG,fmt, argptr);
 #endif
+
     va_end(argptr);
     fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
     write(fd, data, strlen(data));
@@ -409,10 +413,14 @@ void Con_Printf(char *fmt, ...)
 	
     va_start (argptr,fmt);
 #ifdef _MSC_VER
+
     vsprintf(msg, fmt, argptr);
+
 #else
+
     vsnprintf (msg,MAXPRINTMSG,fmt,argptr);
 #endif
+
     va_end (argptr);
 	
 // also echo to debugging console
@@ -634,6 +642,8 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 		Draw_SpiralConsoleBackground (lines);
 	else
 		Draw_ConsoleBackground (lines);
+
+	glEnable(GL_BLEND);
 
 // draw the text
     con_vislines = lines;
