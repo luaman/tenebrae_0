@@ -91,6 +91,7 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/gl_bumpgf.o \
 	$(BUILDDIR)/glquake/gl_bumparb.o \
 	$(BUILDDIR)/glquake/gl_bumpmap.o \
+	$(BUILDDIR)/glquake/gl_bumpradeon.o \
 	$(BUILDDIR)/glquake/gl_draw.o \
 	$(BUILDDIR)/glquake/gl_decals.o \
 	$(BUILDDIR)/glquake/gl_glare.o \
@@ -204,6 +205,9 @@ $(BUILDDIR)/glquake/gl_bumparb.o :      $(MOUNT_DIR)/gl_bumparb.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_bumpmap.o :      $(MOUNT_DIR)/gl_bumpmap.c
+	$(DO_GL_CC)
+
+$(BUILDDIR)/glquake/gl_bumpradeon.o :      $(MOUNT_DIR)/gl_bumpradeon.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_decals.o :      $(MOUNT_DIR)/gl_decals.c
