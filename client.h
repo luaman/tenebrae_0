@@ -238,6 +238,8 @@ typedef struct
 // architectually ugly but it works
 	int			light_level;
 #endif
+
+	int			server_proto_version; //PENTA: Backwards compatible
 } client_state_t;
 
 

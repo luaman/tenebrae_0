@@ -218,12 +218,16 @@ void CL_ParseServerInfo (void)
 
 // parse protocol version number
 	i = MSG_ReadLong ();
-	if (i != PROTOCOL_VERSION)
+	if (i != TENEBRAE_PROTOCOL_VERSION)
 	{
-		Con_Printf ("Server returned version %i, not %i\n", i, PROTOCOL_VERSION);
-		Con_Printf ("Note that tenebrae is not network compatible with older versions of quake or old demos.  This error is probably caused by trying to use tenebrae with older versions\n");
-		return;
+		if (i != QUAKE1_PROTOCOL_VERSION) {
+			Con_Printf ("Server returned version %i, not %i\n", i, QUAKE1_PROTOCOL_VERSION);
+			Con_Printf ("Note that tenebrae is not network compatible with other quake mods.\n");
+			Con_Printf ("Tenebrae (since 1.4) IS compatible with old demos and servers.\n");
+			return;
+		}
 	}
+	cl.server_proto_version = i;
 
 // parse maxclients
 	cl.maxclients = MSG_ReadByte ();
@@ -351,7 +355,8 @@ void CL_ParseUpdate (int bits)
 		bits |= (i<<8);
 	}
 
-	if (bits & U_TENEBRAEBITS)
+	//Never read this bit in case something went wrong and a protocol 15 client set it
+	if ((bits & U_TENEBRAEBITS) && (cl.server_proto_version == TENEBRAE_PROTOCOL_VERSION))
 	{
 		i = MSG_ReadShort ();
 		bits |= (i<<16);
@@ -543,19 +548,30 @@ void CL_ParseBaseline (entity_t *ent)
 	ent->baseline.colormap = MSG_ReadByte();
 	ent->baseline.skin = MSG_ReadByte();
 
-	//PENTA: new baseline fields
-	ent->baseline.alpha = MSG_ReadByte () / 255.0;
-	ent->baseline.style = MSG_ReadByte ();
-	
-//	Con_Printf("ParseBaseline %i\n",ent->baseline.style);
-	ent->baseline.light_lev = MSG_ReadShort ();
-	ent->baseline.pflags = MSG_ReadByte();
+	if (cl.server_proto_version == TENEBRAE_PROTOCOL_VERSION) {
+		//PENTA: new baseline fields
+		ent->baseline.alpha = MSG_ReadByte () / 255.0;
+		ent->baseline.style = MSG_ReadByte ();
+		
+		ent->baseline.light_lev = MSG_ReadShort ();
+		ent->baseline.pflags = MSG_ReadByte();
+	} else {
+		ent->baseline.alpha = 0.0f;
+		ent->baseline.style = 0;
+		
+		ent->baseline.light_lev = 300;
+		ent->baseline.pflags = 0;
+	}
 
 	for (i=0 ; i<3 ; i++)
 	{
 		ent->baseline.origin[i] = MSG_ReadCoord ();
 		ent->baseline.angles[i] = MSG_ReadAngle ();
-		ent->baseline.color[i] = MSG_ReadByte () / 255.0;
+		if (cl.server_proto_version == TENEBRAE_PROTOCOL_VERSION) {
+			ent->baseline.color[i] = MSG_ReadByte () / 255.0;
+		} else {
+			ent->baseline.color[i] = 0.0f;
+		}
 	}
 
 	VectorCopy(ent->baseline.origin,ent->origin);
@@ -861,8 +877,12 @@ void CL_ParseServerMessage (void)
 		
 		case svc_version:
 			i = MSG_ReadLong ();
-			if (i != PROTOCOL_VERSION)
-				Host_Error ("CL_ParseServerMessage: Server is protocol %i instead of %i\n", i, PROTOCOL_VERSION);
+			if (i != TENEBRAE_PROTOCOL_VERSION) {
+				if (i != QUAKE1_PROTOCOL_VERSION) {
+					Host_Error ("CL_ParseServerMessage: Server is protocol %i instead of %i\n", i, QUAKE1_PROTOCOL_VERSION);
+				}
+			}
+			cl.server_proto_version = i;
 			break;
 			
 		case svc_disconnect:
