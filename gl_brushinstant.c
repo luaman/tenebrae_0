@@ -36,8 +36,9 @@ brushlightinstant_t BLightInstantCache[NUM_BRUSH_LIGHT_INSTANTS];
 int brushCacheRequests, brushFullCacheHits, brushPartialCacheHits;
 
 /*
-R_AllocateInstant
+R_AllocateBrushLightInstant
 */
+
 brushlightinstant_t *R_AllocateBrushLightInstant(entity_t *e) {
 
 	int i, oldest, oindex;
@@ -443,7 +444,7 @@ void R_SetupBrushInstantForLight(entity_t *e)
 		R_CalcBrushVolumeVerts(e, brushlightinstant);
 		
 		if (!brushlightinstant->shadowonly) {
-			if (!gl_geforce3 && !gl_radeon) {//PA:
+			if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 				R_CalcBrushAttenCoords(e,  brushlightinstant);
 			}
 			//R_SetupBrushLightHAV(e, brushlightinstant);
