@@ -139,9 +139,7 @@ lp3DFXFUNC glColorTableEXT;
 qboolean 	is8bit = false;
 qboolean 	isPermedia = false;
 qboolean 	gl_mtexable = false;
-qboolean 	gl_nvcombiner = false; //PENTA: true if nvdida texture shaders are present
-qboolean 	gl_geforce3 = false; //PENTA: true if we have a geforce3 or higher
-qboolean	gl_radeon = false; //PA: true if we have a radeon 8500 or higher
+qcardtype   gl_cardtype = GENERIC;
 qboolean 	gl_var	= false; //PENTA: vertex array range is available
 qboolean 	gl_texcomp = false; // JP: texture compression available
 
@@ -657,8 +655,8 @@ PENTA: if we don't have these we continue with less eficient specular
 */
 void CheckSpecularBumpMappingExtensions(void) 
 {
-	if ( (strstr(gl_extensions, "GL_NV_register_combiners")) && (!COM_CheckParm ("-forcenonv")) ) {
-		gl_nvcombiner = true;
+	if ( (strstr(gl_extensions, "GL_NV_register_combiners")) && (!COM_CheckParm ("-forcegeneric")) ) {
+		gl_cardtype = GEFORCE; // GEFORCE3 checked later
 		/* Retrieve all NV_register_combiners routines. */
 	  qglCombinerParameterfvNV =
 		(PFNGLCOMBINERPARAMETERFVNVPROC)
@@ -700,7 +698,7 @@ void CheckSpecularBumpMappingExtensions(void)
 		(PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC)
 		wglGetProcAddress("glGetFinalCombinerInputivNV"); // <AWE> "glGetFinalCombinerInputivNV" should be changed to: "glGetFinalCombinerInputParameterivNV"
 	} else {
-		gl_nvcombiner = false;
+//		gl_nvcombiner = false;
 	}
 }
 
@@ -711,16 +709,15 @@ void CheckGeforce3Extensions(void)
 {
 	int supportedTmu;
 	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
-//	Con_Printf("%i texture units\n",supportedTmu);
 
 	if (strstr(gl_extensions, "GL_EXT_texture3D")
 		&& (supportedTmu >= 4)  && (!COM_CheckParm ("-forcegf2"))
-		&& (gl_nvcombiner)
+		&& (gl_cardtype == GEFORCE)
 		&& strstr(gl_extensions, "GL_NV_vertex_program1_1")
 		&& strstr(gl_extensions, "GL_NV_vertex_array_range"))
 	{
 		//Con_Printf("Using Geforce3 path.\n");
-		gl_geforce3 = true;
+		gl_cardtype = GEFORCE3;
 
 		//get TEX3d poiters                   wlgGetProcAddress
 		qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)wglGetProcAddress("glTexImage3DEXT");
@@ -757,7 +754,7 @@ void CheckGeforce3Extensions(void)
 		gl_filter_max = GL_LINEAR;
 
 	} else {
-		gl_geforce3 = false;
+//		gl_geforce3 = false;
 	}
 }
 
@@ -799,33 +796,66 @@ void CheckRadeonExtensions(void)
 {
 	int supportedTmu;
 	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
-	Con_Printf("%i texture units\n",supportedTmu);
 
 	if (strstr(gl_extensions, "GL_EXT_texture3D")
-		&& (supportedTmu >= 4)  && (!COM_CheckParm ("-forcegeneric"))
+		&& (supportedTmu >= 5)  && (!COM_CheckParm ("-forcegeneric"))
 		&& strstr(gl_extensions, "GL_ATI_fragment_shader")
 		&& strstr(gl_extensions, "GL_EXT_vertex_shader"))
 	{
-		Con_Printf("Using Radeon path.\n");
-		gl_radeon = true;
+	    gl_cardtype = RADEON;
 
-		//get TEX3d poiters                   wlgGetProcAddress
-		qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)wglGetProcAddress("glTexImage3DEXT");
+	    //get TEX3d poiters                   wlgGetProcAddress
+	    qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)wglGetProcAddress("glTexImage3DEXT");
 
-		//default to trilinear filtering on Radeon
-		gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
-		gl_filter_max = GL_LINEAR;
-                GL_CreateShadersRadeon();
+	    //default to trilinear filtering on Radeon
+	    gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
+            gl_filter_max = GL_LINEAR;
+            GL_CreateShadersRadeon();
+	}
+}
 
-	} else {
-		gl_radeon = false;
+void CheckParheliaExtensions(void) 
+{
+	int supportedTmu;
+	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
 
-		if (gl_geforce3) {
-			Con_Printf("Using geforce3 path\n");
-		} else if (gl_nvcombiner) {
-			Con_Printf("Using Geforce1, Geforce2 or Geforce4-Mx path\n");
-		} else
-			Con_Printf("Using generic path.\n");
+	if (strstr(gl_extensions, "GL_EXT_texture3D")
+		&& (supportedTmu >= 4)  && (!COM_CheckParm ("-forcegeneric"))
+		&& strstr(gl_extensions, "GL_MTX_fragment_shader")
+		&& strstr(gl_extensions, "GL_EXT_vertex_shader"))
+	{
+            gl_cardtype = PARHELIA;
+
+	    //get TEX3d poiters                   wlgGetProcAddress
+	    qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)wglGetProcAddress("glTexImage3DEXT");
+
+	    //default to trilinear filtering on Parhelia
+	    gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
+	    gl_filter_max = GL_LINEAR;
+            GL_CreateShadersParhelia();
+	}
+}
+
+void CheckARBFragmentExtensions(void) 
+{
+	int supportedTmu;
+	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
+
+	if (strstr(gl_extensions, "GL_EXT_texture3D")
+		&& (supportedTmu >= 6)  && (!COM_CheckParm ("-forcegeneric"))
+                && (!COM_CheckParm ("-noarb"))
+		&& strstr(gl_extensions, "GL_ARB_fragment_program")
+		&& strstr(gl_extensions, "GL_ARB_vertex_program"))
+	{
+		gl_cardtype = ARB;
+
+	    //get TEX3d poiters                   wlgGetProcAddress
+	    qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)wglGetProcAddress("glTexImage3DEXT");
+
+	    //default to trilinear filtering
+	    gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
+	    gl_filter_max = GL_LINEAR;
+            GL_CreateShadersARB();
 	}
 }
 
@@ -854,6 +884,8 @@ GL_Init
 */
 void GL_Init (void)
 {
+	int supportedTmu;
+
 	gl_vendor = glGetString (GL_VENDOR);
 	Con_Printf ("GL_VENDOR: %s\n", gl_vendor);
 	gl_renderer = glGetString (GL_RENDERER);
@@ -872,17 +904,59 @@ void GL_Init (void)
     if (strnicmp(gl_renderer,"Permedia",8)==0)
          isPermedia = true;
 
+        Con_Printf("Checking paletted texture\n");
         CheckPalettedTexture ();
 
+        Con_Printf("Checking multitexture\n");
 	CheckMultiTextureExtensions ();
 
+        Con_Printf("Checking diffuse bumpmap extensions\n");
 	CheckDiffuseBumpMappingExtensions(); 
-	CheckSpecularBumpMappingExtensions(); 
-	CheckGeforce3Extensions();
-	CheckRadeonExtensions();
+
+        Con_Printf("Checking ARB extensions\n");
+	CheckARBFragmentExtensions();
+	if ( gl_cardtype != ARB )
+	{
+                Con_Printf("Checking GeForce 1/2/4-MX\n");
+		CheckSpecularBumpMappingExtensions(); 
+                Con_Printf("Checking GeForce 3/4\n");
+		CheckGeforce3Extensions();
+                Con_Printf("Checking Radeon 8500+\n");
+		CheckRadeonExtensions();
+                Con_Printf("Checking Parhelia\n");
+		CheckParheliaExtensions();
+	}
+        Con_Printf("Checking VAR\n");
 	CheckVertexArrayRange();
+        Con_Printf("Checking AF\n");
 	CheckAnisotropicExtension();
+        Con_Printf("Checking TC\n");
 	CheckTextureCompressionExtension();
+
+	switch(gl_cardtype)
+	{
+		case GENERIC:
+			Con_Printf("Using generic path.\n");
+			break;
+		case GEFORCE:
+			Con_Printf("Using GeForce 1/2/4-MX path\n");
+			break;
+		case GEFORCE3:
+			Con_Printf("Using GeForce 3/4 path\n");
+			break;
+		case RADEON:
+			Con_Printf("Using Radeon path.\n");
+			break;
+		case PARHELIA:
+			Con_Printf("Using Parhelia path.\n");
+			break;
+		case ARB:
+			Con_Printf("Using ARB_fragment_program path.\n");
+			break;
+	}
+
+	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
+	Con_Printf("%i texture units\n",supportedTmu);
 
 	//PENTA: enable mlook by default, people kept mailing me about how to do mlook
 	Cbuf_AddText ("+mlook");
