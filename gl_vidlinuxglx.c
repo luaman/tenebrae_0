@@ -834,7 +834,7 @@ void CheckParheliaExtensions(void)
 	glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
 
 	if (strstr(gl_extensions, "GL_EXT_texture3D")
-		&& (supportedTmu >= 4)  && (!COM_CheckParm ("-forcegeneric"))
+		&& (supportedTmu >= 4)  && (COM_CheckParm ("-forceparhelia"))
 		&& strstr(gl_extensions, "GL_MTX_fragment_shader")
 		&& strstr(gl_extensions, "GL_EXT_vertex_shader"))
 	{
