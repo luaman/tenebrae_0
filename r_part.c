@@ -998,6 +998,7 @@ void R_DrawParticles (void)
 	vec3_t			up, right, neworg;
 	float			scale, sscale;
 
+	glFogfv(GL_FOG_COLOR, color_black); //Done in actual function now (stops "triangle effect") - Eradicator
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_ONE, GL_ONE);
 	glEnable(GL_ALPHA_TEST);
@@ -1205,6 +1206,7 @@ void R_DrawParticles (void)
 	//XYZ
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
+	glFogfv(GL_FOG_COLOR, fog_color); //Done in actual function now (stops "triangle effect") - Eradicator
 #else
 	D_EndParticles ();
 #endif
