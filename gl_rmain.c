@@ -2718,15 +2718,38 @@ void R_RenderView (void)
 	fog_color[3] = 1.0;
 	if ((viewcont == CONTENTS_WATER) && (fog_waterfog.value)){
 		glFogi(GL_FOG_MODE, GL_LINEAR);
-		fog_color[0] = 50/255.0;
-		fog_color[1] = 50/255.0;
+		fog_color[0] = 64/255.0;
+		fog_color[1] = 48/255.0;
 		fog_color[2] = 0.0;
 		glFogfv(GL_FOG_COLOR, fog_color);
-		glFogf(GL_FOG_END, 400);
+		glFogf(GL_FOG_END, 512);
 		glFogf(GL_FOG_START, 0);
 		glEnable(GL_FOG);
 		oldfogen = fog_enabled.value;
 		fog_enabled.value = 1.0;
+	} else 	if ((viewcont == CONTENTS_SLIME) && (fog_waterfog.value)){
+		glFogi(GL_FOG_MODE, GL_LINEAR);
+		fog_color[0] = 0.0;
+		fog_color[1] = 128/255.0;
+		fog_color[2] = 32/255.0;
+		glFogfv(GL_FOG_COLOR, fog_color);
+		glFogf(GL_FOG_END, 256);
+		glFogf(GL_FOG_START, 0);
+		glEnable(GL_FOG);
+		oldfogen = fog_enabled.value;
+		fog_enabled.value = 1.0;
+	} else 	if ((viewcont == CONTENTS_LAVA) && (fog_waterfog.value)){
+		glFogi(GL_FOG_MODE, GL_LINEAR);
+		fog_color[0] = 255/255.0;
+		fog_color[1] = 64/255.0;
+		fog_color[2] = 0.0;
+		glFogfv(GL_FOG_COLOR, fog_color);
+		glFogf(GL_FOG_END, 256);
+		glFogf(GL_FOG_START, 0);
+		glEnable(GL_FOG);
+		oldfogen = fog_enabled.value;
+		fog_enabled.value = 1.0;
+
 	} else {
 		glFogi(GL_FOG_MODE, GL_LINEAR);
 		fog_color[0] = fog_r.value/255.0;
