@@ -71,6 +71,11 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
+//PENTA: win32 we use assembler
+#if defined(_WIN32)
+#define USE_ASM 1
+#endif
+
 #if defined(__i386__) && defined(USE_ASM)
 #define id386	1
 #else
