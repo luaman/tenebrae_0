@@ -1452,6 +1452,38 @@ qboolean R_ShouldDrawViewModel (void)
 	return true;
 }
 
+extern	cvar_t		v_gamma;
+/*
+============
+R_AdjustGamma
+============
+*/
+void R_AdjustGamma(void) //Gamma - Eradicator
+{
+	if (v_gamma.value < 0.2f)
+		v_gamma.value = 0.2f;
+	if (v_gamma.value >= 1)
+	{
+		v_gamma.value = 1;
+		return;
+	}
+
+	glBlendFunc (GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
+	glColor4f (1, 1, 1, v_gamma.value );
+	glBegin (GL_QUADS);
+	glVertex3f (10, 100, 100);
+	glVertex3f (10, -100, 100);
+	glVertex3f (10, -100, -100);
+	glVertex3f (10, 100, -100);
+	
+	glVertex3f (11, 100, 100);
+	glVertex3f (11, -100, 100);
+	glVertex3f (11, -100, -100);
+	glVertex3f (11, 100, -100);
+
+	glEnd ();
+}
+
 /*
 ============
 R_PolyBlend
@@ -1461,31 +1493,38 @@ void R_PolyBlend (void)
 {
 	if (!gl_polyblend.value)
 		return;
-	if (!v_blend[3])
-		return;
 
 	GL_DisableMultitexture();
 
-	glDisable (GL_ALPHA_TEST);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glEnable (GL_BLEND);
 	glDisable (GL_DEPTH_TEST);
 	glDisable (GL_TEXTURE_2D);
 
-    glLoadIdentity ();
+      	glLoadIdentity ();
 
-    glRotatef (-90,  1, 0, 0);	    // put Z going up
-    glRotatef (90,  0, 0, 1);	    // put Z going up
+      	glRotatef (-90,  1, 0, 0);	    // put Z going up
+      	glRotatef (90,  0, 0, 1);	    // put Z going up
 
-	glColor4fv (v_blend);
+	if (v_blend[3])
+	{
+		glColor4fv (v_blend);
 
-	glBegin (GL_QUADS);
+		glBegin (GL_QUADS);
 
-	glVertex3f (10, 100, 100);
-	glVertex3f (10, -100, 100);
-	glVertex3f (10, -100, -100);
-	glVertex3f (10, 100, -100);
-	glEnd ();
+		glVertex3f (10, 100, 100);
+		glVertex3f (10, -100, 100);
+		glVertex3f (10, -100, -100);
+		glVertex3f (10, 100, -100);
+		glEnd ();
 
+	}
+
+	if (v_gamma.value != 1) //Gamma - Eradicator
+		R_AdjustGamma(); 
+
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable (GL_BLEND);
 	glEnable (GL_TEXTURE_2D);
 	glEnable (GL_ALPHA_TEST);
