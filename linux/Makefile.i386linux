@@ -15,27 +15,36 @@ GLIBC=.glibc
 ARCH=i386
 NOARCH=noarch
 
-#MOUNT_DIR=/src/tenebrae
-MOUNT_DIR=../
+MOUNT_DIR     = ../
 
-MASTER_DIR=/usr/local/share/games/quake
+MASTER_DIR    = /usr/local/share/games/quake
 
-BUILD_DEBUG_DIR=debug$(ARCH)$(GLIBC)
-BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
+BUILD_DEBUG_DIR = debug$(ARCH)$(GLIBC)
+BUILD_RELEASE_DIR = release$(ARCH)$(GLIBC)
 
-LEX=/usr/bin/flex -i -Cfr
-CC=/usr/bin/gcc
+LEX           = /usr/bin/flex -i -Cfr
+CC            = /usr/bin/gcc
 
-BASE_CFLAGS= -Dstricmp=strcasecmp -D__glx__ -DBASEDIR="$(MASTER_DIR)" -DGLQUAKE -DUSERPREF_DIR
-#RELEASE_CFLAGS=$(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
+X11_LIBS      = -L/usr/X11R6/lib -lpthread -lX11 -lXext -lXxf86dga -lXxf86vm
+
+# to enable OpenGL code in source 
+OPENGL_CFLAGS = -D__glx__ -DGLQUAKE
+OPENGL_LIBS   = -lGL -lGLU
+
+PNG_LIBS      = -lpng -lz
+
+OPENAL_LIBS   = -lopenal 
+OPENAL_CFLAGS = -DOPENAL -I/usr/local/include/AL
+
+BASE_CFLAGS   = -Dstricmp=strcasecmp -DBASEDIR="$(MASTER_DIR)" -DUSERPREF_DIR $(OPENGL_CFLAGS) $(OPENAL_CFLAGS)
+RELEASE_CFLAGS = $(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
 	-fomit-frame-pointer -fexpensive-optimizations
-RELEASE_CFLAGS=$(BASE_CFLAGS) -O6
-DEBUG_CFLAGS=$(BASE_CFLAGS) -g
-LDFLAGS=-lm -ldl -L/usr/X11R6/lib -lGL -lGLU -lpthread -lX11 -lXext -lXxf86dga -lXxf86vm -lm -lpng -lz
+DEBUG_CFLAGS  = $(BASE_CFLAGS) -g
+LDFLAGS       = -lm -ldl $(X11_LIBS) $(OPENGL_LIBS) $(PNG_LIBS) $(OPENAL_LIBS)
 
-DO_GL_CC=$(CC) $(CFLAGS) -o $@ -c $<
-DO_GL_AS=$(CC) $(CFLAGS) -DELF -x assembler-with-cpp -o $@ -c $<
-DO_LEX=$(LEX) -o$@ $< 
+DO_GL_CC      = $(CC) $(CFLAGS) -o $@ -c $<
+DO_GL_AS      = $(CC) $(CFLAGS) -DELF -x assembler-with-cpp -o $@ -c $<
+DO_LEX        = $(LEX) -o$@ $< 
 
 #############################################################################
 # SETUP AND BUILD
