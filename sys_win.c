@@ -759,7 +759,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	double			time, oldtime, newtime;
 	MEMORYSTATUS	lpBuffer;
 	static	char	cwd[1024];
-	int			j,t;
+	int				j,t;
+	int				mb_mem_size=50;
 	RECT			rect;
 
     /* previous instances do not exist in Win32 */
