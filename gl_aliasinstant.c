@@ -107,7 +107,7 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 
 	int i, oldest, oindex;
 	/*
-	if (InstantsUsed < NUM_ALIAS_LIGHT_INSTANTS ) {
+	if (InstantsUsed < NUM_ALIAS_INSTANTS ) {
 		return &InstantCache[InstantsUsed++];
 	} else {
 		return NULL;
@@ -134,16 +134,15 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 	if (oindex == -1) {
 		//find an instant of an other light
 		for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
-			if (LightInstantCache[i].lastlight != currentshadowlight) {
-				oindex = i;
-				break;
-			}
+			if (LightInstantCache[i].lastlight != currentshadowlight)
+				return &LightInstantCache[i];
 		}
 	}
 
-	LightInstantCache[oindex].lastent = NULL;
-	LightInstantCache[oindex].lastframeinstant = NULL;
-	LightInstantCache[oindex].lastlight = NULL;
+	LightInstantCache[oindex].lastent = NULL; 
+	LightInstantCache[oindex].lastframeinstant = NULL; 
+	LightInstantCache[oindex].lastlight = NULL; 
+
 	return &LightInstantCache[oindex];
 }
 
@@ -162,8 +161,8 @@ void R_ClearInstantCaches() {
 	for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
 		LightInstantCache[i].lockframe = 0;
 		LightInstantCache[i].lastent = NULL;
-		LightInstantCache[i].lastlight = NULL;
-		LightInstantCache[i].lastframeinstant = NULL;
+		LightInstantCache[i].lastlight = NULL; 
+		LightInstantCache[i].lastframeinstant = NULL; 
 	}
 }
 
@@ -192,10 +191,15 @@ void R_SetupInstants (void)
 	//interpolate gun also
 	if (cl.viewent.model)
 		R_SetupInstantForFrame(&cl.viewent,true);
+	else
+		cl.viewent.aliasframeinstant = NULL;
 
 	//for player
 	if ((!mirror) && cl_entities[cl.viewentity].model)
 		R_SetupInstantForFrame(&cl_entities[cl.viewentity],true);
+	else
+		cl_entities[cl.viewentity].aliasframeinstant = NULL;
+
 }
 
 
@@ -647,7 +651,7 @@ void R_CalcAttenColors(entity_t *e,	aliasframeinstant_t *instant, aliaslightinst
 void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
 
 	mtriangle_t	*tris;
-	int i, j, k;
+	int i, j;
 	int		*indecies;
 	aliashdr_t *paliashdr = instant->paliashdr;
 	indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
@@ -655,7 +659,6 @@ void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliasligh
 
 	//calculate visibility
 	j = 0;
-	k = 0;
 	linstant->numtris = 0;
 	for (i=0; i<paliashdr->numtris; i++) {
 		if (!linstant->triangleVis[i]) {
@@ -665,7 +668,19 @@ void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliasligh
 			linstant->indecies[j+2] = tris[i].vertindex[2];
 			j+=3;
 		}
-		k+=3;
+	}
+
+	if (!sh_noshadowpopping.value) return;
+
+	//Add backfacing tris also to the list
+	//and render them separately to reduce popping artefacts
+	for (i=0; i<paliashdr->numtris; i++) {
+		if (linstant->triangleVis[i]) {
+			linstant->indecies[j] = tris[i].vertindex[0];
+			linstant->indecies[j+1] = tris[i].vertindex[1];
+			linstant->indecies[j+2] = tris[i].vertindex[2];
+			j+=3;
+		}
 	}
 }
 
@@ -717,15 +732,23 @@ void R_SetupInstantForLight(entity_t *e)
 		//no error here error was already printed in SetupInstantForFrame
 		return;
 	}
-
 	aliasframeinstant = (aliasframeinstant_t *)e->aliasframeinstant;
-	//PENTA: guard agains model removed from cache
+
+//PENTA: Make sure we aren't referencing any other null models :)
+	if (!e->model) {
+		Sys_Error("Null model in SetupInstantForLight\n");
+		return;
+	}
+
+//PENTA: guard against model removed from cache
+	
 	test = (aliashdr_t *)Mod_Extradata (e->model);
 	if (test != aliasframeinstant->paliashdr) {
-		//Sys_Error("Cache trashed");
-		r_cache_thrash = true;
-		aliasframeinstant->paliashdr = test;
-	}
+		//Sys_Error("Cache Trashed"); 
+		r_cache_thrash = true; 
+		aliasframeinstant->paliashdr = test; 
+	} 
+	
 
 	aliaslightinstant = R_AllocateLightInstant(e);
 	aliasframeinstant->lightinstant = aliaslightinstant;
