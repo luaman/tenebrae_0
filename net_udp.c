@@ -64,7 +64,7 @@ int UDP_Init (void)
 		return -1;
 
 	// determine my name & address
-#if defined (__APPLE__) || defined (MACOSX)
+#if !defined(_WIN32)
 
 	if (gethostname(buff, MAXHOSTNAMELEN) != 0)
         {
@@ -83,7 +83,7 @@ int UDP_Init (void)
 	gethostname(buff, MAXHOSTNAMELEN);
 	local = gethostbyname(buff);
 
-#endif /* __APPLE__ ||ÊMACOSX */
+#endif /* !_WIN32 */
 
 	myAddr = *(int *)local->h_addr_list[0];
 
@@ -101,7 +101,7 @@ int UDP_Init (void)
 	((struct sockaddr_in *)&broadcastaddr)->sin_addr.s_addr = INADDR_BROADCAST;
 	((struct sockaddr_in *)&broadcastaddr)->sin_port = htons(net_hostport);
 
-#if defined (__APPLE__) || defined (MACOSX)
+#if !defined (_WIN32)
 
 	if (UDP_GetSocketAddr (net_controlsocket, &addr) != 0)
         {
@@ -113,7 +113,7 @@ int UDP_Init (void)
 
         UDP_GetSocketAddr (net_controlsocket, &addr);
 
-#endif /* __APPLE__ || MACOSX */
+#endif /* !_WIN32 */
 
 	Q_strcpy(my_tcpip_address,  UDP_AddrToString (&addr));
 	colon = Q_strrchr (my_tcpip_address, ':');
@@ -369,7 +369,7 @@ int UDP_GetSocketAddr (int socket, struct qsockaddr *addr)
 
 	Q_memset(addr, 0, sizeof(struct qsockaddr));
 
-#if defined (__APPLE__) || defined (MACOSX)
+#if !defined(_WIN32)
 
 	if (getsockname(socket, (struct sockaddr *)addr, &addrlen) != 0)
             return (-1);
@@ -378,7 +378,7 @@ int UDP_GetSocketAddr (int socket, struct qsockaddr *addr)
 
 	getsockname(socket, (struct sockaddr *)addr, &addrlen);
 
-#endif /* __APPLE__ || MACOSX */
+#endif /* !_WIN32 */
 
 	a = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
 	if (a == 0 || a == inet_addr("127.0.0.1"))
