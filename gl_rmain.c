@@ -764,34 +764,34 @@ void R_DrawAliasShadowVolume (entity_t *e)
 
     for (i=0;i<maxnumsurf;++i)
     {
-	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-
-	if (!aliasframeinstant) {
-	    glPopMatrix ();
+		paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+		
+		if (!aliasframeinstant) {
+			glPopMatrix ();
             Con_Printf("R_DrawAliasShadowVolume: missing instant for ent %s\n", e->model->name);	
-	    return;
-	}
-
-	/*  doesn't fit with new structs
-	    if (paliashdr != ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr) {
-	    //Sys_Error("Cache trashed");
-	    r_cache_thrash = true;
-	    ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr = paliashdr;
-	    }
-	*/
-
-	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
-	{
-	    glPopMatrix ();
-	    return;
-	}
-
-	//
-	// draw all the triangles
-	//
-	R_DrawAliasSurfaceShadowVolume(paliashdr,aliasframeinstant);
-	aliasframeinstant = aliasframeinstant->_next;
-	//VectorCopy(oldlightpos,currentshadowlight->origin);
+			return;
+		}
+		
+		/*  doesn't fit with new structs
+		if (paliashdr != ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr) {
+		//Sys_Error("Cache trashed");
+		r_cache_thrash = true;
+		((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr = paliashdr;
+		}
+		*/
+		
+		if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
+		{
+			glPopMatrix ();
+			return;
+		}
+		
+		//
+		// draw all the triangles
+		//
+		R_DrawAliasSurfaceShadowVolume(paliashdr,aliasframeinstant);
+		aliasframeinstant = aliasframeinstant->_next;
+		//VectorCopy(oldlightpos,currentshadowlight->origin);
     } /* for paliashdr */
 
     glPopMatrix();

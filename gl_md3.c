@@ -412,13 +412,13 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
      mod->mins[0] = mod->mins[1] = mod->mins[2] =  99999.0;
      mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = -99999.0; 
      
-        for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
+for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
              
 	//Alocate hunk mem for the header and the frame info (not the actual frame vertices)
 	size = 	sizeof (aliashdr_t) + (pinmodel->numFrames-1) * sizeof (maliasframedesc_t);
-             pheader = Hunk_Alloc (size);
-             // store alias offset
-             palias3->ofsSurfaces[surfcount] = (int)((char*)pheader - (char*)palias3);
+	pheader = Hunk_Alloc (size);
+	// store alias offset
+	palias3->ofsSurfaces[surfcount] = (int)((char*)pheader - (char*)palias3);
 	Q_memset(pheader,0,sizeof(aliashdr_t));
 
 	//Convert the header to the old header
@@ -453,20 +453,20 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 		pheader->frames[i].numposes = 1;
 		pheader->frames[i].frame = i;
 		pheader->frames[i].interval = 0.1f;
-                pheader->mins[0] = pheader->mins[1] = pheader->mins[2] =  99999.0;
-                pheader->maxs[0] = pheader->maxs[1] = pheader->maxs[2] = -99999.0; 
-                //Convert the vertices
+		pheader->mins[0] = pheader->mins[1] = pheader->mins[2] =  99999.0;
+		pheader->maxs[0] = pheader->maxs[1] = pheader->maxs[2] = -99999.0; 
+		//Convert the vertices
 		for (j=0; j<pheader->poseverts; j++) {
 			k = i*pheader->poseverts+j;
 			verts[k].v[0] = xyz[k].xyz[0]*MD3_XYZ_SCALE;
 			verts[k].v[1] = xyz[k].xyz[1]*MD3_XYZ_SCALE;
 			verts[k].v[2] = xyz[k].xyz[2]*MD3_XYZ_SCALE;
 			verts[k].lightnormalindex = xyz[k].normal;
-                        //setup correct surface bounding box
-                        for (l=0; l<3; l++) {
-                             pheader->mins[l] = min(pheader->mins[l],verts[k].v[l]);
-                             pheader->maxs[l] = max(pheader->maxs[l],verts[k].v[l]);
-                        }
+			//setup correct surface bounding box
+			for (l=0; l<3; l++) {
+				pheader->mins[l] = min(pheader->mins[l],verts[k].v[l]);
+				pheader->maxs[l] = max(pheader->maxs[l],verts[k].v[l]);
+			}
 		}
 		//setup correct model bounding box
 		for (j=0; j<3; j++) {
@@ -498,7 +498,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 			}
 		}
 
-             //Calculate plane equations
+	//Calculate plane equations
 	norms = Hunk_Alloc (pheader->numtris * pheader->numposes * sizeof(plane_t));
 	pheader->planes = (byte *)norms - (byte *)pheader;
 	for (i=0; i<pheader->numposes; i++) {
@@ -605,9 +605,9 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 #ifdef MD3DEBUG
 	Con_Printf("Load shader %s\n",shadername);
 #endif
-             // next surface
-             surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
-        } /* for numsurf */
+	// next surface
+	surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
+} /* for numsurf */
 
      //calculate radius
      mod->radius = RadiusFromBounds (mod->mins, mod->maxs);

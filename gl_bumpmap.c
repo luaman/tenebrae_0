@@ -986,46 +986,46 @@ void R_DrawAliasObjectLight(entity_t *e,void (*AliasGeoSender) (aliashdr_t *pali
 //	VectorCopy (currententity->origin, r_entorigin);
 //	VectorSubtract (r_origin, r_entorigin, modelorg);
 
-        glPushMatrix ();
-        R_RotateForEntity (e);
+	glPushMatrix ();
+	R_RotateForEntity (e);
 
 	//
 	// locate the proper data
 	//
 	data = (alias3data_t *)Mod_Extradata (e->model);
-        maxnumsurf = data->numSurfaces;
-        aliasframeinstant = e->aliasframeinstant;
+	maxnumsurf = data->numSurfaces;
+	aliasframeinstant = e->aliasframeinstant;
 
-        for (i=0;i<maxnumsurf;++i){
+	for (i=0;i<maxnumsurf;++i){
 
-             paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-
-             if (!aliasframeinstant) {
-                  glPopMatrix();
-                  Con_Printf("R_DrawAliasObjectLight: missing instant for ent %s\n", e->model->name);
-                  return;
-             }
-
-             if (aliasframeinstant->shadowonly) continue;
-
-	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
-	{
-                glPopMatrix();
-		return;
-	}
-
-	VectorCopy(currentshadowlight->origin,oldlightpos);
-	VectorCopy(currentshadowlight->origin,currentshadowlight->oldlightorigin);
-	
-	pose = paliashdr->frames[e->frame].firstpose;
-	numposes = paliashdr->frames[e->frame].numposes;
-
-	//Draw it!
-             AliasGeoSender(paliashdr,aliasframeinstant);
-
-             aliasframeinstant = aliasframeinstant->_next;
+		paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+		
+		if (!aliasframeinstant) {
+			glPopMatrix();
+			Con_Printf("R_DrawAliasObjectLight: missing instant for ent %s\n", e->model->name);
+			return;
+		}
+		
+		if (aliasframeinstant->shadowonly) continue;
+		
+		if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
+		{
+			glPopMatrix();
+			return;
+		}
+		
+		VectorCopy(currentshadowlight->origin,oldlightpos);
+		VectorCopy(currentshadowlight->origin,currentshadowlight->oldlightorigin);
+		
+		pose = paliashdr->frames[e->frame].firstpose;
+		numposes = paliashdr->frames[e->frame].numposes;
+		
+		//Draw it!
+		AliasGeoSender(paliashdr,aliasframeinstant);
+		
+		aliasframeinstant = aliasframeinstant->_next;
              
-        } /* for paliashdr */
+	} /* for paliashdr */
 
 	glPopMatrix();
 }
