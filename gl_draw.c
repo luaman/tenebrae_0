@@ -753,11 +753,59 @@ Draw_ConsoleBackground
 void Draw_ConsoleBackground (int lines)
 {
 	int y = (vid.height * 3) >> 2;
+	int x, i; 
+
+	char tl[80]; //Console Clock - Eradicator
+	char timebuf[20];
+	_strtime( timebuf );
 
 	if (lines > y)
 		Draw_Pic(0, lines - vid.height, conback);
 	else
 		Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y);
+
+	y = lines-14; 
+    sprintf (tl, "Time %s",timebuf); //Console Clock - Eradicator
+    x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+    for (i=0 ; i < strlen(tl) ; i++) 
+       Draw_Character (x + i * 8, y, tl[i] | 0x80);
+}
+
+void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
+{ 
+   int x, i; 
+   int y; 
+   static float xangle = 0, xfactor = .3f, xstep = .01f; 
+   
+   char tl[80]; //Console Clock - Eradicator
+   char timebuf[20];
+   _strtime( timebuf );
+
+
+   glPushMatrix(); 
+   glMatrixMode(GL_TEXTURE); 
+   glPushMatrix(); 
+   glLoadIdentity(); 
+   xangle += 1.0f; 
+   xfactor += xstep; 
+   if (xfactor > 8 || xfactor < .3f) 
+      xstep = -xstep; 
+   glRotatef(xangle, 0, 0, 1); 
+   glScalef(xfactor, xfactor, xfactor); 
+   y = (vid.height * 3) >> 2;  
+   if (lines > y) 
+      Draw_Pic(0, lines-vid.height, conback); 
+   else 
+      Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y); 
+   glPopMatrix(); 
+   glMatrixMode(GL_MODELVIEW); 
+   glPopMatrix(); 
+
+	y = lines-14; 
+    sprintf (tl, "Time %s",timebuf); //Console Clock - Eradicator
+    x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+    for (i=0 ; i < strlen(tl) ; i++) 
+       Draw_Character (x + i * 8, y, tl[i] | 0x80);
 }
 
 
