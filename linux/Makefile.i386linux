@@ -33,8 +33,8 @@ OPENGL_LIBS   = -lGL -lGLU
 
 PNG_LIBS      = -lpng -lz
 
-OPENAL_LIBS   = -lopenal 
-OPENAL_CFLAGS = -DOPENAL -I/usr/local/include/AL
+#OPENAL_LIBS   = -lopenal 
+#OPENAL_CFLAGS = -DOPENAL -I/usr/local/include/AL
 
 BASE_CFLAGS   = -Dstricmp=strcasecmp -DBASEDIR="$(MASTER_DIR)" -DUSERPREF_DIR $(OPENGL_CFLAGS) $(OPENAL_CFLAGS)
 RELEASE_CFLAGS = $(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
