@@ -411,8 +411,8 @@ PFNGLVERTEXATTRIBS4FVNVPROC qglVertexAttribs4fvNV = NULL;
 PFNGLVERTEXATTRIBS4SVNVPROC qglVertexAttribs4svNV = NULL;
 PFNGLVERTEXATTRIBS4UBVNVPROC qglVertexAttribs4ubvNV = NULL; 
 
-// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X.
-#if defined (__APPLE__) || defined (MACOSX)
+// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X. -DC- and SDL
+#if defined (__APPLE__) || defined (MACOSX) || defined (SDL)
 
 PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC qglFlushVertexArrayRangeAPPLE  = NULL;
 PFNGLVERTEXARRAYRANGEAPPLEPROC qglVertexArrayRangeAPPLE  = NULL;

@@ -36,6 +36,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <GL/glu.h>
 #endif /* __APPLE__ ||ÊMACOSX */
 
+// - DC -
+#if defined (SDL) 
+#include <SDL/SDL_opengl.h>
+#endif
+
 void GL_BeginRendering (int *x, int *y, int *width, int *height);
 void GL_EndRendering (void);
 
@@ -307,6 +312,7 @@ void GL_Bind (int texnum);
 
 #if !defined (__APPLE__) && !defined (MACOSX)
 
+
 // Multitexture
 //#define    TEXTURE0_SGIS				0x835E
 //#define    TEXTURE1_SGIS				0x835F
@@ -349,6 +355,7 @@ void GL_Bind (int texnum);
 #define GL_TEXTURE31_ARB                    0x84DF
 
 #endif /* !__APPLE__ && !MACOSX */
+
 
 typedef void (APIENTRY * PFNGLACTIVETEXTUREARBPROC) (GLenum texture);
 typedef void (APIENTRY * PFNGLCLIENTACTIVETEXTUREARBPROC) (GLenum texture);
@@ -394,7 +401,7 @@ extern PFNGLMULTITEXCOORD3FARBPROC qglMultiTexCoord3fARB;
 extern PFNGLMULTITEXCOORD3FVARBPROC qglMultiTexCoord3fvARB;
 
 // <AWE> : MacOS X 10.2: defined in <OpenGL/glext.h>
-#if !defined (__APPLE__) && !defined (MACOSX)
+#if !defined (__APPLE__) && !defined (MACOSX) 
 
 //PENTA: Texture env combine/ Texture env dot3
 #define GL_COMBINE_ARB                    0x8570
@@ -521,6 +528,8 @@ extern PFNGLMULTITEXCOORD3FVARBPROC qglMultiTexCoord3fvARB;
 
 #endif /* !__APPLE__ && !MACOSX */
 
+// - DC - 
+#if !defined(SDL)
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFVNVPROC) (GLenum pname, const GLfloat *params);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFNVPROC) (GLenum pname, GLfloat param);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERIVNVPROC) (GLenum pname, const GLint *params);
@@ -534,6 +543,7 @@ typedef void (APIENTRY * PFNGLGETCOMBINEROUTPUTPARAMETERFVNVPROC) (GLenum stage,
 typedef void (APIENTRY * PFNGLGETCOMBINEROUTPUTPARAMETERIVNVPROC) (GLenum stage, GLenum portion, GLenum pname, GLint *params);
 typedef void (APIENTRY * PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC) (GLenum variable, GLenum pname, GLfloat *params);
 typedef void (APIENTRY * PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC) (GLenum variable, GLenum pname, GLint *params);
+#endif
 
 extern PFNGLCOMBINERPARAMETERFVNVPROC qglCombinerParameterfvNV;
 extern PFNGLCOMBINERPARAMETERIVNVPROC qglCombinerParameterivNV;
@@ -549,8 +559,9 @@ extern PFNGLGETCOMBINEROUTPUTPARAMETERIVNVPROC qglGetCombinerOutputParameterivNV
 extern PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC qglGetFinalCombinerInputParameterfvNV;
 extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParameterivNV;
 
+
 // <AWE> : MacOS X 10.2: defined in <OpenGL/glext.h>
-#if !defined (__APPLE__) && !defined (MACOSX)
+#if !defined (__APPLE__) && !defined (MACOSX) && !defined(SDL)
 
 //PENTA: texture3d
 #define GL_PACK_SKIP_IMAGES               0x806B
@@ -572,7 +583,7 @@ extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParam
 #define GL_MAX_3D_TEXTURE_SIZE            0x8073
 #define GL_MAX_3D_TEXTURE_SIZE_EXT        0x8073
 
-#endif /* !__APPLE__ && !MACOSX */
+#endif /* !__APPLE__ && !MACOSX && !SDL */
 
 typedef void (APIENTRY * PFNGLTEXIMAGE3DEXT)(GLenum target, GLint level, GLenum internalformat,
 											 GLsizei width, GLsizei height, GLsizei depth,
@@ -983,8 +994,8 @@ extern PFNGLVERTEXATTRIBS4UBVNVPROC qglVertexAttribs4ubvNV ;
 
 #endif /* !__APPLE__ && !MACOSX */
 
-// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X.
-#if defined (__APPLE__) || defined (MACOSX)
+// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X. -DC- and SDL 
+#if defined (__APPLE__) || defined (MACOSX) || defined(SDL)
 
 typedef void (APIENTRY * PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC) (GLsizei length, const GLvoid *pointer);
 typedef void (APIENTRY * PFNGLVERTEXARRAYRANGEAPPLEPROC) (GLsizei size, const GLvoid *pointer);
@@ -1196,6 +1207,7 @@ extern int brushCacheRequests, brushFullCacheHits, brushPartialCacheHits;	// <AW
 	well I don't now for sure since I'm actually not c a specialist.
 	If you know the answer mail me please.
 */
+
 svnode_t *R_CreateEmptyTree(void);
 svnode_t *R_AddShadowCaster(svnode_t *node, vec3_t *v, int vnum, msurface_t *surf,int depth);
 svnode_t *ExpandVolume(vec3_t *v,int *sign, int vnum, msurface_t *surf);
