@@ -263,6 +263,7 @@ GL_TENEBRAE_SRCS =		\
 	$(MASTER_DIR)/gl_bumpmap.c		\
 	$(MASTER_DIR)/gl_bumpparhelia.c		\
 	$(MASTER_DIR)/gl_bumpradeon.c		\
+	$(MASTER_DIR)/gl_common.c		\
 	$(MASTER_DIR)/gl_glare.c		\
 	$(MASTER_DIR)/gl_md3.c		\
 	$(MASTER_DIR)/gl_screenrect.c		\

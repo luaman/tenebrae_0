@@ -37,11 +37,11 @@ PNG_LIBS      = -lpng -lz
 #OPENAL_LIBS   = -lopenal 
 #OPENAL_CFLAGS = -DOPENAL -I/usr/local/include/AL
 
-BASE_CFLAGS   = -Dstricmp=strcasecmp -DBASEDIR="$(MASTER_DIR)" -DUSERPREF_DIR $(OPENGL_CFLAGS) $(OPENAL_CFLAGS) -I$(MOUNT_DIR)
+BASE_CFLAGS   = -DBASEDIR="$(MASTER_DIR)" -DUSERPREF_DIR $(OPENGL_CFLAGS) $(OPENAL_CFLAGS) -I$(MOUNT_DIR)
 RELEASE_CFLAGS = $(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
 	-fomit-frame-pointer -fexpensive-optimizations
-DEBUG_CFLAGS  = $(BASE_CFLAGS) -g
-LDFLAGS       = -lm -ldl $(X11_LIBS) $(OPENGL_LIBS) $(PNG_LIBS) $(OPENAL_LIBS)
+DEBUG_CFLAGS  = $(BASE_CFLAGS) -g 
+LDFLAGS       = -lm -ldl $(X11_LIBS) $(OPENGL_LIBS) $(PNG_LIBS) $(OPENAL_LIBS) 
 
 DO_GL_CC      = $(CC) $(CFLAGS) -o $@ -c $<
 DO_GL_AS      = $(CC) $(CFLAGS) -DELF -x assembler-with-cpp -o $@ -c $<
@@ -94,6 +94,7 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/gl_bumpmap.o \
 	$(BUILDDIR)/glquake/gl_bumpparhelia.o \
 	$(BUILDDIR)/glquake/gl_bumpradeon.o \
+	$(BUILDDIR)/glquake/gl_common.o \
 	$(BUILDDIR)/glquake/gl_draw.o \
 	$(BUILDDIR)/glquake/gl_decals.o \
 	$(BUILDDIR)/glquake/gl_glare.o \
@@ -213,6 +214,9 @@ $(BUILDDIR)/glquake/gl_bumpparhelia.o :      $(MOUNT_DIR)/gl_bumpparhelia.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_bumpradeon.o :      $(MOUNT_DIR)/gl_bumpradeon.c
+	$(DO_GL_CC)
+
+$(BUILDDIR)/glquake/gl_common.o :      $(MOUNT_DIR)/gl_common.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_decals.o :      $(MOUNT_DIR)/gl_decals.c

@@ -281,6 +281,10 @@ SOURCE=..\gl_bumpradeon.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\gl_common.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\gl_decals.c
 # End Source File
 # Begin Source File
