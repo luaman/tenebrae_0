@@ -830,7 +830,8 @@ void Key_Event (int key, qboolean down)
 #endif /* __APPLE__ || MACOSX */
 
 		key_repeats[key]++;
-		if (key != K_BACKSPACE && key != K_PAUSE && key_repeats[key] > 1)
+		if ((key < K_BACKSPACE || key > K_RIGHTARROW) && key != K_PAUSE && key_repeats[key] > 1) //Allow Repeat for Arrow Keys - Eradicator
+		//if (key != K_BACKSPACE && key != K_PAUSE && key_repeats[key] > 1)
 		{
 			return;	// ignore most autorepeats
 		}
