@@ -1377,15 +1377,22 @@ void R_DrawParticles (void)
 		VectorMA(p->org,sscale,up,neworg);
 		VectorMA(neworg,sscale,right,neworg);
 
-		//draw one triangle
-		glBegin(GL_TRIANGLES);
+                // draw the particle as two triangles
+                scale /= 2;
+		glBegin(GL_TRIANGLE_FAN);
 		glTexCoord2f (0,0);
 		glVertex3fv (neworg);
-		glTexCoord2f (2,0);
-		glVertex3f (neworg[0] + up[0]*scale, neworg[1] + up[1]*scale, neworg[2] + up[2]*scale);
-		glTexCoord2f (0,2);
-		glVertex3f (neworg[0] + right[0]*scale, neworg[1] + right[1]*scale, neworg[2] + right[2]*scale);
+		glTexCoord2f (0,1);
+		glVertex3f (neworg[0] + up[0]*scale, neworg[1] + up[1]*scale,
+                            neworg[2] + up[2]*scale);
+		glTexCoord2f (1,1);
+		glVertex3f (neworg[0] + up[0]*scale + right[0]*scale, neworg[1] + up[1]*scale + right[1]*scale,
+                            neworg[2] + up[2]*scale + right[2]*scale);
+		glTexCoord2f (1,0);
+		glVertex3f (neworg[0] + right[0]*scale, neworg[1] + right[1]*scale,
+                            neworg[2] + right[2]*scale);
 		glEnd();
+                scale *= 2;
 
 		//calculate new position/rotation
 		neworg[0] = p->org[0]+p->vel[0]*frametime;
