@@ -139,6 +139,7 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/world.o \
 	$(BUILDDIR)/glquake/cd_linux.o \
 	$(BUILDDIR)/glquake/sys_linux.o \
+	$(BUILDDIR)/glquake/sys_uxfindfirst.o \
 	$(BUILDDIR)/glquake/snd_dma.o \
 	$(BUILDDIR)/glquake/snd_mem.o \
 	$(BUILDDIR)/glquake/snd_mix.o \
@@ -346,6 +347,9 @@ $(BUILDDIR)/glquake/cd_linux.o :     $(MOUNT_DIR)/cd_linux.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/sys_linux.o :    $(MOUNT_DIR)/sys_linux.c
+	$(DO_GL_CC)
+
+$(BUILDDIR)/glquake/sys_uxfindfirst.o :    $(MOUNT_DIR)/sys_uxfindfirst.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/snd_dma.o :      $(MOUNT_DIR)/snd_dma.c
