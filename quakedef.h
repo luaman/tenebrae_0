@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	LINUX_VERSION		1.30
 #define	X11_VERSION		1.10
 #define MACOSX_VERSION		1.00
-#define STQUAKE_VERSION		1.02
+#define STQUAKE_VERSION		1.04
 
 //define	PARANOID			// speed sapping error checking
 
@@ -352,6 +352,7 @@ extern int			current_skill;		// skill level for currently loaded level (in case
 extern qboolean		isDedicated;
 
 extern int			minimum_memory;
+
 
 extern qboolean fullsbardraw;
 //
