@@ -9,8 +9,7 @@ AM_INIT_AUTOMAKE
 
 # Checks for sources 
 AC_CONFIG_SRCDIR([../sys_sdl.c])
-# automake need AM_CONFIG_HEADER but autoconf doesn't want it
-AC_CONFIG_HEADER([config.h])
+AM_CONFIG_HEADER([config.h])
 
 
 # Checks for programs.
