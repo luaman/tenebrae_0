@@ -828,7 +828,13 @@ void R_DrawAliasFrameLLV (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -860,7 +866,13 @@ void R_DrawAliasFrameHAV (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -908,8 +920,15 @@ void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 		glEnableClientState(GL_COLOR_ARRAY);
 		glColorPointer(3, GL_FLOAT, 0, linstant->colors);
 	}
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
-	
+
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
+
 	if (!gl_geforce3 && !gl_radeon) {//PA:
 		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
