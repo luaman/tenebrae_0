@@ -2046,13 +2046,6 @@ void COM_AddGameDirectory (char *dir)
 	dirdata_t dirdata;
 	strcpy (com_gamedir, dir);
 //
-// add the directory to the search path
-//
-	search = Hunk_Alloc (sizeof(searchpath_t));
-	strcpy (search->filename, dir);
-	search->next = com_searchpaths;
-	com_searchpaths = search;
-//
 // add any pak files in the format pak0.pak pak1.pak, ...
 //
         //Any Pak File - Eradicator 
@@ -2073,6 +2066,14 @@ void COM_AddGameDirectory (char *dir)
 		while (Sys_Findnext( &dirdata ) != NULL);
 
 	}
+
+//
+// add the directory to the search path last so it overrides paks
+//
+	search = Hunk_Alloc (sizeof(searchpath_t));
+	strcpy (search->filename, dir);
+	search->next = com_searchpaths;
+	com_searchpaths = search;
 //
 // add the contents of the parms.txt file to the end of the command line
 //
