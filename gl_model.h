@@ -346,6 +346,7 @@ typedef struct {
 	int					texcoords;	//PENTA: For every triangle the 3 texture coords
 	int					indecies; //PENTA: indecies for gl vertex arrays
 	int					gl_texturenum[MAX_SKINS][4];
+        int                                     gl_lumatex[MAX_SKINS][4]; // duh
 	int					texels[MAX_SKINS];	// only for player skins
 	maliasframedesc_t	frames[1];	// variable sized
 } aliashdr_t;
@@ -364,7 +365,7 @@ extern	trivertx_t	*poseverts[MAXALIASFRAMES];
 // Whole model
 //
 
-typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
+typedef enum {mod_brush, mod_sprite, mod_alias, mod_alias3} modtype_t;
 
 #define	EF_ROCKET	1			// leave a trail
 #define	EF_GRENADE	2			// leave a trail
