@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-const char     *gl_vendor;
-const char     *gl_renderer;
-const char     *gl_version;
-const char     *gl_extensions;
+const char *gl_vendor;
+const char *gl_renderer;
+const char *gl_version;
+const char *gl_extensions;
 qboolean fullsbardraw = false;
 
 
@@ -99,7 +99,7 @@ void VID_SetPalette (unsigned char *palette)
      unsigned        a;
      unsigned        v;
      int             r1,g1,b1;
-     int		j,k,l,m;
+     int		k;
      unsigned short  i;
      unsigned       *table;
      unsigned char  *shade;
@@ -159,6 +159,7 @@ void VID_SetPalette (unsigned char *palette)
 
 void	VID_ShiftPalette (unsigned char *palette)
 {
+    (void)palette;
 //	extern	byte ramps[3][256];
 	
 //	VID_SetPalette (palette);
@@ -426,7 +427,7 @@ void CheckARBFragmentExtensions(void)
      glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
 
      if (strstr(gl_extensions, "GL_EXT_texture3D")
-         && (supportedTmu >= 6)  && (!COM_CheckParm ("-forcegeneric"))
+         && (!COM_CheckParm ("-forcegeneric"))
          && (!COM_CheckParm ("-noarb"))
          && strstr(gl_extensions, "GL_ARB_fragment_program")
          && strstr(gl_extensions, "GL_ARB_vertex_program"))
@@ -440,6 +441,56 @@ void CheckARBFragmentExtensions(void)
           gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
           gl_filter_max = GL_LINEAR;
           GL_CreateShadersARB();
+     }
+}
+
+void CheckNV3xFragmentExtensions(void) 
+{
+     int supportedTmu;
+     glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
+
+     if (strstr(gl_extensions, "GL_EXT_texture3D")
+         && (!COM_CheckParm ("-forcegeneric"))
+         && (!COM_CheckParm ("-nonv3x"))
+         && strstr(gl_extensions, "GL_NV_fragment_program")
+         && strstr(gl_extensions, "GL_NV_vertex_program2"))
+     {
+          gl_cardtype = NV3x;
+
+          //get TEX3d poiters                   wlgGetProcAddress
+          SAFE_GET_PROC (qglTexImage3DEXT,PFNGLTEXIMAGE3DEXT,"glTexImage3DEXT");
+
+          //get vertex_program pointers
+          SAFE_GET_PROC (qglAreProgramsResidentNV,PFNGLAREPROGRAMSRESIDENTNVPROC,"glAreProgramsResidentNV");
+          SAFE_GET_PROC (qglBindProgramNV,PFNGLBINDPROGRAMNVPROC,"glBindProgramNV");
+          SAFE_GET_PROC (qglDeleteProgramsNV,PFNGLDELETEPROGRAMSNVPROC,"glDeleteProgramsNV");
+          SAFE_GET_PROC (qglExecuteProgramNV,PFNGLEXECUTEPROGRAMNVPROC,"glExecuteProgramNV");
+          SAFE_GET_PROC (qglGenProgramsNV,PFNGLGENPROGRAMSNVPROC,"glGenProgramsNV");
+          SAFE_GET_PROC (qglGetProgramParameterdvNV,PFNGLGETPROGRAMPARAMETERDVNVPROC,"glGetProgramParameterdvNV");
+          SAFE_GET_PROC (qglGetProgramParameterfvNV,PFNGLGETPROGRAMPARAMETERFVNVPROC,"glGetProgramParameterfvNV");
+          SAFE_GET_PROC (qglGetProgramivNV,PFNGLGETPROGRAMIVNVPROC,"glGetProgramivNV");
+          SAFE_GET_PROC (qglGetProgramStringNV,PFNGLGETPROGRAMSTRINGNVPROC,"glGetProgramStringNV");
+          SAFE_GET_PROC (qglGetTrackMatrixivNV,PFNGLGETTRACKMATRIXIVNVPROC,"glGetTrackMatrixivNV");
+          SAFE_GET_PROC (qglGetVertexAttribdvNV,PFNGLGETVERTEXATTRIBDVNVPROC,"glGetVertexAttribdvNV");
+          SAFE_GET_PROC (qglGetVertexAttribfvNV,PFNGLGETVERTEXATTRIBFVNVPROC,"glGetVertexAttribfvNV");
+          SAFE_GET_PROC (qglGetVertexAttribivNV,PFNGLGETVERTEXATTRIBIVNVPROC,"glGetVertexAttribivNV");
+          SAFE_GET_PROC (qglGetVertexAttribPointervNV,PFNGLGETVERTEXATTRIBPOINTERVNVPROC,"glGetVertexAttribPointervNV");
+          SAFE_GET_PROC (qglGetVertexAttribPointervNV,PFNGLGETVERTEXATTRIBPOINTERVNVPROC,"glGetVertexAttribPointerNV");
+          SAFE_GET_PROC (qglIsProgramNV,PFNGLISPROGRAMNVPROC,"glIsProgramNV");
+          SAFE_GET_PROC (qglLoadProgramNV,PFNGLLOADPROGRAMNVPROC,"glLoadProgramNV");
+          SAFE_GET_PROC (qglProgramParameter4dNV,PFNGLPROGRAMPARAMETER4DNVPROC,"glProgramParameter4dNV");
+          SAFE_GET_PROC (qglProgramParameter4dvNV,PFNGLPROGRAMPARAMETER4DVNVPROC,"glProgramParameter4dvNV");
+          SAFE_GET_PROC (qglProgramParameter4fNV,PFNGLPROGRAMPARAMETER4FNVPROC,"glProgramParameter4fNV");
+          SAFE_GET_PROC (qglProgramParameter4fvNV,PFNGLPROGRAMPARAMETER4FVNVPROC,"glProgramParameter4fvNV");
+          SAFE_GET_PROC (qglProgramParameters4dvNV,PFNGLPROGRAMPARAMETERS4DVNVPROC,"glProgramParameters4dvNV");
+          SAFE_GET_PROC (qglProgramParameters4fvNV,PFNGLPROGRAMPARAMETERS4FVNVPROC,"glProgramParameters4fvNV");
+          SAFE_GET_PROC (qglRequestResidentProgramsNV,PFNGLREQUESTRESIDENTPROGRAMSNVPROC,"glRequestResidentProgramsNV");
+          SAFE_GET_PROC (qglTrackMatrixNV,PFNGLTRACKMATRIXNVPROC,"glTrackMatrixNV");
+
+          //default to trilinear filtering
+          gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
+          gl_filter_max = GL_LINEAR;
+          GL_CreateShadersNV3x();
      }
 }
 
@@ -497,14 +548,14 @@ void GL_Init (void)
 {
      int supportedTmu;
 
-     gl_vendor = glGetString (GL_VENDOR);
+     gl_vendor = (const char*)glGetString (GL_VENDOR);
      Con_Printf ("GL_VENDOR: %s\n", gl_vendor);
-     gl_renderer = glGetString (GL_RENDERER);
+     gl_renderer = (const char*)glGetString (GL_RENDERER);
      Con_Printf ("GL_RENDERER: %s\n", gl_renderer);
 
-     gl_version = glGetString (GL_VERSION);
+     gl_version = (const char*)glGetString (GL_VERSION);
      Con_Printf ("GL_VERSION: %s\n", gl_version);
-     gl_extensions = glGetString (GL_EXTENSIONS);
+     gl_extensions = (const char*)glGetString (GL_EXTENSIONS);
      Con_Printf ("GL_EXTENSIONS: %s\n", gl_extensions);
 
      Con_Printf ("%s %s\n", gl_renderer, gl_version);
@@ -524,10 +575,16 @@ void GL_Init (void)
      Con_Printf ("Checking diffuse bumpmap extensions\n");
      CheckDiffuseBumpMappingExtensions ();
 
-     Con_Printf ("Checking ARB extensions\n");
-     CheckARBFragmentExtensions ();
+     Con_Printf ("Checking NV3x extensions\n");
+     CheckNV3xFragmentExtensions ();
 
-     if ( gl_cardtype != ARB )
+     if ( gl_cardtype != NV3x )
+     {
+        Con_Printf ("Checking ARB extensions\n");
+        CheckARBFragmentExtensions ();
+     }
+
+     if ( gl_cardtype != ARB && gl_cardtype != NV3x )
      {
           Con_Printf ("Checking GeForce 1/2/4-MX\n");
           CheckSpecularBumpMappingExtensions (); 
@@ -568,6 +625,9 @@ void GL_Init (void)
      case ARB:
           Con_Printf ("Using ARB_fragment_program path.\n");
           break;
+     case NV3x:
+          Con_Printf ("Using NV3x GeForce FX path.\n");
+          break;
      }
             
      glGetIntegerv (GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
@@ -581,7 +641,7 @@ void GL_Init (void)
      glEnable (GL_TEXTURE_2D);
 
      glEnable (GL_ALPHA_TEST);
-     glAlphaFunc (GL_GREATER, 0.666);
+     glAlphaFunc (GL_GREATER, 0.666f);
 
      glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
      glShadeModel (GL_FLAT);

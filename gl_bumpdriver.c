@@ -34,10 +34,10 @@ NOTE:  This should not draw sprites, sprites are drawn separately.
 #include "quakedef.h"
 
 /* Some material definitions. */
-float gl_Light_Ambience2[4] = {0.03,0.03,0.03,0.03};
-float gl_Light_Diffuse2[4] = {0.03,0.03,0.03,0.03};
+float gl_Light_Ambience2[4] = {0.03f,0.03f,0.03f,0.03f};
+float gl_Light_Diffuse2[4] = {0.03f,0.03f,0.03f,0.03f};
 float gl_Light_Specular2[4] = {0,0,0,0};
-float gl_Material_Color2[4] = {0.9, 0.9, 0.9, 0.9};
+float gl_Material_Color2[4] = {0.9f, 0.9f, 0.9f, 0.9f};
 
 void R_DrawLightEntitiesGF3 (shadowlight_t *l);
 void R_DrawLightEntitiesGF (shadowlight_t *l);
@@ -45,6 +45,7 @@ void R_DrawLightEntitiesGEN (shadowlight_t *l);
 void R_DrawLightEntitiesRadeon (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesParhelia (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesARB (shadowlight_t *l); //PA:
+void R_DrawLightEntitiesNV3x (shadowlight_t *l); //PA:
 
 void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not have parameters.
 {
@@ -68,6 +69,9 @@ void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not ha
 #endif
     case ARB:
 	R_DrawWorldBumpedARB(/* l */);
+	break;
+    case NV3x:
+	R_DrawWorldBumpedNV3x(/* l */);
 	break;
     default:
 	R_DrawWorldBumpedGEN(/* l */);
@@ -97,6 +101,9 @@ void R_DrawLightEntities (shadowlight_t *l)
 #endif
     case ARB:
 	R_DrawLightEntitiesARB( l );
+	break;
+    case NV3x:
+	R_DrawLightEntitiesNV3x( l );
 	break;
     default:
 	R_DrawLightEntitiesGEN( l );
@@ -203,7 +210,7 @@ void R_DrawLightEntitiesGEN (shadowlight_t *l)
 void R_DrawLightEntitiesGF3 (shadowlight_t *l)
 {
     int		i;
-
+    (void)l;
     if (!r_drawentities.value)
 	return;
 
@@ -260,6 +267,7 @@ void R_DrawLightEntitiesGF3 (shadowlight_t *l)
 void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 {
     int		i;
+    (void)l;
 
     if (!r_drawentities.value)
 	return;
@@ -319,6 +327,7 @@ void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 void R_DrawLightEntitiesParhelia (shadowlight_t *l)
 {
     int		i;
+    (void)l;
 
     if (!r_drawentities.value)
 	return;
@@ -378,6 +387,7 @@ void R_DrawLightEntitiesParhelia (shadowlight_t *l)
 void R_DrawLightEntitiesARB (shadowlight_t *l)
 {
     int		i;
+    (void)l;
 
     if (!r_drawentities.value)
 	return;
@@ -420,6 +430,64 @@ void R_DrawLightEntitiesARB (shadowlight_t *l)
 	    if (!currententity->brushlightinstant) continue;
 	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
 	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedARB);
+	}
+
+    }
+
+    //Cleanup state
+    glColor3f (1,1,1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask (1);
+}
+
+void R_DrawLightEntitiesNV3x (shadowlight_t *l)
+{
+    int		i;
+    (void)l;
+
+    if (!r_drawentities.value)
+	return;
+
+    if (!currentshadowlight->visible)
+	return;
+
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
+
+    //Alias models
+
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
+	{
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
+
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedNV3x);
+	}
+    }
+
+    if (R_ShouldDrawViewModel())
+    {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedNV3x);
+    }
+
+    //Brush models
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
+	{
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedNV3x);
 	}
 
     }

@@ -999,8 +999,8 @@ typedef void (APIENTRY * PFNGLPROGRAMPARAMETER4DNVPROC) (GLenum target, GLuint i
 typedef void (APIENTRY * PFNGLPROGRAMPARAMETER4DVNVPROC) (GLenum target, GLuint index, const GLdouble *v);
 typedef void (APIENTRY * PFNGLPROGRAMPARAMETER4FNVPROC) (GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 typedef void (APIENTRY * PFNGLPROGRAMPARAMETER4FVNVPROC) (GLenum target, GLuint index, const GLfloat *v);
-typedef void (APIENTRY * PFNGLPROGRAMPARAMETERS4DVNVPROC) (GLenum target, GLuint index, GLuint count, const GLdouble *v);
-typedef void (APIENTRY * PFNGLPROGRAMPARAMETERS4FVNVPROC) (GLenum target, GLuint index, GLuint count, const GLfloat *v);
+typedef void (APIENTRY * PFNGLPROGRAMPARAMETERS4DVNVPROC) (GLenum target, GLuint index, GLsizei count, const GLdouble *v);
+typedef void (APIENTRY * PFNGLPROGRAMPARAMETERS4FVNVPROC) (GLenum target, GLuint index, GLsizei count, const GLfloat *v);
 typedef void (APIENTRY * PFNGLREQUESTRESIDENTPROGRAMSNVPROC) (GLsizei n, const GLuint *programs);
 typedef void (APIENTRY * PFNGLTRACKMATRIXNVPROC) (GLenum target, GLuint address, GLenum matrix, GLenum transform);
 typedef void (APIENTRY * PFNGLVERTEXATTRIBPOINTERNVPROC) (GLuint index, GLint fsize, GLenum type, GLsizei stride, const GLvoid *pointer);
@@ -1176,7 +1176,8 @@ typedef enum
 	GEFORCE3,
 	RADEON,
 	PARHELIA,
-	ARB
+	ARB,
+        NV3x
 } qcardtype;
 extern qcardtype gl_cardtype;
 
@@ -1312,7 +1313,7 @@ typedef struct brushlightinstant_s {
 #define	MAXSHADOWLIGHTS	256 //Maximum number of (client side) lights in a map
 #define MAX_VOLUME_VERTICES 10000 //should be multiple of 4 because this is used as a vertex array
 								 //with GL_QUADS
-#define MAXUSEDSHADOWLIGHS 64 //Maximum number of lights that can be used in a single frame
+#define MAXUSEDSHADOWLIGHS 128 //Maximum number of lights that can be used in a single frame
 
 extern int numShadowLights;	//number of lights currently on client
 extern int numStaticShadowLights; //number of static lights on client
@@ -1408,6 +1409,8 @@ void		R_DrawAliasBumpedParhelia(aliashdr_t *paliashdr, aliasframeinstant_t *inst
 void		R_DrawBrushBumpedParhelia(entity_t *e);//PA:
 void		R_DrawAliasBumpedARB(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
 void		R_DrawBrushBumpedARB(entity_t *e);//PA:
+void		R_DrawAliasBumpedNV3x(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedNV3x(entity_t *e);//PA:
 void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant, qboolean specular);
 void		R_DrawAliasObjectLight (entity_t *e, void (*AliasGeoSender) (aliashdr_t *paliashdr,
                                                                              aliasframeinstant_t* instant));
@@ -1533,3 +1536,14 @@ extern float skybox_cloudspeed;
 extern qboolean skybox_hasclouds;
 
 #include "gl_md3.h"
+
+void IN_Accumulate (void);
+void Con_DebugLog(char *file, char *fmt, ...);
+int SV_HullPointContents (hull_t *hull, int num, vec3_t p);
+int Cmd_CompleteCountPossible (char *partial);
+float RadiusFromBounds (vec3_t mins, vec3_t maxs);
+void Sys_Strtime(char *buf);
+void GL_CreateShadersARB(void);
+void GL_CreateShadersRadeon(void);
+void GL_CreateShadersParhelia(void);
+
