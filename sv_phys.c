@@ -90,6 +90,7 @@ SV_CheckVelocity
 void SV_CheckVelocity (edict_t *ent)
 {
 	int		i;
+	float	wishspeed;	//sv_maxvelocity fix - Eradicator
 
 //
 // bound velocity
@@ -106,11 +107,19 @@ void SV_CheckVelocity (edict_t *ent)
 			Con_Printf ("Got a NaN origin on %s\n", pr_strings + ent->v.classname);
 			ent->v.origin[i] = 0;
 		}
-		if (ent->v.velocity[i] > sv_maxvelocity.value)
+		/*if (ent->v.velocity[i] > sv_maxvelocity.value) //Old
 			ent->v.velocity[i] = sv_maxvelocity.value;
 		else if (ent->v.velocity[i] < -sv_maxvelocity.value)
-			ent->v.velocity[i] = -sv_maxvelocity.value;
+			ent->v.velocity[i] = -sv_maxvelocity.value;*/
 	}
+	//START - sv_maxvelocity fix - Eradicator
+	wishspeed = Length(ent->v.velocity);
+	if (wishspeed > sv_maxvelocity.value)
+	{
+		VectorScale (ent->v.velocity, sv_maxvelocity.value/wishspeed, ent->v.velocity);
+		wishspeed = sv_maxvelocity.value;
+	}
+	//END - sv_maxvelocity fix - Eradicator
 }
 
 /*
@@ -445,6 +454,7 @@ void SV_PushMove (edict_t *pusher, float movetime)
 	int			num_moved;
 	edict_t		*moved_edict[MAX_EDICTS];
 	vec3_t		moved_from[MAX_EDICTS];
+	float		solid_backup; //movetype_push error fix - Eradicator
 
 	if (!pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2])
 	{
@@ -509,13 +519,26 @@ void SV_PushMove (edict_t *pusher, float movetime)
 		moved_edict[num_moved] = check;
 		num_moved++;
 
+		//START - movetype_push error fix - Eradicator
+		solid_backup = pusher->v.solid;
+		if ( solid_backup == SOLID_BSP
+		  || solid_backup == SOLID_BBOX
+		  || solid_backup == SOLID_SLIDEBOX )
+		{
+		//END - movetype_push error fix - Eradicator
+
 		// try moving the contacted entity 
 		pusher->v.solid = SOLID_NOT;
 		SV_PushEntity (check, move);
-		pusher->v.solid = SOLID_BSP;
+		//pusher->v.solid = SOLID_BSP; //Old
+		pusher->v.solid = solid_backup; //movetype_push error fix - Eradicator
 
 	// if it is still inside the pusher, block
 		block = SV_TestEntityPosition (check);
+		} //movetype_push error fix - Eradicator
+		else
+			block = NULL;
+
 		if (block)
 		{	// fail the move
 			if (check->v.mins[0] == check->v.maxs[0])
