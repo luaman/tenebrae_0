@@ -76,6 +76,8 @@ double	r_Dworld_matrix[16];//PENTA
 int		r_Iviewport[4];//PENTA
 int		numClearsSaved;//PENTA
 
+float color_black[4] = {0.0, 0.0, 0.0, 0.0};
+
 //
 // screen size info
 //
@@ -139,8 +141,10 @@ cvar_t	sh_bumpmaps = {"sh_bumpmaps","1"};//PENTA: enable disable bump mapping
 cvar_t	sh_colormaps = {"sh_colormaps","1"};//PENTA: enable disable textures on the world (light will remain)
 cvar_t	sh_playershadow = {"sh_playershadow","1"};//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 cvar_t	sh_nocache = {"sh_nocache","0"};
-cvar_t	sh_glares = {"sh_glares","0", true};
-cvar_t	sh_noefrags = {"sh_noefrags","0", true};
+cvar_t	sh_glares = {"sh_glares","0",true};
+cvar_t	sh_noefrags = {"sh_noefrags","0",true};
+cvar_t	sh_showtangent = {"sh_showtangent","0"};
+
 
 cvar_t	mir_detail = {"mir_detail","1",true};
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
@@ -399,7 +403,6 @@ void GL_DrawPentaAliasFrame (aliashdr_t *paliashdr, int posenum) {
 	}
 
 }
-
 
 extern	vec3_t			lightspot;
 
@@ -756,6 +759,46 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
+/*
+	Draws the tangent space of the model
+*/
+void R_DrawAliasTangent (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
+{
+	float*			texcoos;
+	int*			indecies;
+	vec3_t			extr;
+	int				i;
+
+	texcoos = (float *)((byte *)paliashdr + paliashdr->texcoords);
+	indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
+	//GL_DrawAliasFrame (paliashdr, pose);
+
+	for (i=0; i<paliashdr->poseverts; i++) {
+
+		glColor3ub(255,0,0);
+		glBegin(GL_LINES);
+			glVertex3fv(&instant->vertices[i][0]);
+			VectorMA(instant->vertices[i],1,instant->normals[i],extr);
+			glVertex3fv(&extr[0]);
+		glEnd();
+
+		glColor3ub(0,255,0);
+		glBegin(GL_LINES);
+			glVertex3fv(&instant->vertices[i][0]);
+			VectorMA(instant->vertices[i],1,instant->tangents[i],extr);
+			glVertex3fv(&extr[0]);
+		glEnd();
+
+		glColor3ub(0,0,255);
+		glBegin(GL_LINES);
+			glVertex3fv(&instant->vertices[i][0]);
+			VectorMA(instant->vertices[i],1,instant->binomials[i],extr);
+			glVertex3fv(&extr[0]);
+		glEnd();
+	}
+}
+
+
 
 /*
 =================
@@ -842,6 +885,11 @@ void R_DrawAliasModel (entity_t *e, float bright)
 	//	glColor3f(1,1,1);
 	R_SetupAliasFrame (paliashdr, currententity->aliasframeinstant);
 
+	if ((sh_showtangent.value) && (!busy_caustics)) {
+		glDisable(GL_TEXTURE_2D);
+		R_DrawAliasTangent(paliashdr, currententity->aliasframeinstant);
+		glEnable(GL_TEXTURE_2D);
+	}
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
 	glShadeModel (GL_FLAT);
@@ -1925,8 +1973,7 @@ void R_RenderScene (void)
 {
 	int i, j;
 	shadowlight_t *l = NULL;
-	float color_black[4] = {0.0, 0.0, 0.0, 0.0};
-
+	
 	R_SetupFrame ();
 
 	R_SetFrustum ();
@@ -1989,6 +2036,8 @@ void R_RenderScene (void)
 	numClearsSaved = 0;
 	aliasCacheRequests = aliasFullCacheHits = aliasPartialCacheHits = 0;
 	brushCacheRequests = brushFullCacheHits = brushPartialCacheHits = 0;
+
+	glFogfv(GL_FOG_COLOR, color_black);
 
 	for (i=0; i<numUsedShadowLights; i++) {
 
@@ -2101,11 +2150,10 @@ void R_RenderScene (void)
 		glDisable(GL_STENCIL_TEST);
 
 		//sprites only recive "shadows" from the cubemap not the stencil
-		glFogfv(GL_FOG_COLOR, color_black);
+
 		if (!sh_visiblevolumes.value) {
 			R_DrawLightSprites ();
 		}
-		glFogfv(GL_FOG_COLOR, fog_color);
 
 		glDepthMask(GL_TRUE);		
 
