@@ -344,6 +344,7 @@ typedef struct {
 	int					triangles;	//PENTA: We need tris for shadow volumes
 	int					planes;		//PENTA: Plane eq's for every triangle for every frame
 	int					tangents;	//PENTA: Tangent for every vertex for every frame
+	int					binormals;	//PENTA: Tangent for every vertex for every frame
 	int					texcoords;	//PENTA: For every triangle the 3 texture coords
 	int					indecies; //PENTA: indecies for gl vertex arrays
 	int					gl_texturenum[MAX_SKINS][4];
