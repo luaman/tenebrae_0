@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "resource.h"
 #include "conproc.h"
 #include <time.h>
+#include "io.h" //Any Pak File - Eradicator
 
 #define MINIMUM_WIN_MEMORY		0x0880000
 #define MAXIMUM_WIN_MEMORY		0x2000000 //PENTA: Allow quake to allocate more memory by default
@@ -252,6 +253,48 @@ void Sys_mkdir (char *path)
 void Sys_Strtime(char *buf)
 {
   _strtime(buf);
+}
+
+// directory entry list internal data
+typedef struct {
+  struct _finddata_t fileinfo;
+  int handle;
+  char dir[MAX_OSPATH];
+} windirdata_t;
+
+
+dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
+{
+  static windirdata_t windata; // FIX-ME : non reentrant...yuk
+  char dirfilter[MAX_OSPATH];
+  if (dirdata){
+    snprintf(dirfilter,MAX_OSPATH,"%s/%s", dir, filter);
+    windata.handle = _findfirst (dirfilter, &windata.fileinfo);
+    if (windata.handle!=-1){
+      strncpy(windata.dir,dir,MAX_OSPATH); 
+      snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", dir, windata.fileinfo.name);
+      dirdata->internal=&windata;
+      return dirdata;
+    }
+  }
+  return NULL;
+}
+
+dirdata_t *Sys_Findnext (dirdata_t *dirdata)
+{
+  windirdata_t *windata;
+  if (dirdata){
+    windata=dirdata->internal;
+    // next entry ?
+    if (_findnext( windata->handle, &(windata->fileinfo))!=-1){
+      snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", windata->dir, windata->fileinfo.name);
+      return dirdata;
+    }
+    // no -> close 
+    _findclose(windata->handle);
+    dirdata->internal=NULL;
+  }
+  return NULL;
 }
 
 

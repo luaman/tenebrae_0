@@ -206,7 +206,6 @@ void Sys_mkdir (char *path)
   mkdir (path, 0777);
 }
 
-
 void Sys_Strtime(char *buf)
 {
   struct tm *tm_;
@@ -218,6 +217,53 @@ void Sys_Strtime(char *buf)
   sprintf(buf,"%02d:%02d:%02d",tm_->tm_hour,tm_->tm_min,tm_->tm_sec);
   
 }
+
+
+// directory entry list internal data
+#include <glob.h>
+
+typedef struct {
+  glob_t globbuf;
+  size_t count;
+} uxdirdata_t;
+
+static uxdirdata_t uxdata;
+
+
+dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
+{
+  char dirfilter[MAX_OSPATH];
+  if (!filter || !dirdata)
+    return NULL;
+  sprintf(dirfilter,"%s/%s", dir, filter);
+  glob(dirfilter,0,NULL,&uxdata.globbuf);
+  if (uxdata.globbuf.gl_pathc){
+    dirdata->internal=&uxdata;
+    strcpy(dirdata->entry,uxdata.globbuf.gl_pathv[0]);
+    uxdata.count=0;
+    return dirdata;
+  }
+  return NULL;
+}
+
+dirdata_t *Sys_Findnext (dirdata_t *dirdata)
+{
+  uxdirdata_t *uxdata;
+  if (dirdata){
+    uxdata=dirdata->internal;
+    uxdata->count++;
+    // next entry ?
+    if (uxdata->count<uxdata->globbuf.gl_pathc){
+      strcpy(dirdata->entry,uxdata->globbuf.gl_pathv[uxdata->count]);
+      return dirdata;
+    }
+    // no -> close
+    globfree(&uxdata->globbuf);
+    dirdata->internal=NULL;
+  }
+  return NULL;
+}
+
 
 int Sys_FileOpenRead (char *path, int *handle)
 {
@@ -382,6 +428,8 @@ void Sys_LowFPPrecision (void)
 {
 }
 #endif
+
+
 
 
 // - DC - create user pref directory
