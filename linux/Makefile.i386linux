@@ -359,7 +359,7 @@ $(BUILDDIR)/glquake/snd_mixa.o :     $(MOUNT_DIR)/snd_mixa.s
 $(BUILDDIR)/glquake/sys_dosa.o :     $(MOUNT_DIR)/sys_dosa.s
 	$(DO_GL_AS)
 
-$(MOUNT_DIR)/lex.yy.c :     $(MOUNT_DIR)/tenebrae.lex
+$(MOUNT_DIR)/lex.yy.c :     $(MOUNT_DIR)/lex_part.l
 	$(DO_LEX)
 
 $(BUILDDIR)/glquake/lex.yy.o : $(MOUNT_DIR)/lex.yy.c
