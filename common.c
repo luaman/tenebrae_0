@@ -2037,7 +2037,7 @@ then loads and adds pak1.pak, pak2.pak, *.pak ...
 void COM_AddGameDirectory (char *dir)
 {
 	int                             i;
-	searchpath_t    *search,*orig_pak;
+	searchpath_t    *search,*otherpaths=NULL;
 	pack_t                  *pak;
 	char                    pakfile[MAX_OSPATH];
 	char      *filename;        
@@ -2048,7 +2048,6 @@ void COM_AddGameDirectory (char *dir)
 //
 // add any pak files , pak*.pak first 
 //
-        orig_pak=com_searchpaths;
         if (Sys_Findfirst (dir, "*.pak", &dirdata))
 	{
 	        do
@@ -2061,19 +2060,25 @@ void COM_AddGameDirectory (char *dir)
                         search->pack = pak;
                         if (Q_strncasecmp(filename,"pak",3)) {
                              // pak*.pak
-                             search->next = orig_pak;
-                             orig_pak=search;                             
+                             search->next = com_searchpaths;
+                             com_searchpaths = search;                             
                         } 
                         else {
                              // *.pak
-                             search->next = com_searchpaths;
-                             com_searchpaths = search;
+                             search->next = otherpaths;
+                             otherpaths = search;
                         }
                         
                 }
 		while (Sys_Findnext( &dirdata ) != NULL);
 	}
-
+        if (otherpaths){
+             search = otherpaths;
+             while (search->next)
+                  search = search->next;                  
+             search->next = com_searchpaths;
+             com_searchpaths = otherpaths;             
+        }
 //
 // add the directory to the search path last so it overrides paks
 //
