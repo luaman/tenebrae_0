@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	MAX_MAP_HULLS		4
 
 #define	MAX_MAP_MODELS		256
-#define	MAX_MAP_BRUSHES		4096
+#define	MAX_MAP_BRUSHES		16384 //Changed max brushes as requested by Willi (once 4096) - Eradicator
 #define	MAX_MAP_ENTITIES	1024
 #define	MAX_MAP_ENTSTRING	65536
 
