@@ -143,7 +143,11 @@ void SNDDMA_Shutdown(void);
 // User-setable variables
 // ====================================================================
 
+#ifndef OPENAL
 #define	MAX_CHANNELS			128
+#else
+#define	MAX_CHANNELS			32
+#endif
 #define	MAX_DYNAMIC_CHANNELS	8
 
 
