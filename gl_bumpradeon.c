@@ -630,35 +630,6 @@ void GL_CreateShadersRadeon()
 }
 
 
-/*
-Pixel shader for diffuse bump mapping when a light does have a cubemap filter
-(note the required texture coordinates are the same)
-*/
-
-void GL_EnableAttenShaderRadeon ()
-{
-    //we use ordinary combiners, no fancy ATI stuff
-
-    //texture coords for unit 0: Object space vertex position
-
-    //pass trough normalization cubemap
-    GL_SelectTexture(GL_TEXTURE0_ARB);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
-    glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
-}
-
-void GL_DisableAttenShaderRadeon ()
-{
-    glDisable(GL_TEXTURE_3D);
-    glEnable(GL_TEXTURE_2D);
-}
-
-
 void GL_DisableDiffuseShaderRadeon()
 {
     //tex 0 = normal map
