@@ -60,6 +60,71 @@ typedef struct {
 
 static gefv_cache	gefvCache[GEFV_CACHESIZE] = {{NULL, ""}, {NULL, ""}};
 
+//Dynamic progs field loading -- Dedicated to cheapalert who is a dork actually
+//"The people" wanted this...
+//This code was used from Telejano
+
+int eval_color;
+int eval_alpha;
+int eval_pflags;
+int eval_light_lev;
+int eval_style;
+
+ddef_t *ED_FindField (char *name);
+ddef_t *ED_FindGlobal (char *name);
+
+/*
+=================
+FindFieldOffset
+
+=================
+*/
+int FindFieldOffset(char *field)
+{
+	ddef_t *d;
+	d = ED_FindField(field);
+	if (!d) {
+		Con_DPrintf("Field %s not found\n", field);
+		return 0;
+	}
+	Con_DPrintf("Field %s at %i\n", field, (d->ofs*4));
+	return d->ofs*4;
+}
+
+/*
+=================
+FindGlobalOffset
+
+=================
+*/
+int FindGlobalOffset(char *field)
+{
+	ddef_t *d;
+	d = ED_FindGlobal(field);
+	if (!d) {
+		Con_DPrintf("Field %s not found\n", field);
+		return 0;
+	}
+	Con_DPrintf("Field %s  at %i\n", field, (d->ofs*4));
+	return d->ofs*4;
+}
+
+
+/*
+=================
+FindEdictFieldOffsets
+
+=================
+*/
+void FindEdictFieldOffsets()
+{
+	eval_color = FindFieldOffset("color");
+	eval_alpha = FindFieldOffset("alpha");
+	eval_pflags = FindFieldOffset("pflags");
+	eval_light_lev = FindFieldOffset("light_lev");
+	eval_style = FindFieldOffset("style");
+}
+
 /*
 =================
 ED_ClearEdict
@@ -1013,8 +1078,19 @@ void PR_LoadProgs (void)
 
 	if (progs->version != PROG_VERSION)
 		Sys_Error ("progs.dat has wrong version number (%i should be %i)", progs->version, PROG_VERSION);
-	if (progs->crc != PROGHEADER_CRC)
-		Sys_Error ("progs.dat system vars have been modified, progdefs.h is out of date");
+
+  	if (progs->crc != TENEBRAEHEADER_CRC) {
+		if (progs->crc != QUAKE1HEADER_CRC) {
+			Sys_Error ("progs.dat system vars have been modified, progdefs.h is out of date\n Tenebrae only works with Quake1 and tenebrae mods not other engine mods.");
+		} else {
+			Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+			Con_Printf("You are using an unmodified quake1 mod.\n");
+			Con_Printf("Some features may not be available (e.g. the flashlight)\n");
+			Con_Printf("See the tenebrae website for modified prog and info on how\n");
+			Con_Printf("to modify existing progs.\n");
+			Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+		}
+	}
 
 	pr_functions = (dfunction_t *)((byte *)progs + progs->ofs_functions);
 	pr_strings = (char *)progs + progs->ofs_strings;
@@ -1063,6 +1139,8 @@ void PR_LoadProgs (void)
 
 	for (i=0 ; i<progs->numglobals ; i++)
 		((int *)pr_globals)[i] = LittleLong (((int *)pr_globals)[i]);
+
+	FindEdictFieldOffsets();
 }
 
 

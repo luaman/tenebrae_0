@@ -50,6 +50,14 @@ typedef struct edict_s
 } edict_t;
 #define	EDICT_FROM_AREA(l) STRUCT_FROM_LINK(l,edict_t,area)
 
+extern int eval_color;
+extern int eval_alpha;
+extern int eval_pflags;
+extern int eval_light_lev;
+extern int eval_style;
+
+#define HACKY_GETFIELD(ed, fieldname, type, default) (fieldname ? (*((type*)((char*)&ed->v + fieldname))) : default)
+
 //============================================================================
 
 extern	dprograms_t		*progs;

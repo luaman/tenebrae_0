@@ -196,7 +196,7 @@ void SV_SendServerinfo (client_t *client)
 	MSG_WriteString (&client->message,message);
 
 	MSG_WriteByte (&client->message, svc_serverinfo);
-	MSG_WriteLong (&client->message, PROTOCOL_VERSION);
+	MSG_WriteLong (&client->message, TENEBRAE_PROTOCOL_VERSION);
 	MSG_WriteByte (&client->message, svs.maxclients);
 
 	if (!coop.value && deathmatch.value)
@@ -462,7 +462,7 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 				continue;		// not visible
 		}
 
-		if (msg->maxsize - msg->cursize < 16)
+		if (msg->maxsize - msg->cursize < 26) //Penta => more fields now
 		{
 			Con_Printf ("packet overflow\n");
 			return;
@@ -507,26 +507,26 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 		}
 
 		//PENTA: more baseline fields
-		if (ent->baseline.alpha != ent->v.alpha) {
+		if (ent->baseline.alpha != HACKY_GETFIELD(ent, eval_alpha, float, 0)) {
 			bits |= U_ALPHA;
 		}
 
-		if (ent->baseline.style != ent->v.style) {
+		if (ent->baseline.style != HACKY_GETFIELD(ent, eval_style, float, 0)) {
 			bits |= U_STYLE;
 		}
 
-		if (ent->baseline.light_lev != ent->v.light_lev) {
+		if (ent->baseline.light_lev != HACKY_GETFIELD(ent, eval_light_lev, float, 300)) {
 			bits |= U_LIGHTLEV;
 		}
 
-		if ((ent->baseline.color[0] != ent->v.color[0]) ||
-			(ent->baseline.color[1] != ent->v.color[1]) ||
-			(ent->baseline.color[2] != ent->v.color[2]))
+		if ((ent->baseline.color[0] != HACKY_GETFIELD(ent, eval_color, vec3_t, vec3_origin)[0]) ||
+			(ent->baseline.color[1] != HACKY_GETFIELD(ent, eval_color, vec3_t, vec3_origin)[1]) ||
+			(ent->baseline.color[2] != HACKY_GETFIELD(ent, eval_color, vec3_t, vec3_origin)[2]))
 		{
 			bits |= U_COLOR;
 		}
 
-		if (ent->baseline.pflags != ent->v.pflags) {
+		if (ent->baseline.pflags != HACKY_GETFIELD(ent, eval_pflags, float, 0)) {
 			bits |= U_PFLAGS;
 		}
 
@@ -583,21 +583,21 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 		if (bits & U_COLOR) {
 			for (i=0 ; i<3 ; i++)
 			{
-				MSG_WriteByte(msg, (int)(ent->v.color[i]*255));
+				MSG_WriteByte(msg, (int)(HACKY_GETFIELD(ent, eval_color, vec3_t, vec3_origin)[i]*255));
 			}		
 		}
 
 		if (bits & U_ALPHA)
-			MSG_WriteByte (msg, (int)(ent->v.alpha*255));
+			MSG_WriteByte (msg, (int)(HACKY_GETFIELD(ent, eval_alpha, float, 0)*255));
 
 		if (bits & U_LIGHTLEV)
-			MSG_WriteShort (msg, ent->v.light_lev);
+			MSG_WriteShort (msg, HACKY_GETFIELD(ent, eval_light_lev, float, 300));
 
 		if (bits & U_STYLE)
-			MSG_WriteByte (msg, ent->v.style);
+			MSG_WriteByte (msg, HACKY_GETFIELD(ent, eval_style, float, 0));
 
 		if (bits & U_PFLAGS)
-			MSG_WriteByte (msg, ent->v.pflags);
+			MSG_WriteByte (msg, HACKY_GETFIELD(ent, eval_pflags, float, 0));
 
 	}
 }
@@ -1010,12 +1010,12 @@ void SV_CreateBaseline (void)
 		svent->baseline.skin = svent->v.skin;
 		
 		//PENTA: new baseline fields
-		svent->baseline.alpha = svent->v.alpha;
-		svent->baseline.light_lev = svent->v.light_lev;
-		svent->baseline.style = svent->v.style;
-		svent->baseline.pflags = svent->v.pflags;
+		svent->baseline.alpha = HACKY_GETFIELD(svent, eval_alpha, float, 0);
+		svent->baseline.light_lev = HACKY_GETFIELD(svent, eval_light_lev, float, 300);
+		svent->baseline.style = HACKY_GETFIELD(svent, eval_style, float, 0);
+		svent->baseline.pflags = HACKY_GETFIELD(svent, eval_pflags, float, 0);
 
-		VectorCopy (svent->v.color, svent->baseline.color);
+		VectorCopy (HACKY_GETFIELD(svent, eval_color, vec3_t, vec3_origin), svent->baseline.color);
 
 		if (entnum > 0 && entnum <= svs.maxclients)
 		{

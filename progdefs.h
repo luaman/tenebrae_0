@@ -138,11 +138,7 @@ typedef struct
 	string_t	noise1;
 	string_t	noise2;
 	string_t	noise3;
-	vec3_t	color;
-	float	alpha;
-	float	pflags;
-	float	light_lev;
-	float	style;
 } entvars_t;
 
-#define PROGHEADER_CRC 32401
+#define TENEBRAEHEADER_CRC 32401
+#define QUAKE1HEADER_CRC 5927	
