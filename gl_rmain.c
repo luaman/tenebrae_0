@@ -1447,79 +1447,82 @@ Draw the overriden sprites that are lit by a cube map
 */
 void R_DrawLightSprites (void)
 {
-	int		i;
-	vec3_t	dist;
-	float	colorscale;
+    int		i;
+    vec3_t	dist;
+    float	colorscale;
 
-	if (!r_drawentities.value)
-		return;
+    if (!r_drawentities.value)
+        return;
 
-        if ( cl_numlightvisedicts == 0 )
-            return;
+    if ( cl_numlightvisedicts == 0 )
+        return;
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE,GL_ONE);
-	glDepthMask(0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE,GL_ONE);
+    glDepthMask(0);
 
+    if ( currentshadowlight->filtercube )
+    {
+        glMatrixMode(GL_TEXTURE);
+        glPushMatrix();
+        GL_SetupCubeMapMatrix(true);
 
-        if ( currentshadowlight->filtercube )
+        GL_EnableColorShader (false);
+    }
+    else
+    {
+        GL_SelectTexture(GL_TEXTURE0_ARB);
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+        glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
+        glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+        glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
+    }
+
+    for ( i = 0; i < cl_numlightvisedicts; i++ )
+    {
+        currententity = cl_lightvisedicts[i];
+
+        if (currententity->model->type == mod_sprite)
         {
-            glMatrixMode(GL_TEXTURE);
-            glPushMatrix();
-            GL_SetupCubeMapMatrix(true);
+            if (((msprite_t *)currententity->model->cache.data)->type
+                >= SPR_VP_PARALLEL_UPRIGHT_OVER)
+            {
+                if (currententity->light_lev)
+                    continue;
 
-            GL_EnableColorShader (false);
+                //We do attent instead of opengl since gl doesn't seem to do
+                //what we want, it never really gets to zero.
+                VectorSubtract (currententity->origin, currentshadowlight->origin,
+                                dist);
+                colorscale = 1 - (Length(dist) / currentshadowlight->radius);
+
+                //if it's to dark we save time by not drawing it
+                if (colorscale < 0.1)
+                    continue;
+
+                glColor3f(currentshadowlight->color[0]*colorscale,
+                          currentshadowlight->color[1]*colorscale,
+                          currentshadowlight->color[2]*colorscale);
+
+                if ( currentshadowlight->filtercube )
+                    R_DrawSpriteModelWV(currententity);
+                else
+                    R_DrawSpriteModel(currententity);
+
+            }
         }
-        else
-        {
-            GL_SelectTexture(GL_TEXTURE0_ARB);
-            glEnable(GL_TEXTURE_2D);
-            glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-            glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
-            glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-            glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
-        }
+    }
 
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
-	{
-		currententity = cl_lightvisedicts[i];
+    glDisable(GL_BLEND);
 
-		if (currententity->model->type == mod_sprite) {
-			if (((msprite_t *)currententity->model->cache.data)->type >= SPR_VP_PARALLEL_UPRIGHT_OVER) {
+    if ( currentshadowlight->filtercube )
+    {
+        GL_DisableColorShader (false);
 
-				if (currententity->light_lev) {
-					continue;
-				}
-				//We do attent instead of opengl since gl doesn't seem to do
-				//what we want, it never really gets to zero.
-				VectorSubtract (currententity->origin,currentshadowlight->origin,dist);
-				colorscale = 1 - (Length(dist) / currentshadowlight->radius);
-
-				//if it's to dark we save time by not drawing it
-				if (colorscale < 0.1) continue;
-
-				glColor3f(currentshadowlight->color[0]*colorscale,
-					      currentshadowlight->color[1]*colorscale,
-						  currentshadowlight->color[2]*colorscale);
-
-                                if ( currentshadowlight->filtercube )
-                                    R_DrawSpriteModelWV(currententity);
-                                else
-                                    R_DrawSpriteModel(currententity);
-
-			}
-		}
-	}
-
-	glDisable(GL_BLEND);
-
-        if ( currentshadowlight->filtercube )
-        {
-            GL_DisableColorShader (false);
-
-            glPopMatrix();
-            glMatrixMode(GL_MODELVIEW);
-        }
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+    }
 }
 
 /*
