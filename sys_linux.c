@@ -54,50 +54,50 @@ void Sys_DebugNumber (int y, int val)
 }
 
 /*
-void Sys_Printf (char *fmt, ...)
-{
-	va_list		argptr;
-	char		text[1024];
+  void Sys_Printf (char *fmt, ...)
+  {
+  va_list		argptr;
+  char		text[1024];
 	
-	va_start (argptr,fmt);
-	vsprintf (text,fmt,argptr);
-	va_end (argptr);
-	fprintf(stderr, "%s", text);
+  va_start (argptr,fmt);
+  vsprintf (text,fmt,argptr);
+  va_end (argptr);
+  fprintf(stderr, "%s", text);
 	
-	Con_Print (text);
-}
+  Con_Print (text);
+  }
 
-void Sys_Printf (char *fmt, ...)
-{
+  void Sys_Printf (char *fmt, ...)
+  {
 
-    va_list     argptr;
-    char        text[1024], *t_p;
-    int         l, r;
+  va_list     argptr;
+  char        text[1024], *t_p;
+  int         l, r;
 
-	if (nostdout)
-		return;
+  if (nostdout)
+  return;
 
-    va_start (argptr,fmt);
-    vsprintf (text,fmt,argptr);
-    va_end (argptr);
+  va_start (argptr,fmt);
+  vsprintf (text,fmt,argptr);
+  va_end (argptr);
 
-    l = strlen(text);
-    t_p = text;
+  l = strlen(text);
+  t_p = text;
 
-// make sure everything goes through, even though we are non-blocking
-    while (l)
-    {
-        r = write (1, text, l);
-        if (r != l)
-            sleep (0);
-        if (r > 0)
-        {
-            t_p += r;
-            l -= r;
-        }
-    }
+  // make sure everything goes through, even though we are non-blocking
+  while (l)
+  {
+  r = write (1, text, l);
+  if (r != l)
+  sleep (0);
+  if (r > 0)
+  {
+  t_p += r;
+  l -= r;
+  }
+  }
 
-}
+  }
 */
 
 void Sys_Printf (char *fmt, ...)
@@ -128,9 +128,9 @@ void Sys_Printf (char *fmt, ...)
 
 #if 0
 static char end1[] =
-	"\x1b[?7h\x1b[40m\x1b[2J\x1b[0;1;41m\x1b[1;1H                QUAKE: The Doomed Dimension \x1b[33mby \x1b[44mid\x1b[41m Software                      \x1b[2;1H  ----------------------------------------------------------------------------  \x1b[3;1H           CALL 1-800-IDGAMES TO ORDER OR FOR TECHNICAL SUPPORT                 \x1b[4;1H             PRICE: $45.00 (PRICES MAY VARY OUTSIDE THE US.)                    \x1b[5;1H                                                                                \x1b[6;1H  \x1b[37mYes! You only have one fourth of this incredible epic. That is because most   \x1b[7;1H   of you have paid us nothing or at most, very little. You could steal the     \x1b[8;1H   game from a friend. But we both know you'll be punished by God if you do.    \x1b[9;1H        \x1b[33mWHY RISK ETERNAL DAMNATION? CALL 1-800-IDGAMES AND BUY NOW!             \x1b[10;1H             \x1b[37mRemember, we love you almost as much as He does.                   \x1b[11;1H                                                                                \x1b[12;1H            \x1b[33mProgramming: \x1b[37mJohn Carmack, Michael Abrash, John Cash                \x1b[13;1H       \x1b[33mDesign: \x1b[37mJohn Romero, Sandy Petersen, American McGee, Tim Willits         \x1b[14;1H                     \x1b[33mArt: \x1b[37mAdrian Carmack, Kevin Cloud                           \x1b[15;1H               \x1b[33mBiz: \x1b[37mJay Wilbur, Mike Wilson, Donna Jackson                      \x1b[16;1H            \x1b[33mProjects: \x1b[37mShawn Green   \x1b[33mSupport: \x1b[37mBarrett Alexander                  \x1b[17;1H              \x1b[33mSound Effects: \x1b[37mTrent Reznor and Nine Inch Nails                   \x1b[18;1H  For other information or details on ordering outside the US, check out the    \x1b[19;1H     files accompanying QUAKE or our website at http://www.idsoftware.com.      \x1b[20;1H    \x1b[0;41mQuake is a trademark of Id Software, inc., (c)1996 Id Software, inc.        \x1b[21;1H     All rights reserved. NIN logo is a registered trademark licensed to        \x1b[22;1H                 Nothing Interactive, Inc. All rights reserved.                 \x1b[40m\x1b[23;1H\x1b[0m";
+"\x1b[?7h\x1b[40m\x1b[2J\x1b[0;1;41m\x1b[1;1H                QUAKE: The Doomed Dimension \x1b[33mby \x1b[44mid\x1b[41m Software                      \x1b[2;1H  ----------------------------------------------------------------------------  \x1b[3;1H           CALL 1-800-IDGAMES TO ORDER OR FOR TECHNICAL SUPPORT                 \x1b[4;1H             PRICE: $45.00 (PRICES MAY VARY OUTSIDE THE US.)                    \x1b[5;1H                                                                                \x1b[6;1H  \x1b[37mYes! You only have one fourth of this incredible epic. That is because most   \x1b[7;1H   of you have paid us nothing or at most, very little. You could steal the     \x1b[8;1H   game from a friend. But we both know you'll be punished by God if you do.    \x1b[9;1H        \x1b[33mWHY RISK ETERNAL DAMNATION? CALL 1-800-IDGAMES AND BUY NOW!             \x1b[10;1H             \x1b[37mRemember, we love you almost as much as He does.                   \x1b[11;1H                                                                                \x1b[12;1H            \x1b[33mProgramming: \x1b[37mJohn Carmack, Michael Abrash, John Cash                \x1b[13;1H       \x1b[33mDesign: \x1b[37mJohn Romero, Sandy Petersen, American McGee, Tim Willits         \x1b[14;1H                     \x1b[33mArt: \x1b[37mAdrian Carmack, Kevin Cloud                           \x1b[15;1H               \x1b[33mBiz: \x1b[37mJay Wilbur, Mike Wilson, Donna Jackson                      \x1b[16;1H            \x1b[33mProjects: \x1b[37mShawn Green   \x1b[33mSupport: \x1b[37mBarrett Alexander                  \x1b[17;1H              \x1b[33mSound Effects: \x1b[37mTrent Reznor and Nine Inch Nails                   \x1b[18;1H  For other information or details on ordering outside the US, check out the    \x1b[19;1H     files accompanying QUAKE or our website at http://www.idsoftware.com.      \x1b[20;1H    \x1b[0;41mQuake is a trademark of Id Software, inc., (c)1996 Id Software, inc.        \x1b[21;1H     All rights reserved. NIN logo is a registered trademark licensed to        \x1b[22;1H                 Nothing Interactive, Inc. All rights reserved.                 \x1b[40m\x1b[23;1H\x1b[0m";
 static char end2[] =
-	"\x1b[?7h\x1b[40m\x1b[2J\x1b[0;1;41m\x1b[1;1H        QUAKE \x1b[33mby \x1b[44mid\x1b[41m Software                                                    \x1b[2;1H -----------------------------------------------------------------------------  \x1b[3;1H        \x1b[37mWhy did you quit from the registered version of QUAKE? Did the          \x1b[4;1H        scary monsters frighten you? Or did Mr. Sandman tug at your             \x1b[5;1H        little lids? No matter! What is important is you love our               \x1b[6;1H        game, and gave us your money. Congratulations, you are probably         \x1b[7;1H        not a thief.                                                            \x1b[8;1H                                                           Thank You.           \x1b[9;1H        \x1b[33;44mid\x1b[41m Software is:                                                         \x1b[10;1H        PROGRAMMING: \x1b[37mJohn Carmack, Michael Abrash, John Cash                    \x1b[11;1H        \x1b[33mDESIGN: \x1b[37mJohn Romero, Sandy Petersen, American McGee, Tim Willits        \x1b[12;1H        \x1b[33mART: \x1b[37mAdrian Carmack, Kevin Cloud                                        \x1b[13;1H        \x1b[33mBIZ: \x1b[37mJay Wilbur, Mike Wilson     \x1b[33mPROJECTS MAN: \x1b[37mShawn Green              \x1b[14;1H        \x1b[33mBIZ ASSIST: \x1b[37mDonna Jackson        \x1b[33mSUPPORT: \x1b[37mBarrett Alexander             \x1b[15;1H        \x1b[33mSOUND EFFECTS AND MUSIC: \x1b[37mTrent Reznor and Nine Inch Nails               \x1b[16;1H                                                                                \x1b[17;1H        If you need help running QUAKE refer to the text files in the           \x1b[18;1H        QUAKE directory, or our website at http://www.idsoftware.com.           \x1b[19;1H        If all else fails, call our technical support at 1-800-IDGAMES.         \x1b[20;1H      \x1b[0;41mQuake is a trademark of Id Software, inc., (c)1996 Id Software, inc.      \x1b[21;1H        All rights reserved. NIN logo is a registered trademark licensed        \x1b[22;1H             to Nothing Interactive, Inc. All rights reserved.                  \x1b[23;1H\x1b[40m\x1b[0m";
+"\x1b[?7h\x1b[40m\x1b[2J\x1b[0;1;41m\x1b[1;1H        QUAKE \x1b[33mby \x1b[44mid\x1b[41m Software                                                    \x1b[2;1H -----------------------------------------------------------------------------  \x1b[3;1H        \x1b[37mWhy did you quit from the registered version of QUAKE? Did the          \x1b[4;1H        scary monsters frighten you? Or did Mr. Sandman tug at your             \x1b[5;1H        little lids? No matter! What is important is you love our               \x1b[6;1H        game, and gave us your money. Congratulations, you are probably         \x1b[7;1H        not a thief.                                                            \x1b[8;1H                                                           Thank You.           \x1b[9;1H        \x1b[33;44mid\x1b[41m Software is:                                                         \x1b[10;1H        PROGRAMMING: \x1b[37mJohn Carmack, Michael Abrash, John Cash                    \x1b[11;1H        \x1b[33mDESIGN: \x1b[37mJohn Romero, Sandy Petersen, American McGee, Tim Willits        \x1b[12;1H        \x1b[33mART: \x1b[37mAdrian Carmack, Kevin Cloud                                        \x1b[13;1H        \x1b[33mBIZ: \x1b[37mJay Wilbur, Mike Wilson     \x1b[33mPROJECTS MAN: \x1b[37mShawn Green              \x1b[14;1H        \x1b[33mBIZ ASSIST: \x1b[37mDonna Jackson        \x1b[33mSUPPORT: \x1b[37mBarrett Alexander             \x1b[15;1H        \x1b[33mSOUND EFFECTS AND MUSIC: \x1b[37mTrent Reznor and Nine Inch Nails               \x1b[16;1H                                                                                \x1b[17;1H        If you need help running QUAKE refer to the text files in the           \x1b[18;1H        QUAKE directory, or our website at http://www.idsoftware.com.           \x1b[19;1H        If all else fails, call our technical support at 1-800-IDGAMES.         \x1b[20;1H      \x1b[0;41mQuake is a trademark of Id Software, inc., (c)1996 Id Software, inc.      \x1b[21;1H        All rights reserved. NIN logo is a registered trademark licensed        \x1b[22;1H             to Nothing Interactive, Inc. All rights reserved.                  \x1b[23;1H\x1b[40m\x1b[0m";
 
 #endif
 void Sys_Quit (void)
@@ -159,7 +159,7 @@ void Sys_Error (char *error, ...)
 	va_list argptr;
 	char string[4096];
 
-// change stdin to non blocking
+	// change stdin to non blocking
 	fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
 
 	va_start (argptr, error);
@@ -184,11 +184,11 @@ void Sys_Warn (char *warning, ...)
 }
 
 /*
-============
-Sys_FileTime
+  ============
+  Sys_FileTime
 
-returns -1 if not present
-============
+  returns -1 if not present
+  ============
 */
 int Sys_FileTime (char *path)
 {
@@ -203,81 +203,19 @@ int Sys_FileTime (char *path)
 
 void Sys_mkdir (char *path)
 {
-  mkdir (path, 0777);
+	mkdir (path, 0777);
 }
 
 void Sys_Strtime(char *buf)
 {
-  struct tm *tm_;
-  static time_t t_;
+	struct tm *tm_;
+	static time_t t_;
   
-  time(&t_);
-  tm_=gmtime(&t_);
+	time(&t_);
+	tm_=gmtime(&t_);
   
-  sprintf(buf,"%02d:%02d:%02d",tm_->tm_hour,tm_->tm_min,tm_->tm_sec);
+	sprintf(buf,"%02d:%02d:%02d",tm_->tm_hour,tm_->tm_min,tm_->tm_sec);
   
-}
-
-
-// directory entry list internal data
-#include <glob.h>
-
-typedef struct {
-  glob_t globbuf;
-  size_t count;
-} uxdirdata_t;
-
-
-dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
-{
-  uxdirdata_t *uxdata;     
-  if (dirdata && filter){    
-    char dirfilter[MAX_OSPATH];
-    uxdata=Z_Malloc (sizeof(uxdirdata_t));
-    sprintf (dirfilter,"%s/%s", dir, filter);
-    glob (dirfilter,0,NULL,&uxdata->globbuf);
-    if (uxdata->globbuf.gl_pathc){
-      dirdata->internal=uxdata;
-      strncpy (dirdata->entry,uxdata->globbuf.gl_pathv[0],sizeof(dirdata->entry));
-      uxdata->count=0;
-      return dirdata;
-    }
-  }
-  return NULL;     
-}
-
-dirdata_t *Sys_Findnext (dirdata_t *dirdata)
-{
-  uxdirdata_t *uxdata;
-  if (dirdata){
-    uxdata=dirdata->internal;
-    if (uxdata) {
-      uxdata->count++;
-      // next entry ?
-      if (uxdata->count<uxdata->globbuf.gl_pathc){
-        strncpy (dirdata->entry,uxdata->globbuf.gl_pathv[uxdata->count],sizeof(dirdata->entry));
-        return dirdata;
-      }
-      // no -> close
-      globfree (&uxdata->globbuf);
-      Z_Free (dirdata->internal);
-      dirdata->internal=NULL;
-    }       
-  }
-  return NULL;
-}
-
-void Sys_Findclose (dirdata_t *dirdata)
-{
-  uxdirdata_t *uxdata;
-  if (dirdata){
-    uxdata=dirdata->internal;
-    if (uxdata){
-      globfree (&uxdata->globbuf);
-      Z_Free (uxdata);
-      dirdata->internal=NULL;
-    }    
-  }
 }
 
 
@@ -341,7 +279,7 @@ void Sys_DebugLog (char *file, char *fmt, ...)
 	va_start (argptr, fmt);
 	vsprintf (data, fmt, argptr);
 	va_end (argptr);
-//    fd = open(file, O_WRONLY | O_BINARY | O_CREAT | O_APPEND, 0666);
+	//    fd = open(file, O_WRONLY | O_BINARY | O_CREAT | O_APPEND, 0666);
 	fd = open (file, O_WRONLY | O_CREAT | O_APPEND, 0666);
 	write (fd, data, strlen (data));
 	close (fd);
@@ -404,7 +342,7 @@ void Sys_LineRefresh (void)
 
 void floating_point_exception_handler (int whatever)
 {
-//      Sys_Warn("floating point exception\n");
+	//      Sys_Warn("floating point exception\n");
 	signal (SIGFPE, floating_point_exception_handler);
 }
 
@@ -452,34 +390,34 @@ void Sys_LowFPPrecision (void)
 #if defined (USERPREF_DIR)
 char *Sys_InitUserDir(void)
 {
-  char *home;
-  char *userdir;
-  struct stat stat_buf;
+	char *home;
+	char *userdir;
+	struct stat stat_buf;
 
-  home = getenv("HOME");
-  if (!home){
-    Sys_Error("Environment variable HOME not found.\n");
-  }
-  userdir = (char *)malloc(strlen(home)+strlen(prefdir)+1);
-  strcpy(userdir,home);
-  if (home[strlen(home)-1]!='/')
-    strcat(userdir,"/");
+	home = getenv("HOME");
+	if (!home){
+		Sys_Error("Environment variable HOME not found.\n");
+	}
+	userdir = (char *)malloc(strlen(home)+strlen(prefdir)+1);
+	strcpy(userdir,home);
+	if (home[strlen(home)-1]!='/')
+		strcat(userdir,"/");
 
-  if (stat(userdir,&stat_buf)){
-    Sys_Error("could not stat %s\n",userdir);
-  }
+	if (stat(userdir,&stat_buf)){
+		Sys_Error("could not stat %s\n",userdir);
+	}
   
-  strcat(userdir,prefdir);
-  if (stat(userdir,&stat_buf)){
-    if (errno == ENOENT)
-      Sys_mkdir(userdir);
-    else
-      Sys_Error("error while stating %s\n",userdir);  
-  }
-  if (!S_ISDIR(stat_buf.st_mode))
-    Sys_Error("%s is not a directory\n",userdir);
+	strcat(userdir,prefdir);
+	if (stat(userdir,&stat_buf)){
+		if (errno == ENOENT)
+			Sys_mkdir(userdir);
+		else
+			Sys_Error("error while stating %s\n",userdir);  
+	}
+	if (!S_ISDIR(stat_buf.st_mode))
+		Sys_Error("%s is not a directory\n",userdir);
 
-  return userdir;
+	return userdir;
 }
 #endif
 
@@ -496,7 +434,7 @@ int main (int c, char **v)
 	static char *home;
 	struct stat stat_buf;
 
-//      signal(SIGFPE, floating_point_exception_handler);
+	//      signal(SIGFPE, floating_point_exception_handler);
 	signal (SIGFPE, SIG_IGN);
 
 	memset (&parms, 0, sizeof (parms));
@@ -514,7 +452,7 @@ int main (int c, char **v)
 	parms.membase = malloc (parms.memsize);
 	// not enough memory !!
 	if (!parms.membase){
-	  Sys_Error("Not enough memory - asked for %d - change with -heapsize <value in Mb> \n",mb_mem_size);
+		Sys_Error("Not enough memory - asked for %d - change with -heapsize <value in Mb> \n",mb_mem_size);
 	}
 
 #if defined (USERPREF_DIR)
@@ -573,9 +511,9 @@ int main (int c, char **v)
 
 
 /*
-================
-Sys_MakeCodeWriteable
-================
+  ================
+  Sys_MakeCodeWriteable
+  ================
 */
 void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 {
@@ -586,8 +524,8 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 
 	addr = (startaddr & ~(psize - 1)) - psize;
 
-//      fprintf(stderr, "writable code %lx(%lx)-%lx, length=%lx\n", startaddr,
-//                      addr, startaddr+length, length);
+	//      fprintf(stderr, "writable code %lx(%lx)-%lx, length=%lx\n", startaddr,
+	//                      addr, startaddr+length, length);
 
 	r = mprotect ((char *) addr, length + startaddr - addr + psize, 7);
 
