@@ -45,7 +45,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#if !defined(_SETJMP_H)
 #include <setjmp.h>
+#endif
 
 #ifndef min
 #define min(a,b) (a<b?a:b) 
