@@ -1217,11 +1217,12 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
 			column++;
 			if (column==columns) { // pixel packet run spans across rows
 			    column=0;
-			    if (row>0)
+			    if (row>0) {
 				row--;
+				pixbuf += row_inc;
+				}
 			    else
 				goto breakOut;
-			    pixbuf = targa_rgba + row*columns*4;
 			}						
 		    }
 		}
