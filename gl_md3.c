@@ -647,6 +647,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
  		!strcmp (mod->name, "progs/g_rock2.mdl") || 
  		!strcmp (mod->name, "progs/g_light.mdl") ||
 		!strcmp (mod->name, "progs/armor.mdl") ||
+		!strcmp (mod->name, "progs/backpack.mdl") ||
  		!strcmp (mod->name, "progs/w_g_key.mdl") ||
  		!strcmp (mod->name, "progs/w_s_key.mdl") ||
  		!strcmp (mod->name, "progs/m_g_key.mdl") ||
