@@ -31,7 +31,7 @@ extern unsigned char d_15to8table[65536];
 cvar_t		gl_nobind = {"gl_nobind", "0"};
 cvar_t		gl_max_size = {"gl_max_size", "1024"};
 cvar_t		gl_picmip = {"gl_picmip", "0"};
-cvar_t          gl_gloss = {"gl_gloss", "0.5"};
+cvar_t          gl_gloss = {"gl_gloss", "0.3"};
 cvar_t          gl_compress_textures = {"gl_compress_textures", "0"};
 cvar_t          willi_gray_colormaps = {"willi_gray_colormaps", "0"};
 cvar_t          con_clock = {"con_clock", "1", true};
