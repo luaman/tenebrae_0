@@ -1402,7 +1402,7 @@ void VID_Init(unsigned char *palette)
 
 	if((glx_ver==1&&glx_rev>=3)||glx_ver>1)
 		VID_LoadGlx13();
-	else
+        else 
 		VID_LoadGlx12();
 
 	InitSig(); // trap evil signals
