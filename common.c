@@ -41,7 +41,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "quakedef.h"
-
+#include "io.h" //Any Pak File - Eradicator
 
 
 #define NUM_SAFE_ARGVS  7
@@ -1445,21 +1445,15 @@ char *MSG_ReadString (void)
 
 
 float MSG_ReadCoord (void)
-
 {
-
-	return MSG_ReadShort() * (1.0/8);
-
+	return MSG_ReadShort() * (0.125f); //Spedup Small Calculation - Eradicator
 }
 
 
 
 float MSG_ReadAngle (void)
-
 {
-
-	return MSG_ReadChar() * (360.0/256);
-
+	return MSG_ReadChar() * (1.40625f); //Spedup Small Calculation - Eradicator
 }
 
 
@@ -1470,26 +1464,14 @@ float MSG_ReadAngle (void)
 
 //===========================================================================
 
-
-
 void SZ_Alloc (sizebuf_t *buf, int startsize)
-
 {
-
 	if (startsize < 256)
-
 		startsize = 256;
-
 	buf->data = Hunk_AllocName (startsize, "sizebuf");
-
 	buf->maxsize = startsize;
-
 	buf->cursize = 0;
-
 }
-
-
-
 
 
 void SZ_Free (sizebuf_t *buf)
@@ -3437,85 +3419,58 @@ then loads and adds pak1.pak pak2.pak ...
 
 */
 
-
-
 void COM_AddGameDirectory (char *dir)
-
 {
-
 	int                             i;
-
 	searchpath_t    *search;
-
 	pack_t                  *pak;
-
 	char                    pakfile[MAX_OSPATH];
-
-
-
-
+	
+	char dirstring[1024]; //Any Pak File - Eradicator
+	int  handle;
+	struct _finddata_t fileinfo;
 
 	strcpy (com_gamedir, dir);
 
 //
-
 // add the directory to the search path
-
 //
 
 	search = Hunk_Alloc (sizeof(searchpath_t));
-
 	strcpy (search->filename, dir);
-
 	search->next = com_searchpaths;
-
 	com_searchpaths = search;
 
-
-
 //
-
 // add any pak files in the format pak0.pak pak1.pak, ...
-
 //
 
-	for (i=0 ; ; i++)
-
-	{
-
-		sprintf (pakfile, "%s/pak%i.pak", dir, i);
-
-		pak = COM_LoadPackFile (pakfile);
-
-		if (!pak)
-
-			break;
-
-		search = Hunk_Alloc (sizeof(searchpath_t));
-
-		search->pack = pak;
-
-		search->next = com_searchpaths;
-
-		com_searchpaths = search;               
-
+	//Any Pak File - Eradicator
+    sprintf (dirstring, "%s/*.pak", dir);
+    handle = _findfirst (dirstring, &fileinfo);
+    if (handle != -1)
+    {
+		do
+		{
+			if (fileinfo.name[0] == '.')
+				continue;
+			sprintf(pakfile,"%s/%s", dir, fileinfo.name);
+			pak = COM_LoadPackFile (pakfile);
+			if (!pak)
+				break;
+			search = Hunk_Alloc (sizeof(searchpath_t));
+			search->pack = pak;
+			search->next = com_searchpaths;
+			com_searchpaths = search;
+        } 
+		while (_findnext( handle, &fileinfo ) != -1);
+			_findclose (handle);
 	}
 
-
-
 //
-
 // add the contents of the parms.txt file to the end of the command line
-
 //
-
-
-
 }
-
-
-
-
 
 /* - DC -
 
