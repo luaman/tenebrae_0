@@ -311,143 +311,11 @@ PFNGLUNIFORM2IVARBPROC qglUniform2ivARB;
 PFNGLUNIFORM3IVARBPROC qglUniform3ivARB;
 PFNGLUNIFORM4IVARBPROC qglUniform4ivARB;
 
-
-static char vertexprogram[] =
-"!!ARBvp1.0\n"
-"OPTION ARB_position_invariant;\n"
-"ATTRIB iPos         = vertex.position;\n"
-"ATTRIB iNormal      = vertex.normal;\n"
-"ATTRIB iColor       = vertex.color;\n"
-"ATTRIB iTex0        = vertex.texcoord[0];\n"
-"ATTRIB iTex1        = vertex.texcoord[1];\n"
-"ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
-"TEMP   disttemp;\n"
-"OUTPUT oColor       = result.color;\n"
-"OUTPUT oTex0        = result.texcoord[0];\n"
-"OUTPUT oTex1        = result.texcoord[1];\n"
-"OUTPUT oTex2        = result.texcoord[2];\n"
-"OUTPUT oTex3        = result.texcoord[3];\n"
-"DP4   oTex3.x, texMatrix[0], iPos;\n"
-"DP4   oTex3.y, texMatrix[1], iPos;\n"
-"DP4   oTex3.z, texMatrix[2], iPos;\n"
-"DP4   oTex3.w, texMatrix[3], iPos;\n"
-"MOV   oTex0, iTex0;\n"
-"MOV   oTex1, iTex1;\n"
-"MOV   oTex2, iTex2;\n"
-"MOV   oColor, iColor;\n"
-"END";
-
-static char vertexprogram2[] =
-"!!ARBvp1.0\n"
-"OPTION ARB_position_invariant;\n"
-"ATTRIB iPos         = vertex.position;\n"
-"ATTRIB iNormal      = vertex.normal;\n"
-"ATTRIB iColor       = vertex.color;\n"
-"ATTRIB iTex0        = vertex.texcoord[0];\n"
-"ATTRIB iTex1        = vertex.texcoord[1];\n"
-"ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
-"PARAM  texMatrix2[4]= { state.matrix.texture[3] };\n"
-"OUTPUT oColor       = result.color;\n"
-"OUTPUT oTex0        = result.texcoord[0];\n"
-"OUTPUT oTex1        = result.texcoord[1];\n"
-"OUTPUT oTex2        = result.texcoord[2];\n"
-"OUTPUT oTex3        = result.texcoord[3];\n"
-"OUTPUT oTex4        = result.texcoord[4];\n"
-"OUTPUT oFog         = result.fogcoord;\n"
-"DP4   oTex3.x, texMatrix[0], iPos;\n"
-"DP4   oTex3.y, texMatrix[1], iPos;\n"
-"DP4   oTex3.z, texMatrix[2], iPos;\n"
-"DP4   oTex3.w, texMatrix[3], iPos;\n"
-"DP4   oTex4.x, texMatrix2[0], iPos;\n"
-"DP4   oTex4.y, texMatrix2[1], iPos;\n"
-"DP4   oTex4.z, texMatrix2[2], iPos;\n"
-"DP4   oTex4.w, texMatrix2[3], iPos;\n"
-"MOV   oTex0, iTex0;\n"
-"MOV   oTex1, iTex1;\n"
-"MOV   oTex2, iTex2;\n"
-"MOV   oColor, iColor;\n"
-"END";
-
-static char fragmentprogram[] =
-"!!ARBfp1.0\n"
-"OPTION ARB_precision_hint_fastest;\n"
-"ATTRIB tex0 = fragment.texcoord[0];\n"
-"ATTRIB tex1 = fragment.texcoord[1];\n"
-"ATTRIB tex2 = fragment.texcoord[2];\n"
-"ATTRIB tex3 = fragment.texcoord[3];\n"
-"ATTRIB col = fragment.color.primary;\n"
-"ATTRIB fogCoord = fragment.fogcoord;\n"
-"PARAM fogcolor = state.fog.color;\n"
-"PARAM scaler = { 16, 8, 2, -1 };\n"
-"OUTPUT outColor = result.color;\n"
-"TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
-"TEMP diffdot, specdot, selfshadow;\n"
-"TEX normalmap, tex0, texture[0], 2D;\n"
-"MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"DP3 lightvec.x, tex1, tex1;\n"
-"RSQ lightvec.x, lightvec.x;\n"
-"MUL lightvec, tex1, lightvec.x;\n"
-"TEX colormap, tex0, texture[1], 2D;\n"
-"DP3 halfvec.x, tex2, tex2;\n"
-"RSQ halfvec.x, halfvec.x;\n"
-"MUL halfvec, tex2, halfvec.x;\n"
-"TEX atten, tex3, texture[2], 3D;\n"
-"DP3_SAT diffdot, normalmap, lightvec;\n"
-"MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
-"DP3_SAT specdot.a, normalmap, halfvec;\n"
-"MUL diffdot, diffdot, colormap;\n"
-"POW specdot.a, specdot.a, scaler.r;\n"
-"MUL specdot.a, specdot.a, normalmap.a;\n"
-"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
-"MUL atten, col, atten;\n"
-"MUL_SAT outColor, diffdot, atten;\n"
-"END";
-
-static char fragmentprogram2[] =
-"!!ARBfp1.0\n"
-"OPTION ARB_precision_hint_fastest;\n"
-"ATTRIB tex0 = fragment.texcoord[0];\n"
-"ATTRIB tex1 = fragment.texcoord[1];\n"
-"ATTRIB tex2 = fragment.texcoord[2];\n"
-"ATTRIB tex3 = fragment.texcoord[3];\n"
-"ATTRIB tex4 = fragment.texcoord[4];\n"
-"ATTRIB col = fragment.color.primary;\n"
-"ATTRIB fogCoord = fragment.fogcoord;\n"
-"PARAM fogcolor = state.fog.color;\n"
-"PARAM scaler = { 16, 8, 2, -1 };\n"
-"OUTPUT outColor = result.color;\n"
-"TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
-"TEMP diffdot, specdot, selfshadow, filter;\n"
-"TEX normalmap, tex0, texture[0], 2D;\n"
-"MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"DP3 lightvec.x, tex1, tex1;\n"
-"RSQ lightvec.x, lightvec.x;\n"
-"MUL lightvec, tex1, lightvec.x;\n"
-"TEX colormap, tex0, texture[1], 2D;\n"
-"DP3 halfvec.x, tex2, tex2;\n"
-"RSQ halfvec.x, halfvec.x;\n"
-"MUL halfvec, tex2, halfvec.x;\n"
-"TEX atten, tex3, texture[2], 3D;\n"
-"DP3_SAT diffdot, normalmap, lightvec;\n"
-"MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
-"DP3_SAT specdot.a, normalmap, halfvec;\n"
-"MUL diffdot, diffdot, colormap;\n"
-"POW specdot.a, specdot.a, scaler.r;\n"
-"TEX filter, tex4, texture[3], CUBE;\n"
-"MUL specdot.a, specdot.a, normalmap.a;\n"
-"MUL atten, atten, filter;\n"
-"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
-"MUL atten, col, atten;\n"
-"MUL_SAT outColor, diffdot, atten;\n"
-"END";
-
 static GLhandleARB programs[2];
 static GLhandleARB fragment_shaders[2];
 static GLhandleARB vertex_shaders[2];
 
-static char* vertex_programs[2] =
+static GLcharARB* vertex_programs[2] =
 {
     "hardware/bump.vert",
     "hardware/bump2.vert"
@@ -486,20 +354,20 @@ static void checkerror()
 
 void printlog(GLhandleARB obj)
 {
-	int blen = 0;	/* length of buffer to allocate */
-	int slen = 0;	/* strlen actually written to buffer */
-	GLcharARB *infoLog;
+    int blen = 0;	/* length of buffer to allocate */
+    int slen = 0;	/* strlen actually written to buffer */
+    GLcharARB *infoLog;
 
-	qglGetObjectParameterivARB(obj, GL_OBJECT_INFO_LOG_LENGTH_ARB , &blen);
-	if (blen > 1) {
-		if ((infoLog = (GLcharARB*)malloc(blen)) == NULL) {
-			printf("ERROR: Could not allocate InfoLog buffer\n");
-			exit(1);
-		}
-		qglGetInfoLogARB(obj, blen, &slen, infoLog);
-		Con_Printf("GL2: %s\n", infoLog);
-		free(infoLog);
+    qglGetObjectParameterivARB(obj, GL_OBJECT_INFO_LOG_LENGTH_ARB, &blen);
+    if (blen > 1) {
+	if ((infoLog = (GLcharARB*)malloc(blen)) == NULL) {
+	    printf("ERROR: Could not allocate InfoLog buffer\n");
+	    exit(1);
 	}
+	qglGetInfoLogARB(obj, blen, &slen, infoLog);
+	Con_Printf("GL2: %s\n", infoLog);
+	free(infoLog);
+    }
 }
 
 void GL_CreateShadersGL2()
@@ -577,7 +445,7 @@ void GL_CreateShadersGL2()
      	if (!shader)
         {
 		//this is serious we need shader to render stuff
-		Sys_Error("GL2: %s not found\n", vertex_programs[i]);
+		Sys_Error("GL2: %s not found\n", fragment_programs[i]);
 	}
 	len = strlen(shader);
 	qglShaderSourceARB(fragment_shaders[i], 1, &shader, &len);
