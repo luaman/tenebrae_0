@@ -42,10 +42,8 @@ float gl_Material_Color2[4] = {0.9, 0.9, 0.9, 0.9};
 void R_DrawLightEntitiesGF3 (shadowlight_t *l);
 void R_DrawLightEntitiesGF (shadowlight_t *l);
 void R_DrawLightEntitiesGEN (shadowlight_t *l);
-#ifndef __glx__
 void R_DrawLightEntitiesRadeon (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesParhelia (shadowlight_t *l); //PA:
-#endif
 void R_DrawLightEntitiesARB (shadowlight_t *l); //PA:
 
 void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not have parameters.
@@ -60,10 +58,10 @@ void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not ha
 	R_DrawWorldBumpedGF(/* l */);	// <AWE> Function has no parameters.
 	break;
 
-#ifndef __glx__
     case RADEON:
 	R_DrawWorldBumpedRadeon(/* l */);
 	break;
+#ifndef __glx__
     case PARHELIA:
 	R_DrawWorldBumpedParhelia(/* l */);
 	break;
@@ -89,10 +87,10 @@ void R_DrawLightEntities (shadowlight_t *l)
 	R_DrawLightEntitiesGF( l );
 	break;
 
-#ifndef __glx__
     case RADEON:
 	R_DrawLightEntitiesRadeon( l );
 	break;
+#ifndef __glx__
     case PARHELIA:
 	R_DrawLightEntitiesParhelia( l );
 	break;
@@ -258,7 +256,6 @@ void R_DrawLightEntitiesGF3 (shadowlight_t *l)
     glDepthMask (1);
 }
 
-#ifndef __glx__
 //PA:
 void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 {
@@ -316,6 +313,7 @@ void R_DrawLightEntitiesRadeon (shadowlight_t *l)
     glDepthMask (1);
 }
 
+#ifndef __glx__
 
 //PA:
 void R_DrawLightEntitiesParhelia (shadowlight_t *l)

@@ -803,7 +803,7 @@ void CheckVertexArrayRange(void)
 
 /*
 PA: if we have these we draw optimized
-*//*
+*/
 void CheckRadeonExtensions(void)
 {
 	int supportedTmu;
@@ -818,7 +818,7 @@ void CheckRadeonExtensions(void)
                 gl_cardtype = RADEON;
 
 		//get TEX3d poiters                   wlgGetProcAddress
-		//qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)glXGetProcAddressARB("glTexImage3DEXT");
+		qglTexImage3DEXT = (PFNGLTEXIMAGE3DEXT)glXGetProcAddressARB("glTexImage3DEXT");
 
 		//default to trilinear filtering on Radeon
 		gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
@@ -849,7 +849,7 @@ void CheckParheliaExtensions(void)
             GL_CreateShadersParhelia();
 	}
 }
-*/
+
 
 void CheckARBFragmentExtensions(void) 
 {
@@ -940,10 +940,10 @@ void GL_Init (void)
 	if ( gl_cardtype != ARB )
 	{
              Con_Printf("Checking GeForce 1/2/4-MX\n");
-	CheckSpecularBumpMappingExtensions();
-	CheckGeforce3Extensions();
-	//CheckRadeonExtensions(); FABE: no radeon support for linux
-             //CheckParheliaExtensions();
+             CheckSpecularBumpMappingExtensions();
+             CheckGeforce3Extensions();
+             CheckRadeonExtensions(); 
+             CheckParheliaExtensions();
 	}
 
 	CheckVertexArrayRange();
