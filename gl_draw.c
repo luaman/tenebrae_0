@@ -975,12 +975,147 @@ int GL_FindTexture (char *identifier)
 
 /*
 ================
+GL_ResampleTextureLerpLine
+
+Interpolates between pixels on line - Eradicator
+================
+*/
+void GL_ResampleTextureLerpLine (byte *in, byte *out, int inwidth, int outwidth)
+{
+	int		j, xi, oldx = 0, f, fstep, endx;
+	fstep = (int) (inwidth*65536.0f/outwidth);
+	endx = (inwidth-1);
+	for (j = 0,f = 0;j < outwidth;j++, f += fstep)
+	{
+		xi = (int) f >> 16;
+		if (xi != oldx)
+		{
+			in += (xi - oldx) * 4;
+			oldx = xi;
+		}
+		if (xi < endx)
+		{
+			int lerp = f & 0xFFFF;
+			*out++ = (byte) ((((in[4] - in[0]) * lerp) >> 16) + in[0]);
+			*out++ = (byte) ((((in[5] - in[1]) * lerp) >> 16) + in[1]);
+			*out++ = (byte) ((((in[6] - in[2]) * lerp) >> 16) + in[2]);
+			*out++ = (byte) ((((in[7] - in[3]) * lerp) >> 16) + in[3]);
+		}
+		else
+		{
+			*out++ = in[0];
+			*out++ = in[1];
+			*out++ = in[2];
+			*out++ = in[3];
+		}
+	}
+}
+
+/*
+================
 GL_ResampleTexture
 ================
 */
-void GL_ResampleTexture (unsigned *in, int inwidth, int inheight, unsigned *out,  int outwidth, int outheight)
+void GL_ResampleTexture (void *indata, int inwidth, int inheight, void *outdata,  int outwidth, int outheight)
 {
-	int		i, j;
+	//New Interpolated Texture Code - Eradicator
+	int		i, j, yi, oldy, f, fstep, endy = (inheight-1);
+	byte	*inrow, *out, *row1, *row2;
+	out = outdata;
+	fstep = (int) (inheight*65536.0f/outheight);
+
+	row1 = malloc(outwidth*4);
+	row2 = malloc(outwidth*4);
+	inrow = indata;
+	oldy = 0;
+	GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+	GL_ResampleTextureLerpLine (inrow + inwidth*4, row2, inwidth, outwidth);
+	for (i = 0, f = 0;i < outheight;i++,f += fstep)
+	{
+		yi = f >> 16;
+		if (yi < endy)
+		{
+			int lerp = f & 0xFFFF;
+			if (yi != oldy)
+			{
+				inrow = (byte *)indata + inwidth*4*yi;
+				if (yi == oldy+1)
+					memcpy(row1, row2, outwidth*4);
+				else
+					GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+				GL_ResampleTextureLerpLine (inrow + inwidth*4, row2, inwidth, outwidth);
+				oldy = yi;
+			}
+			j = outwidth - 4;
+			while(j >= 0)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out[ 4] = (byte) ((((row2[ 4] - row1[ 4]) * lerp) >> 16) + row1[ 4]);
+				out[ 5] = (byte) ((((row2[ 5] - row1[ 5]) * lerp) >> 16) + row1[ 5]);
+				out[ 6] = (byte) ((((row2[ 6] - row1[ 6]) * lerp) >> 16) + row1[ 6]);
+				out[ 7] = (byte) ((((row2[ 7] - row1[ 7]) * lerp) >> 16) + row1[ 7]);
+				out[ 8] = (byte) ((((row2[ 8] - row1[ 8]) * lerp) >> 16) + row1[ 8]);
+				out[ 9] = (byte) ((((row2[ 9] - row1[ 9]) * lerp) >> 16) + row1[ 9]);
+				out[10] = (byte) ((((row2[10] - row1[10]) * lerp) >> 16) + row1[10]);
+				out[11] = (byte) ((((row2[11] - row1[11]) * lerp) >> 16) + row1[11]);
+				out[12] = (byte) ((((row2[12] - row1[12]) * lerp) >> 16) + row1[12]);
+				out[13] = (byte) ((((row2[13] - row1[13]) * lerp) >> 16) + row1[13]);
+				out[14] = (byte) ((((row2[14] - row1[14]) * lerp) >> 16) + row1[14]);
+				out[15] = (byte) ((((row2[15] - row1[15]) * lerp) >> 16) + row1[15]);
+				out += 16;
+				row1 += 16;
+				row2 += 16;
+				j -= 4;
+			}
+			if (j & 2)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out[ 4] = (byte) ((((row2[ 4] - row1[ 4]) * lerp) >> 16) + row1[ 4]);
+				out[ 5] = (byte) ((((row2[ 5] - row1[ 5]) * lerp) >> 16) + row1[ 5]);
+				out[ 6] = (byte) ((((row2[ 6] - row1[ 6]) * lerp) >> 16) + row1[ 6]);
+				out[ 7] = (byte) ((((row2[ 7] - row1[ 7]) * lerp) >> 16) + row1[ 7]);
+				out += 8;
+				row1 += 8;
+				row2 += 8;
+			}
+			if (j & 1)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out += 4;
+				row1 += 4;
+				row2 += 4;
+			}
+			row1 -= outwidth*4;
+			row2 -= outwidth*4;
+		}
+		else
+		{
+			if (yi != oldy)
+			{
+				inrow = (byte *)indata + inwidth*4*yi;
+				if (yi == oldy+1)
+					memcpy(row1, row2, outwidth*4);
+				else
+					GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+				oldy = yi;
+			}
+			memcpy(out, row1, outwidth * 4);
+		}
+	}
+	free(row1);
+	free(row2);
+
+	//Old Code - Eradicator
+	/*int		i, j;
 	unsigned	*inrow;
 	unsigned	frac, fracstep;
 
@@ -1000,7 +1135,7 @@ void GL_ResampleTexture (unsigned *in, int inwidth, int inheight, unsigned *out,
 			out[j+3] = inrow[frac>>16];
 			frac += fracstep;
 		}
-	}
+	}*/
 }
 
 
