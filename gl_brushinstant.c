@@ -91,7 +91,9 @@ void R_SetupBrushObjectSpace(entity_t *e, brushlightinstant_t *linstant) {
 
 	//Put light & view origin into object space
 
+	e->angles[0] = -e->angles[0];//stupid quake bug  (ID invented it dunno what it doesn messus up angles)
 	R_WorldToObjectMatrix(e, transf);
+	e->angles[0] = -e->angles[0];//stupid quake bug 
 
 	org[0] = currentshadowlight->origin[0];
 	org[1] = currentshadowlight->origin[1];
