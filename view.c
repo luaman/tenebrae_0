@@ -494,7 +494,8 @@ void V_CalcBlend (void)
 		if (!gl_cshiftpercent.value)
 			continue;
 
-		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) / 100.0) / 255.0;
+		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) * 0.01) * 0.0039215686; //Speedup - Eradicator
+		//a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) / 100.0) / 255.0;
 
 //		a2 = cl.cshifts[j].percent/255.0;
 		if (!a2)
@@ -507,9 +508,13 @@ void V_CalcBlend (void)
 		b = b*(1-a2) + cl.cshifts[j].destcolor[2]*a2;
 	}
 
-	v_blend[0] = r/255.0;
+	/*v_blend[0] = r/255.0;
 	v_blend[1] = g/255.0;
-	v_blend[2] = b/255.0;
+	v_blend[2] = b/255.0;*/
+
+	v_blend[0] = r*0.0039215686; //Speedup - Eradicator
+	v_blend[1] = g*0.0039215686;
+	v_blend[2] = b*0.0039215686;
 	v_blend[3] = a;
 	if (v_blend[3] > 1)
 		v_blend[3] = 1;

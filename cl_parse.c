@@ -116,7 +116,8 @@ void CL_ParseStartSoundPacket(void)
 		volume = DEFAULT_SOUND_PACKET_VOLUME;
 	
     if (field_mask & SND_ATTENUATION)
-		attenuation = MSG_ReadByte () / 64.0;
+		//attenuation = MSG_ReadByte () / 64.0;
+		attenuation = MSG_ReadByte () * 0.015625;	//Speedup - Eradicator
 	else
 		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;
 	
