@@ -1,6 +1,6 @@
 /*
 Copyright (C) 2001-2002 Charles Hollemeersch
-ARB_fragment_progam version (C) 2002 Jarno Paananen
+ARB_fragment_progam version (C) 2002-2003 Jarno Paananen
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -19,8 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 PENTA: the whole file is freakin penta...
 
-Same as gl_bumpmap.c but Radeon 9700 / NV30 optimized 
-These routines require 6 texture units, vertex shader and pixel shader
+Same as gl_bumpmap.c but for ARB vertex and fragment program extensions
+These routines require 4 texture units, vertex shader and pixel shader
 
 All lights require 1 pass:
 1 diffuse + specular with optional light filter
@@ -270,17 +270,13 @@ static char vertexprogram[] =
 "ATTRIB iTex0        = vertex.texcoord[0];\n"
 "ATTRIB iTex1        = vertex.texcoord[1];\n"
 "ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  mvp[4]       = { state.matrix.mvp };\n"
-"PARAM  modelview    = state.matrix.mvp.row[2];\n"
 "PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
-"PARAM  fogparams    = state.fog.params;\n"
 "TEMP   disttemp;\n"
 "OUTPUT oColor       = result.color;\n"
 "OUTPUT oTex0        = result.texcoord[0];\n"
 "OUTPUT oTex1        = result.texcoord[1];\n"
 "OUTPUT oTex2        = result.texcoord[2];\n"
 "OUTPUT oTex3        = result.texcoord[3];\n"
-"OUTPUT oFog         = result.fogcoord;\n"
 "DP4   oTex3.x, texMatrix[0], iPos;\n"
 "DP4   oTex3.y, texMatrix[1], iPos;\n"
 "DP4   oTex3.z, texMatrix[2], iPos;\n"
@@ -289,9 +285,6 @@ static char vertexprogram[] =
 "MOV   oTex1, iTex1;\n"
 "MOV   oTex2, iTex2;\n"
 "MOV   oColor, iColor;\n"
-"DP4   disttemp.x, modelview, iPos;\n"
-"SUB   disttemp.x, fogparams.z, disttemp.x;\n"
-"MUL   oFog.x, disttemp.x, fogparams.w;\n"
 "END";
 
 static char vertexprogram2[] =
@@ -303,12 +296,8 @@ static char vertexprogram2[] =
 "ATTRIB iTex0        = vertex.texcoord[0];\n"
 "ATTRIB iTex1        = vertex.texcoord[1];\n"
 "ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  mvp[4]       = { state.matrix.mvp };\n"
-"PARAM  modelview    = state.matrix.mvp.row[2];\n"
 "PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
 "PARAM  texMatrix2[4]= { state.matrix.texture[3] };\n"
-"PARAM  fogparams    = state.fog.params;\n"
-"TEMP   disttemp;\n"
 "OUTPUT oColor       = result.color;\n"
 "OUTPUT oTex0        = result.texcoord[0];\n"
 "OUTPUT oTex1        = result.texcoord[1];\n"
@@ -328,9 +317,6 @@ static char vertexprogram2[] =
 "MOV   oTex1, iTex1;\n"
 "MOV   oTex2, iTex2;\n"
 "MOV   oColor, iColor;\n"
-"DP4   disttemp.x, modelview, iPos;\n"
-"SUB   disttemp.x, fogparams.z, disttemp.x;\n"
-"MUL   oFog.x, disttemp.x, fogparams.w;\n"
 "END";
 
 static char fragmentprogram[] =
@@ -365,8 +351,7 @@ static char fragmentprogram[] =
 "MUL specdot.a, specdot.a, normalmap.a;\n"
 "MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
 "MUL atten, col, atten;\n"
-"MUL_SAT diffdot, diffdot, atten;\n"
-"LRP outColor, fogCoord.x, diffdot, fogcolor;\n"
+"MUL_SAT outColor, diffdot, atten;\n"
 "END";
 
 static char fragmentprogram2[] =
@@ -404,8 +389,7 @@ static char fragmentprogram2[] =
 "MUL atten, atten, filter;\n"
 "MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
 "MUL atten, col, atten;\n"
-"MUL_SAT diffdot, diffdot, atten;\n"
-"LRP outColor, fogCoord.x, diffdot, fogcolor;\n"
+"MUL_SAT outColor, diffdot, atten;\n"
 "END";
 
 static GLuint fragment_programs[2];
@@ -437,8 +421,6 @@ static void checkerror()
 
 void GL_CreateShadersARB()
 {
-    float scaler[4] = {0.5f, 0.5f, 0.5f, 0.5f};
-
 #if !defined(__APPLE__) && !defined (MACOSX)
     SAFE_GET_PROC(qglVertexAttrib1sARB,glVertexAttrib1sARBPROC,"glVertexAttrib1sARB");
     SAFE_GET_PROC(qglVertexAttrib1fARB,glVertexAttrib1fARBPROC,"glVertexAttrib1fARB");
@@ -552,25 +534,21 @@ void GL_CreateShadersARB()
 void GL_DisableDiffuseShaderARB()
 {
     //tex 0 = normal map
-    //tex 1 = normalization cube map (tangent space light vector)
-    //tex 2 = normalization cube map (tangent space half vector)
-    //tex 3 = color map
-    //tex 4 = (attenuation or light filter, depends on light settings)
+    //tex 1 = color map
+    //tex 2 = attenuation 3d texture
+    //tex 3 = (light filter, depends on light settings)
 
     glDisable(GL_FRAGMENT_PROGRAM_ARB);
     glDisable(GL_VERTEX_PROGRAM_ARB);
 
     GL_SelectTexture(GL_TEXTURE1_ARB);
-    glDisable(GL_TEXTURE_2D);
 
     GL_SelectTexture(GL_TEXTURE2_ARB);
-    glDisable(GL_TEXTURE_3D);
     glPopMatrix();
 
     if (currentshadowlight->filtercube)
     {
 	GL_SelectTexture(GL_TEXTURE3_ARB);
-	glDisable(GL_TEXTURE_CUBE_MAP_ARB);
 	glPopMatrix();
     }
     glMatrixMode(GL_MODELVIEW);
@@ -580,24 +558,20 @@ void GL_DisableDiffuseShaderARB()
 
 void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
 {
+    // No need to enable/disable textures as the fragment program
+    // extension uses the information contained in the program anyway
     float invrad = 1/currentshadowlight->radius;
 
     //tex 0 = normal map
-    //tex 1 = normalization cube map (tangent space light vector)
-    //tex 2 = normalization cube map (tangent space half vector)
-    //tex 3 = color map
-    //tex 4 = (attenuation or light filter, depends on light settings but the actual
-    //  register combiner setup does not change only the bound texture)
-
-    GL_SelectTexture(GL_TEXTURE1_ARB);
-    glEnable(GL_TEXTURE_2D);
+    //tex 1 = color map
+    //tex 2 = attenuation 3d texture
+    //tex 3 = (light filter, depends on light settings)
 
     GL_SelectTexture(GL_TEXTURE2_ARB);
     glMatrixMode(GL_TEXTURE);
     glPushMatrix();
     glLoadIdentity();
 
-    glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, atten3d_texture_object);
 
     glTranslatef(0.5,0.5,0.5);
@@ -618,7 +592,6 @@ void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
 	glPushMatrix();
 	glLoadIdentity();
 
-        glEnable(GL_TEXTURE_CUBE_MAP_ARB);
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, currentshadowlight->filtercube);
         GL_SetupCubeMapMatrix(world);
 
