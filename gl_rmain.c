@@ -755,7 +755,8 @@ void R_DrawAliasSurfaceShadowVolume (aliashdr_t	*paliashdr, aliasframeinstant_t 
     case 1:
 	// EXT_stencil_two_side
 	glDisable(GL_CULL_FACE);
-	qglActiveStencilFaceEXT(GL_BACK);
+        glEnable(GL_STENCIL_TEST_TWO_SIDE_EXT);
+        qglActiveStencilFaceEXT(GL_BACK);
 	glStencilOp(GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
 	glStencilFunc(GL_ALWAYS, 0, ~0);
 	qglActiveStencilFaceEXT(GL_FRONT);
@@ -763,7 +764,7 @@ void R_DrawAliasSurfaceShadowVolume (aliashdr_t	*paliashdr, aliasframeinstant_t 
 	glStencilFunc(GL_ALWAYS, 0, ~0);
 	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
 	glEnable(GL_CULL_FACE);
-	qglActiveStencilFaceEXT(GL_FRONT_AND_BACK);
+        glDisable(GL_STENCIL_TEST_TWO_SIDE_EXT);
 	break;
 
     case 2:
@@ -2314,6 +2315,7 @@ void R_RenderScene (void)
 		    case 1:
 			// EXT_stencil_two_side
 			glDisable(GL_CULL_FACE);
+                        glEnable(GL_STENCIL_TEST_TWO_SIDE_EXT);
 			qglActiveStencilFaceEXT(GL_BACK);
 			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
 			glStencilFunc(GL_ALWAYS, 0, ~0);
@@ -2326,7 +2328,7 @@ void R_RenderScene (void)
 			//Pass 1 increase
 			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
 			glEnable(GL_CULL_FACE);
-			qglActiveStencilFaceEXT(GL_FRONT_AND_BACK);
+                        glDisable(GL_STENCIL_TEST_TWO_SIDE_EXT);
 			break;
 
 		    case 2:
