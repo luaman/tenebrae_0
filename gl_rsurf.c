@@ -1165,6 +1165,7 @@ R_MirrorChain
 */
 void R_MirrorChain (msurface_t *s)
 {
+    (void)s;
 	//if (mirror)
 	//	return;
 	//mirror = true;
@@ -1505,8 +1506,8 @@ void R_DrawCaustics(void) {
 	int			i;
 	vec3_t		mins, maxs;
 
-	GLfloat sPlane[4] = {0.01, 0.005, 0.0, 0.0 };
-	GLfloat tPlane[4] = {0.0, 0.01, 0.005, 0.0 };
+	GLfloat sPlane[4] = {0.01f, 0.005f, 0.0f, 0.0f };
+	GLfloat tPlane[4] = {0.0f, 0.01f, 0.005f, 0.0f };
 
 	if (!gl_caustics.value) return;
 
@@ -2143,6 +2144,9 @@ the world model.
 PENTA: Modifications
 =============
 */
+void R_ClearSkyBox (void);
+void R_DrawSkyBox (void);
+
 void R_InitDrawWorld (void)
 {
 	entity_t	ent;
@@ -2387,7 +2391,6 @@ void BuildPolyFromSurface (msurface_t *fa)
 	medge_t		*pedges, *r_pedge;
 	int			vertpage;
 	float		*vec;
-	float		s, t;
 	glpoly_t	*poly;
 	temp_connect_t *tempEdge;
 	float		tex[2];

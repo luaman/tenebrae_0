@@ -242,8 +242,8 @@ void R_InterpolateNormals(aliashdr_t *paliashdr, aliasframeinstant_t *instant, i
 
 		lat = ( verts1[i].lightnormalindex >> 8 ) & 0xff;
 		lng = ( verts1[i].lightnormalindex & 0xff );
-		lat *= M_PI/128;
-		lng *= M_PI/128;
+		lat *= (float)M_PI/128;
+		lng *= (float)M_PI/128;
 
 		norm1[0] = cos(lat) * sin(lng);
 		norm1[1] = sin(lat) * sin(lng);
@@ -251,8 +251,8 @@ void R_InterpolateNormals(aliashdr_t *paliashdr, aliasframeinstant_t *instant, i
 
 		lat = ( verts2[i].lightnormalindex >> 8 ) & 0xff;
 		lng = ( verts2[i].lightnormalindex & 0xff );
-		lat *= M_PI/128;
-		lng *= M_PI/128;
+		lat *= (float)M_PI/128;
+		lng *= (float)M_PI/128;
 
 		norm2[0] = cos(lat) * sin(lng);
 		norm2[1] = sin(lat) * sin(lng);
@@ -386,7 +386,7 @@ void R_SetupLerpPoses(aliashdr_t *paliashdr,entity_t *e) {
 			jumps will be less noticable because of the shorter time.  So,
 			this is probably a good assumption.
 		*/
-		e->frame_interval = 0.1;
+		e->frame_interval = 0.1f;
 	}
 
 	if (e->pose2 != pose) {
@@ -504,7 +504,7 @@ void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
      alias3data_t *data;
      aliashdr_t *paliashdr;
      aliasframeinstant_t *aliasframeinstant;
-     aliasframeinstant_t *nextframeinstant;
+     aliasframeinstant_t *nextframeinstant = 0;
      aliasframeinstant_t *prevframeinstant;
      int numsurf,maxnumsurf;
 
@@ -751,6 +751,8 @@ float dist(vec3_t v1, vec3_t v2) {
 }
 
 qboolean CheckLightUpdate(entity_t *e, aliashdr_t *paliashdr, aliaslightinstant_t *ins, aliasframeinstant_t *aliasframeinstant) {
+
+    (void) paliashdr;
 
 	if (sh_nocache.value) return true;
 

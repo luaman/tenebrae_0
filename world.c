@@ -701,7 +701,7 @@ qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec
 	while (SV_HullPointContents (hull, hull->firstclipnode, mid)
 	== CONTENTS_SOLID)
 	{ // shouldn't really happen, but does occasionally
-		frac -= 0.1;
+		frac -= 0.1f;
 		if (frac < 0)
 		{
 			trace->fraction = midf;
@@ -753,7 +753,6 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 	if (ent->v.solid == SOLID_BSP && 
 	(ent->v.angles[0] || ent->v.angles[1] || ent->v.angles[2]) )
 	{
-		vec3_t	a;
 		vec3_t	forward, right, up;
 		vec3_t	temp;
 

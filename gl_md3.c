@@ -182,7 +182,6 @@ int findneighbourmd3(int index, int edgei, int numtris, mtriangle_t *triangles) 
 void TangentForTrimd3(int *index, ftrivertx_t *vertices, fstvert_t *texcos, vec3_t Tangent, vec3_t Binormal) {
 //see:
 //http://members.rogers.com/deseric/tangentspace.htm
-	vec3_t stvecs [3];
 	float *v0, *v1, *v2;
 	float *st0, *st1, *st2;
 	vec3_t vec1, vec2;
@@ -260,8 +259,8 @@ void DecodeNormal(int quant, vec3_t norm) {
 	
 	float lat = ( quant >> 8 ) & 0xff;
 	float lng = ( quant & 0xff );
-	lat *= M_PI/128;
-	lng *= M_PI/128;
+	lat *= (float)M_PI/128;
+	lng *= (float)M_PI/128;
 
 	norm[0] = cos(lat) * sin(lng);
 	norm[1] = sin(lat) * sin(lng);
@@ -286,7 +285,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	int					size;
 	int					start, end, total;
 	md3Surface_t		*surf;
-	md3tag_t			*tag;
+//	md3tag_t			*tag;
 	vec3_t				md3scale = {MD3_XYZ_SCALE, 	MD3_XYZ_SCALE, 	MD3_XYZ_SCALE};
 	vec3_t				md3origin = {0.0f, 0.0f, 0.0f};
 	ftrivertx_t			*verts, *v;
@@ -614,7 +613,6 @@ for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
 		for (j=0; j<pheader->numtris; j++) {
 			vec3_t tangent;
 			vec3_t binormal;
-			vec3_t normal;
 			TangentForTrimd3(&indecies[j*3],&verts[i*pheader->poseverts],texcoords,tangent,binormal);
 			//for all vertices in the tri
 			for (k=0; k<3; k++) {

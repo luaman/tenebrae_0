@@ -39,19 +39,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct {
 	modestate_t	type;
-	int			width;
-	int			height;
+	unsigned		width;
+	unsigned		height;
 	int			modenum;
 	int			dib;
 	int			fullscreen;
-	int			bpp;
+	unsigned		bpp;
 	int			halfscreen;
 	char		modedesc[17];
 } vmode_t;
 
 typedef struct {
-	int			width;
-	int			height;
+	unsigned		width;
+	unsigned		height;
 } lmode_t;
 
 lmode_t	lowresmodes[] = {
@@ -117,6 +117,7 @@ char *VID_GetModeDescription (int mode);
 void ClearAllStates (void);
 void VID_UpdateWindowStatus (void);
 void GL_Init (void);
+void VID_Init8bitPalette(void);
 
 PROC glArrayElementEXT;
 PROC glColorPointerEXT;
@@ -146,10 +147,12 @@ RECT		window_rect;
 
 void VID_HandlePause (qboolean pause)
 {
+    (void)pause;
 }
 
 void VID_ForceLockState (int lk)
 {
+    (void)lk;
 }
 
 void VID_LockBuffer (void)
@@ -167,16 +170,26 @@ int VID_ForceUnlockedAndReturnState (void)
 
 void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)
 {
+    (void)x;
+    (void)y;
+    (void)pbitmap;
+    (void)width;
+    (void)height;
 }
 
 void D_EndDirectRect (int x, int y, int width, int height)
 {
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
 }
 
 
 void CenterWindow(HWND hWndCenter, int width, int height, BOOL lefttopjustify)
 {
     int     CenterX, CenterY;
+    (void)lefttopjustify;
 
 	CenterX = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
 	CenterY = (GetSystemMetrics(SM_CYSCREEN) - height) / 2;
@@ -217,8 +230,8 @@ qboolean VID_SetWindowedMode (int modenum)
 	// Create the DIB window
 	dibwindow = CreateWindowEx (
 		 ExWindowStyle,
-		 "WinQuake",
-		 "GLQuake",
+		 "Tenebrae",
+		 "Tenebrae",
 		 WindowStyle,
 		 rect.left, rect.top,
 		 width,
@@ -308,8 +321,8 @@ qboolean VID_SetFullDIBMode (int modenum)
 	// Create the DIB window
 	dibwindow = CreateWindowEx (
 		 ExWindowStyle,
-		 "WinQuake",
-		 "GLQuake",
+		 "Tenebrae",
+		 "Tenebrae",
 		 WindowStyle,
 		 rect.left, rect.top,
 		 width,
@@ -358,7 +371,7 @@ qboolean VID_SetFullDIBMode (int modenum)
 int VID_SetMode (int modenum, unsigned char *palette)
 {
 	int				original_mode, temp;
-	qboolean		stat;
+	qboolean		stat = 0;
     MSG				msg;
 
 	if ((windowed && (modenum != 0)) ||
@@ -771,6 +784,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 	}
 }
 
+LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 /* main window procedure */
 LONG WINAPI MainWndProc (
@@ -1164,7 +1178,7 @@ void VID_InitDIB (HINSTANCE hInstance)
     wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
 	wc.hbrBackground = NULL;
     wc.lpszMenuName  = 0;
-    wc.lpszClassName = "WinQuake";
+    wc.lpszClassName = "Tenebrae";
 
     if (!RegisterClass (&wc) )
 		Sys_Error ("Couldn't register window class");
@@ -1211,6 +1225,8 @@ void VID_InitFullDIB (HINSTANCE hInstance)
 	int		i, modenum, originalnummodes, existingmode, numlowresmodes;
 	int		j, bpp, done;
 	BOOL	stat;
+
+        (void) hInstance;
 
 // enumerate >8 bpp modes
 	originalnummodes = nummodes;
@@ -1359,7 +1375,7 @@ static void Check_Gamma (unsigned char *pal)
 			(gl_vendor && strstr(gl_vendor, "3Dfx")))
 			vid_gamma = 1;
 		else
-			vid_gamma = 0.6; // default to 0.7 on non-3dfx hardware
+			vid_gamma = 0.6f; // default to 0.7 on non-3dfx hardware
 							 //PENTA: lowered to make things a little brighter
 	} else
 		vid_gamma = Q_atof(com_argv[i+1]);
@@ -1386,7 +1402,7 @@ VID_Init
 void	VID_Init (unsigned char *palette)
 {
 	int		i, existingmode;
-	int		basenummodes, width, height, bpp, findbpp, done;
+	unsigned	basenummodes, width, height, bpp, findbpp, done;
 	char	gldir[MAX_OSPATH];
 	HDC		hdc;
 	DEVMODE	devmode;
@@ -1482,6 +1498,8 @@ void	VID_Init (unsigned char *palette)
 
 				if (COM_CheckParm("-height"))
 					height = Q_atoi(com_argv[COM_CheckParm("-height")+1]);
+                                else
+                                        height = 400;
 
 			// if they want to force it, add the specified mode to the list
 				if (COM_CheckParm("-force") && (nummodes < MAX_MODE_LIST))

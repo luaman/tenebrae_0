@@ -70,7 +70,6 @@ void SubdividePolygon (int numverts, float *verts)
     float	dist[64];
     float	frac;
     glpoly_t	*poly;
-    float	s, t;
     float	tex[2];
 
     if (numverts > 60)
@@ -680,15 +679,13 @@ int LoadTexture(char* filename, int size)
     {
 	png_infop info_ptr;
 	png_structp png_ptr;
-        char* mem;
+        unsigned char* mem;
         unsigned long width, height;
         
 	int bit_depth;
 	int color_type;
 	unsigned char** rows;
-        int i;
-        png_color_16 background = {0, 0, 0};
-        png_color_16p image_background;
+        unsigned i;
 	
 	Con_DPrintf("Loading %s\n", argh);
 	
@@ -798,8 +795,6 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
         
 	unsigned char** rows;
         int i;
-        png_color_16 background = {0, 0, 0};
-        png_color_16p image_background;
 	
 	Con_DPrintf("Loading %s\n", argh);
 	
@@ -1337,7 +1332,7 @@ int EasyTgaLoad(char *filename)
     int			texturemode;
     unsigned long width, height;
     char* tmp;
-    char* mem;
+    unsigned char* mem;
         
     if ( gl_texcomp && ((int)gl_compress_textures.value) & 1 )
     {
@@ -1365,9 +1360,7 @@ int EasyTgaLoad(char *filename)
         int bit_depth;
         int color_type;
         unsigned char** rows;
-        int i;
-        png_color_16 background = {0, 0, 0};
-        png_color_16p image_background;
+        unsigned i;
 
         Con_DPrintf("Loading %s\n", argh);
 	
@@ -1462,7 +1455,6 @@ char	*suf[7] = {"rt", "bk", "lf", "ft", "up", "dn","tile"};
 void R_LoadSkys (void)
 {
     int		i;
-    FILE	*f;
     char	name[64];
 
     skybox_hasclouds = true;
@@ -1811,9 +1803,7 @@ R_DrawSkyBox
 int	skytexorder[6] = {0,2,1,3,4,5};
 void R_DrawSkyBox (void)
 {
-    int		i, j, k;
-    vec3_t	v;
-    float	s, t;
+    int		i;
 
     if (skytexturenum >= 0) {
 	//	glColor3f(1,1,1);

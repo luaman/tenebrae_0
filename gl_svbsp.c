@@ -340,7 +340,8 @@ svnode_t *ExpandVolume(vec3_t *v,int *sign, int vnum, msurface_t *surf) {
 
 	svnode_t	*res, *currnode;
 	int		i;
-
+        (void)surf;
+        (void)sign;
 #ifdef SHADOW_DEBUG
 	Con_Printf ("expand volume %i\n",vnum);
 #endif

@@ -211,6 +211,8 @@ int WIPX_CloseSocket (int handle)
 
 int WIPX_Connect (int handle, struct qsockaddr *addr)
 {
+    (void)handle;
+    (void)addr;
 	return 0;
 }
 
@@ -352,12 +354,12 @@ int WIPX_GetSocketAddr (int handle, struct qsockaddr *addr)
 {
 	int socket = ipxsocket[handle];
 	int addrlen = sizeof(struct qsockaddr);
-	unsigned int a;
+        int _errno = 0;
 
 	Q_memset(addr, 0, sizeof(struct qsockaddr));
 	if(pgetsockname(socket, (struct sockaddr *)addr, &addrlen) != 0)
 	{
-		int _errno = pWSAGetLastError();
+	    _errno = pWSAGetLastError();
 	}
 
 	return 0;

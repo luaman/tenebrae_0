@@ -129,6 +129,7 @@ void Q_strncpy (char *dest, char *src, int count);
 int Q_strlen (char *str);
 char *Q_strrchr (char *s, char c);
 void Q_strcat (char *dest, char *src);
+void Q_strncat (char *dest, char *src,int size);
 int Q_strcmp (char *s1, char *s2);
 int Q_strncmp (char *s1, char *s2, int count);
 int Q_strcasecmp (char *s1, char *s2);

@@ -82,7 +82,6 @@ int	dupIndex[MAXALIASTRIS];
 void TangentForTri(int *index, ftrivertx_t *vertices, fstvert_t *texcos, vec3_t Tangent, vec3_t Binormal) {
 //see:
 //http://members.rogers.com/deseric/tangentspace.htm
-	vec3_t stvecs [3];
 	float *v0, *v1, *v2;
 	float *st0, *st1, *st2;
 	vec3_t vec1, vec2;
@@ -170,8 +169,6 @@ void GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr)
 	ftrivertx_t	*verts, *v, *oldverts;
 	mtriangle_t *tris;
 	fstvert_t	*texcoords;
-	char	cache[MAX_QPATH], fullpath[MAX_OSPATH];
-	FILE	*f;
 	plane_t	*norms;
 	vec3_t	v1, v2, normal;
 	vec3_t	triangle[3];

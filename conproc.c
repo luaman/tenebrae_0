@@ -44,8 +44,6 @@ BOOL SetConsoleCXCY(HANDLE hStdout, int cx, int cy);
 void InitConProc (HANDLE hFile, HANDLE heventParent, HANDLE heventChild)
 {
 	DWORD	dwID;
-	CONSOLE_SCREEN_BUFFER_INFO	info;
-	int		wheight, wwidth;
 
 // ignore if we don't have all the events.
 	if (!hFile || !heventParent || !heventChild)
@@ -99,6 +97,8 @@ DWORD RequestProc (DWORD dwNichts)
 	HANDLE	heventWait[2];
 	int		iBeginLine, iEndLine;
 	
+        (void)dwNichts;
+
 	heventWait[0] = heventParentSend;
 	heventWait[1] = heventDone;
 

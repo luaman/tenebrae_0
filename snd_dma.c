@@ -162,7 +162,10 @@ S_Startup
 
 void S_Startup (void)
 {
-	int		rc, i;
+#ifdef OPENAL
+    int i;
+#endif
+	int		rc;
 
 	if (!snd_initialized)
 		return;
@@ -323,9 +326,10 @@ void S_Init (void)
 
 void S_Shutdown(void)
 {
+#ifdef OPENAL
     int i;
-
-	if (!sound_started)
+#endif
+    if (!sound_started)
 		return;
 
 	if (shm)
@@ -499,11 +503,12 @@ void SND_Spatialize(channel_t *ch)
     vec_t	lscale, rscale, scale;
     vec3_t	source_vec;
                 sfx_t *snd;
-    int         channum;
-    float       zero[3] = { 0, 0, 0 };
 // OPENAL
 #ifdef OPENAL
-        channum = ch - channels;
+    int         channum;
+    float       zero[3] = { 0, 0, 0 };
+
+    channum = ch - channels;
 
 // anything coming from the view entity will allways be full volume
 	if (ch->entnum == cl.viewentity)
@@ -909,9 +914,10 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 	int			total;
 	channel_t	*ch;
 	channel_t	*combine;
+#ifdef OPENAL
         float            listener[6];
         float  zero[3] = { 0, 0, 0 };
-
+#endif
 	if (!sound_started || (snd_blocked > 0))
 		return;
 
@@ -1055,7 +1061,7 @@ void S_Update_(void)
 {
 #ifndef SDL
 	unsigned        endtime;
-	int				samps;
+	unsigned	samps;
 	
 	if (!sound_started || (snd_blocked > 0))
 		return;

@@ -104,14 +104,15 @@ R_InitParticleEffects
   Parse the particle effects out of the script file
 =====================
 */
+int yylex(void);
+
 void R_AddEffectsScript(const char *filename) {
 
-	FILE *fin;
-    int token, var, i;
+    int token, var = 0, i;
     ParticleEffect_t *effect;
 	char *buffer;
 	//char	newname[256];
-	char* str;
+	char* str = 0;
 
 	buffer = COM_LoadTempFile (filename);
 
@@ -478,8 +479,8 @@ extern	float	r_avertexnormals[NUMVERTEXNORMALS][3];
 vec3_t	avelocities[NUMVERTEXNORMALS];
 float	beamlength = 16;
 vec3_t	avelocity = {23, 7, 3};
-float	partstep = 0.01;
-float	timescale = 0.01;
+float	partstep = 0.01f;
+float	timescale = 0.01f;
 
 void R_EntityParticles (entity_t *ent)
 {
@@ -634,8 +635,7 @@ PENTA: When a gun hits the wall
 */
 void R_ParticleGunHits (vec3_t org, int type)
 {
-	int			i, j;
-	particle_t	*p;
+	int			i;
 	ParticleEffect_t *eff;
 /*
 #define	TE_SPIKE			0
@@ -702,10 +702,10 @@ PENTA: Changes
 */
 void R_ParticleHitBlood (vec3_t org, int color)
 {
-	int			i, j;
-	particle_t	*p;
+	int			i;
 	ParticleEffect_t *eff;
 
+        (void) color;
 	//Con_Printf("blood\n");
 
 
@@ -730,8 +730,7 @@ PENTA: Changes
 */
 void R_ParticleExplosion (vec3_t org)
 {
-	int			i, j;
-	particle_t	*p;
+	int			i;
 	ParticleEffect_t *eff;
 	
 	eff = ParticleEffectForName("pt_explosion1");
@@ -755,10 +754,11 @@ R_ParticleExplosion2
 */
 void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 {
-	int			i, j;
-	particle_t	*p;
-	int			colorMod = 0;
+	int			i;
 	ParticleEffect_t *eff;
+
+        (void) colorStart;
+        (void) colorLength;
 
 	eff = ParticleEffectForName("pt_explosion1");
 	for (i=0 ; i<64 ; i++)
@@ -776,8 +776,7 @@ R_BlobExplosion
 */
 void R_BlobExplosion (vec3_t org)
 {
-	int			i, j;
-	particle_t	*p;
+	int			i;
 	ParticleEffect_t *eff;	
 
 	eff = ParticleEffectForName("pt_voreexplosion1");
@@ -801,9 +800,9 @@ R_RunParticleEffect
 */
 void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 {
-	int			i, j;
-	particle_t	*p;
+	int			i;
 	ParticleEffect_t *eff;
+        (void) dir;
 
 	if ((color == 225) || (color == 73)) {
 		R_ParticleHitBlood (org, color);
@@ -1249,7 +1248,7 @@ void R_DrawParticles (void)
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_ONE, GL_ONE);
 	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.01);
+	glAlphaFunc(GL_GREATER,0.01f);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glDepthMask(0);
 
@@ -1419,7 +1418,7 @@ void R_DrawParticles (void)
 				//calc reflection vector
 				d = DotProduct (p->vel, trace.plane.normal);
 				VectorMA (p->vel, -2*d, trace.plane.normal, p->vel);
-				VectorScale(p->vel,0.33,p->vel);
+				VectorScale(p->vel,0.33f,p->vel);
 				VectorCopy(trace.endpos,p->org);
 				//XYZ
 				p->numbounces--;
@@ -1449,7 +1448,7 @@ void R_DrawParticles (void)
 	glDepthMask(1);
 	glDisable (GL_BLEND);
 	glDisable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.666);
+	glAlphaFunc(GL_GREATER,0.666f);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	//XYZ
 	glLoadIdentity();

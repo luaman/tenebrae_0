@@ -1173,7 +1173,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 {
 	int				i, k, l;
 	int				top, bottom;
-	int				x, y, f;
+	unsigned			x, y, f;
 	char			num[12];
 	scoreboard_t	*s;
 	int				numlines;

@@ -620,6 +620,7 @@ of the code.
 */
 void Draw_DebugChar (char num)
 {
+    (void)num;
 }
 
 /*
@@ -760,7 +761,7 @@ Draw_ConsoleBackground
 void Draw_ConsoleBackground (int lines)
 {
 	int y = (vid.height * 3) >> 2;
-	int x, i; 
+	unsigned int x, i; 
 
 	char tl[80]; //Console Clock - Eradicator
 	char timebuf[20];
@@ -783,7 +784,7 @@ void Draw_ConsoleBackground (int lines)
 
 void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
 { 
-   int x, i; 
+   unsigned int x, i; 
    int y; 
    static float xangle = 0, xfactor = .3f, xstep = .01f; 
    
@@ -884,7 +885,7 @@ void Draw_FadeScreen (void)
 {
 	glEnable (GL_BLEND);
 	glDisable (GL_TEXTURE_2D);
-	glColor4f (0, 0, 0, 0.8);
+	glColor4f (0, 0, 0, 0.8f);
 	glBegin (GL_QUADS);
 
 	glVertex2f (0,0);
@@ -956,7 +957,7 @@ void GL_Set2D (void)
 	glEnable (GL_ALPHA_TEST);
 
 	glEnable(GL_BLEND);
-	glAlphaFunc(GL_GREATER,0.666);
+	glAlphaFunc(GL_GREATER,0.666f);
 //	glDisable (GL_ALPHA_TEST);
 
 	glColor4f (1,1,1,1);
@@ -1304,7 +1305,6 @@ void GL_Normalize(byte *in, int width, int height)
 {
     int		i, j;
     byte	*out;
-    float	inv255	= 1.0f/255.0f;
     float	inv127	= 1.0f/127.0f;
     float	x,y,z,l;
 
@@ -1402,6 +1402,8 @@ void GL_Upload32 (unsigned *data, int width, int height,  qboolean mipmap, qbool
 	//XYZ
 static	unsigned	scaled[1024*1024];	// [512*256];
 	int			scaled_width, scaled_height;
+
+        (void)alpha;
 
         if ( willi_gray_colormaps.value )
         {
@@ -1837,7 +1839,7 @@ get the name of an overriden file
 ===============
 */
 void	GL_GetOverrideName(char *identifier,char *tail, char *dest) {
-	int i;
+	unsigned i;
 
 	sprintf(dest,"override/%s%s.tga", identifier, tail);
 	for (i=0; i<strlen(dest); i++) {
@@ -1870,7 +1872,6 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	int			i, s;
 	qboolean	noalpha;
 	int			p;
-	FILE		*f;
 	char filename[MAX_OSPATH];
 	byte		r, g, b;
 	s = width*height;
@@ -2078,7 +2079,6 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 int GL_LoadLuma(char *identifier, qboolean mipmap)
 {
 	qboolean	alpha;
-	FILE		*f;
 	char filename[MAX_OSPATH];
 	int			width, height;
 
@@ -2125,7 +2125,6 @@ int GL_LoadCubeMap (int identifier)
 {
 	int			i, width, height;
 	gltexture_t	*glt;
-	FILE		*f;
 	char filename[MAX_OSPATH];
         int			texturemode;
 

@@ -630,7 +630,7 @@ void R_MarkShadowCasting (shadowlight_t *light, mnode_t *node)
 float SphereInFrustum( vec3_t o, float radius )
 {
    int p;
-   float d;
+   float d = 0;
 
    for( p = 0; p < 6; p++ )
    {
@@ -1177,7 +1177,6 @@ We store them in volumeCmdsBuff and lightCmdsBuff
 =============
 */
 void PrecalcVolumesForLight(model_t *model) {
-
 	msurface_t *surf;
 
 	int *volumeCmds = &volumeCmdsBuff[0];
@@ -1199,6 +1198,8 @@ void PrecalcVolumesForLight(model_t *model) {
 	int		j;
 	float	*v;
 
+        (void) model;
+
 	surf = shadowchain;
 
 	//1. Calculate shadow volumes
@@ -1216,7 +1217,6 @@ void PrecalcVolumesForLight(model_t *model) {
 	
 		
 		//a. far cap
-//		volumeCmds[volumePos++] = GL_POLYGON;
 		volumeCmds[volumePos++] = GL_TRIANGLE_FAN;
 		volumeCmds[volumePos++] = surf->numedges;
 
@@ -1924,16 +1924,16 @@ void R_CalcSvBsp(entity_t *ent) {
 		//Hack: support quake light_* entities
 		if (!strcmp (ent->model->name, "progs/flame2.mdl")) {
 			currentshadowlight->baseColor[0] = 1;
-			currentshadowlight->baseColor[1] = 0.9;
-			currentshadowlight->baseColor[2] = 0.75;	
+			currentshadowlight->baseColor[1] = 0.9f;
+			currentshadowlight->baseColor[2] = 0.75f;	
 		} else if (!strcmp (ent->model->name, "progs/flame.mdl")) {
 			currentshadowlight->baseColor[0] = 1;
-			currentshadowlight->baseColor[1] = 0.9;
-			currentshadowlight->baseColor[2] = 0.75;
+			currentshadowlight->baseColor[1] = 0.9f;
+			currentshadowlight->baseColor[2] = 0.75f;
 		} else if (!strcmp (ent->model->name, "progs/s_light.spr")) {
 			currentshadowlight->baseColor[0] = 1;
-			currentshadowlight->baseColor[1] = 0.9;
-			currentshadowlight->baseColor[2] = 0.75;
+			currentshadowlight->baseColor[1] = 0.9f;
+			currentshadowlight->baseColor[2] = 0.75f;
 		}
 
 		currentshadowlight->isStatic = true;

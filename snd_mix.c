@@ -69,7 +69,8 @@ void S_TransferStereo16 (int endtime)
 	DWORD	*pbuf;
 #ifdef _WIN32
 	int		reps;
-	DWORD	dwSize,dwSize2;
+	DWORD	dwSize = 0;
+        DWORD dwSize2;
 	DWORD	*pbuf2;
 	HRESULT	hresult;
 #endif
@@ -313,8 +314,8 @@ void S_TransferPaintBuffer(int endtime) //Changed Heavily - Eradicator
 			p+= step;
 			if (val > 0x7fff)
 				val = 0x7fff;
-			else if (val < (short)0x8000)
-				val = (short)0x8000;
+			else if (val < 0x8000)
+				val = 0x8000;
 			out[out_idx] = val;
 			out_idx = (out_idx + 1) & out_mask;
 		}
@@ -328,8 +329,8 @@ void S_TransferPaintBuffer(int endtime) //Changed Heavily - Eradicator
 			p+= step;
 			if (val > 0x7fff)
 				val = 0x7fff;
-			else if (val < (short)0x8000)
-				val = (short)0x8000;
+			else if (val < 0x8000)
+				val = 0x8000;
 			out[out_idx] = (val>>8) + 128;
 			out_idx = (out_idx + 1) & out_mask;
 		}

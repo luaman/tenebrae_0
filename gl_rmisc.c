@@ -175,6 +175,8 @@ void R_Envmap_f (void)
 R_Init
 ===============
 */
+void R_InitParticleEffects(void);
+
 void R_Init (void)
 {	
 	extern cvar_t gl_finish;
@@ -284,7 +286,7 @@ void R_TranslatePlayerSkin (int playernum)
 	int		top, bottom;
 	byte		translate[256];
 	unsigned	translate32[256];
-	int		i, j, s;
+	unsigned int	i, j, s;
 	model_t		*model;
 	alias3data_t 	*data;
 	aliashdr_t 	*paliashdr;

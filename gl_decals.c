@@ -96,7 +96,6 @@ void R_SpawnDecal(vec3_t center, vec3_t normal, vec3_t tangent,  ParticleEffect_
 	float one_over_w, one_over_h;
 	int	a;
 	vec3_t test = {0.5, 0.5, 0.5};
-	vec3_t t;
 
 	//allocate decal
 	if (!free_decals)
@@ -257,7 +256,6 @@ qboolean DecalAddPolygon(decal_t *dec, int vertcount, vec3_t *vertices)
 	int *triangle;
 	int count;
 	int a, b;
-	float f;
 
 	//Con_Printf("AddPolygon %i %i\n",vertcount, dec->vertexCount);
 	count = dec->vertexCount;
@@ -288,12 +286,11 @@ qboolean DecalAddPolygon(decal_t *dec, int vertcount, vec3_t *vertices)
 	return true;
 }
 
-const float decalEpsilon = 0.001;
+const float decalEpsilon = 0.001f;
 
 void DecalClipLeaf(decal_t *dec, mleaf_t *leaf)
 {
-	int a;
-	vec3_t		newVertex[64], t1, t2, t3;
+	vec3_t		newVertex[64], t3;
 	int	c;
 	msurface_t **surf;
 
@@ -368,8 +365,8 @@ int DecalClipPolygonAgainstPlane(plane_t *plane, int vertexCount, vec3_t *vertex
 {
 	qboolean	negative[65];
 	int	a, count, b, c;
-	float sect, t;
-	vec3_t v, v1, v2;
+	float t;
+	vec3_t v1, v2;
 
 	// Classify vertices
 	int negativeCount = 0;
@@ -539,7 +536,7 @@ void R_DrawDecals (void)
 	glDepthMask(1);
 	glDisable (GL_BLEND);
 	glDisable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.666);
+	glAlphaFunc(GL_GREATER,0.666f);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glFogfv(GL_FOG_COLOR, fog_color);
 }
