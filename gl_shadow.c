@@ -1339,7 +1339,8 @@ void PrecalcVolumesForLight(model_t *model) {
 
 			if (colorscale <0) colorscale = 0;
 
-			lightCmds[lightPos++].asInt = GL_POLYGON;
+//			lightCmds[lightPos++].asInt = GL_POLYGON;
+			lightCmds[lightPos++].asInt = GL_TRIANGLE_FAN;
 
 			lightCmds[lightPos++].asVoid = surf;
 			lightCmds[lightPos++].asFloat = currentshadowlight->color[0]*colorscale; 
