@@ -1487,8 +1487,8 @@ void M_Options_Key (int k)
 char *bindnames[][2] =
 {
 {"+attack", 		"attack"},
-{"impulse 10", 		"previous weapon"},
-{"impulse 12", 		"next weapon"}, //Prev Wep requires new progs.dat - Eradicator
+{"impulse 10", 		"next weapon"},
+{"impulse 12", 		"previous weapon"}, //Prev Wep requires new progs.dat - Eradicator
 {"+jump", 			"jump / swim up"},
 {"+forward", 		"walk forward"},
 {"+back", 			"backpedal"},
