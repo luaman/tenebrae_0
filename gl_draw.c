@@ -1632,7 +1632,6 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		}
 	}
 
-
 	if (bump) {
 		//Try to load a gloss map & pack it in the alpha channel of
 		//our color map
@@ -1675,6 +1674,8 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 
 	texture_extension_number++;
 
+if (!COM_CheckParm("-nobumpmaps")) //Disable Bumpmapping Parameter - Eradicator
+{
 	//upload bump map (if any)
 	if (bump) {
 		char filename[128];
@@ -1690,6 +1691,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		GL_Bind(texture_extension_number);
 		GL_UploadBump (bumppix, width, height, mipmap);
 	}
+}
 
 	/*
 	if (bump) {
