@@ -2203,17 +2203,31 @@ void R_RenderScene (void)
 		//Other methods may give better results (exhaustive for example)
 		//but i'm convinced you can't save more clears than those that you
 		//save with this.
-		if ((!sh_nocleversave.value) && (!sh_noscissor.value)) {
+		if ((!sh_nocleversave.value) && (!sh_noscissor.value)) 
+		{
+			qboolean foundone = false;
 			for (j=0; j<numUsedShadowLights; j++) {
 
 				if (!usedshadowlights[j]->visible) continue;
 
 				l = usedshadowlights[j];
 				currentshadowlight = l;
-				if (R_CheckRectList(&l->scizz)) {
+				if (R_CheckRectList(&l->scizz))
+				{
+					foundone = true;
 					break;
 				}
 			}
+            if (!foundone) {   
+				R_SetTotalRect(); //Only clear dirty part   
+				glClear(GL_STENCIL_BUFFER_BIT);   
+                R_ClearRectList();   
+                for (j=0; j<numUsedShadowLights; j++) {   
+					l = usedshadowlights[j];   
+                    currentshadowlight = l;   
+                    if (usedshadowlights[j]->visible) break;   
+                }   
+            } 
 		} else {
 			l = usedshadowlights[i];
 			currentshadowlight = l;
