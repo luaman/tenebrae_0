@@ -665,9 +665,7 @@ int LoadTexture(char* filename, int size)
 {
     FILE	*f;
     char* tmp;
-    char* mem;
-    int width, height;
-        
+
     // Check for *.png first, then *.jpg, fall back to *.tga if not found...
     // first replace the last three letters with png (yeah, hack)
     strcpy(argh, filename);
@@ -681,6 +679,9 @@ int LoadTexture(char* filename, int size)
     {
 	png_infop info_ptr;
 	png_structp png_ptr;
+        char* mem;
+        unsigned long width, height;
+        
 	int bit_depth;
 	int color_type;
 	unsigned char** rows;
@@ -786,6 +787,8 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 	png_structp png_ptr;
 	int bit_depth;
 	int color_type;
+        unsigned long mywidth, myheight;
+        
 	unsigned char** rows;
         int i;
         png_color_16 background = {0, 0, 0};
@@ -799,9 +802,11 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
         png_set_sig_bytes(png_ptr, 0);
 	
 	png_read_info(png_ptr, info_ptr);
-	png_get_IHDR(png_ptr, info_ptr, width, height,
+	png_get_IHDR(png_ptr, info_ptr, &mywidth, &myheight,
 		     &bit_depth, &color_type, 0, 0, 0);
-	
+	*width=mywidth;
+        *height=myheight;
+        
 	
 	// Allocate memory and get data there
 	rows = malloc(*height*sizeof(char*));
@@ -1281,9 +1286,9 @@ int EasyTgaLoad(char *filename)
 {
     FILE	*f;
     int			texturemode;
+    unsigned long width, height;
     char* tmp;
     char* mem;
-    int width, height;
         
     if ( gl_texcomp && ((int)gl_compress_textures.value) & 1 )
     {
