@@ -1,7 +1,5 @@
 
-Id Software		<http://www.idsoftware.com>
-
- - original quake code 
+ === TENEBRAE TEAM ===
 
 Charles Hollemeersh	<c_hollemeersch(at)hotmail.com>
 
@@ -15,19 +13,28 @@ Axel "awe" Wefers	<awe(at)fruitz-of-dojo.de>
 
  - Mac OSX port
 
-Sam Lantinga 		<slouken(at)devolution.com>
+Adam Jones 		<eradicator@modsrus.com>
 
- - initial port of quake to SDL
-
-Fabian Bieler 		<der.fabe(at)gmx.net>
-
- - Linux GLX code patch
+ - Miscellaneous code fixes and improvements
 
 Didier Cassirame	<faded(at)free.fr>
 
  - OpenGL through SDL hack
  - Linux GLX code hack
 
-Adam Jones 		<eradicator@modsrus.com>
+ === original code ===
 
- - Miscellaneous code fixes and improvements
+Id Software		<http://www.idsoftware.com>
+
+ - original quake code 
+
+Sam Lantinga 		<slouken(at)devolution.com>
+
+ - initial port of quake to SDL
+
+ === contributions ===
+
+Fabian Bieler 		<der.fabe(at)gmx.net>
+
+ - Linux GLX code patch
+
