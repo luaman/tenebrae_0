@@ -260,152 +260,151 @@ static glIsProgramARBPROC qglIsProgramARB = NULL;
 #define GL_FRAGMENT_PROGRAM_ARB                                 0x8804
 
 static char vertexprogram[] =
-"!!ARBvp1.0"
-"ATTRIB iPos         = vertex.position;"
-"ATTRIB iNormal      = vertex.normal;"
-"ATTRIB iColor       = vertex.color;"
-"ATTRIB iTex0        = vertex.texcoord[0];"
-"ATTRIB iTex1        = vertex.texcoord[1];"
-"ATTRIB iTex2        = vertex.texcoord[2];"
-"PARAM  mvp[4]       = { state.matrix.mvp };"
-"PARAM  modelview[4] = { state.matrix.modelview[0] };"
-"PARAM  texMatrix[4] = { state.matrix.texture[4] };"
-"PARAM  fogparams    = state.fog.params;"
-"TEMP   disttemp;"
-"OUTPUT oPos         = result.position;"
-"OUTPUT oColor       = result.color;"
-"OUTPUT oTex0        = result.texcoord[0];"
-"OUTPUT oTex1        = result.texcoord[1];"
-"OUTPUT oTex2        = result.texcoord[2];"
-"OUTPUT oTex3        = result.texcoord[3];"
-"OUTPUT oTex4        = result.texcoord[4];"
-"OUTPUT oFog         = result.fogcoord;"
-"DP4   oPos.x, mvp[0], iPos;"
-"DP4   oPos.y, mvp[1], iPos;"
-"DP4   oPos.z, mvp[2], iPos;"
-"DP4   oPos.w, mvp[3], iPos;"
-"DP4   oTex3.x, texMatrix[0], iPos;"
-"DP4   oTex3.y, texMatrix[1], iPos;"
-"DP4   oTex3.z, texMatrix[2], iPos;"
-"DP4   oTex3.w, texMatrix[3], iPos;"
-"MOV   oTex0, iTex0;"
-"MOV   oTex1, iTex1;"
-"MOV   oTex2, iTex2;"
-"MOV   oColor, iColor;"
-"DP4   disttemp.x, modelview[2], iPos;"
-"SUB   disttemp.x, fogparams.z, disttemp.x;"
-"MUL   oFog.x, disttemp.x, fogparams.w;"
+"!!ARBvp1.0\n"
+"OPTION ARB_position_invariant;\n"
+"ATTRIB iPos         = vertex.position;\n"
+"ATTRIB iNormal      = vertex.normal;\n"
+"ATTRIB iColor       = vertex.color;\n"
+"ATTRIB iTex0        = vertex.texcoord[0];\n"
+"ATTRIB iTex1        = vertex.texcoord[1];\n"
+"ATTRIB iTex2        = vertex.texcoord[2];\n"
+"PARAM  mvp[4]       = { state.matrix.mvp };\n"
+"PARAM  modelview    = state.matrix.mvp.row[2];\n"
+"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
+"PARAM  fogparams    = state.fog.params;\n"
+"TEMP   disttemp;\n"
+"OUTPUT oColor       = result.color;\n"
+"OUTPUT oTex0        = result.texcoord[0];\n"
+"OUTPUT oTex1        = result.texcoord[1];\n"
+"OUTPUT oTex2        = result.texcoord[2];\n"
+"OUTPUT oTex3        = result.texcoord[3];\n"
+"OUTPUT oFog         = result.fogcoord;\n"
+"DP4   oTex3.x, texMatrix[0], iPos;\n"
+"DP4   oTex3.y, texMatrix[1], iPos;\n"
+"DP4   oTex3.z, texMatrix[2], iPos;\n"
+"DP4   oTex3.w, texMatrix[3], iPos;\n"
+"MOV   oTex0, iTex0;\n"
+"MOV   oTex1, iTex1;\n"
+"MOV   oTex2, iTex2;\n"
+"MOV   oColor, iColor;\n"
+"DP4   disttemp.x, modelview, iPos;\n"
+"SUB   disttemp.x, fogparams.z, disttemp.x;\n"
+"MUL   oFog.x, disttemp.x, fogparams.w;\n"
 "END";
 
 static char vertexprogram2[] =
-"!!ARBvp1.0"
-"ATTRIB iPos         = vertex.position;"
-"ATTRIB iNormal      = vertex.normal;"
-"ATTRIB iColor       = vertex.color;"
-"ATTRIB iTex0        = vertex.texcoord[0];"
-"ATTRIB iTex1        = vertex.texcoord[1];"
-"ATTRIB iTex2        = vertex.texcoord[2];"
-"PARAM  mvp[4]       = { state.matrix.mvp };"
-"PARAM  modelview[4] = { state.matrix.modelview[0] };"
-"PARAM  texMatrix[4] = { state.matrix.texture[4] };"
-"PARAM  texMatrix2[4]= { state.matrix.texture[5] };"
-"PARAM  fogparams    = state.fog.params;"
-"TEMP   disttemp;"
-"OUTPUT oPos         = result.position;"
-"OUTPUT oColor       = result.color;"
-"OUTPUT oTex0        = result.texcoord[0];"
-"OUTPUT oTex1        = result.texcoord[1];"
-"OUTPUT oTex2        = result.texcoord[2];"
-"OUTPUT oTex3        = result.texcoord[3];"
-"OUTPUT oTex4        = result.texcoord[4];"
-"OUTPUT oFog         = result.fogcoord;"
-"DP4   oPos.x, mvp[0], iPos;"
-"DP4   oPos.y, mvp[1], iPos;"
-"DP4   oPos.z, mvp[2], iPos;"
-"DP4   oPos.w, mvp[3], iPos;"
-"DP4   oTex3.x, texMatrix[0], iPos;"
-"DP4   oTex3.y, texMatrix[1], iPos;"
-"DP4   oTex3.z, texMatrix[2], iPos;"
-"DP4   oTex3.w, texMatrix[3], iPos;"
-"DP4   oTex4.x, texMatrix2[0], iPos;"
-"DP4   oTex4.y, texMatrix2[1], iPos;"
-"DP4   oTex4.z, texMatrix2[2], iPos;"
-"DP4   oTex4.w, texMatrix2[3], iPos;"
-"MOV   oTex0, iTex0;"
-"MOV   oTex1, iTex1;"
-"MOV   oTex2, iTex2;"
-"MOV   oColor, iColor;"
-"DP4   disttemp.x, modelview[2], iPos;"
-"SUB   disttemp.x, fogparams.z, disttemp.x;"
-"MUL   oFog.x, disttemp.x, fogparams.w;"
+"!!ARBvp1.0\n"
+"OPTION ARB_position_invariant;\n"
+"ATTRIB iPos         = vertex.position;\n"
+"ATTRIB iNormal      = vertex.normal;\n"
+"ATTRIB iColor       = vertex.color;\n"
+"ATTRIB iTex0        = vertex.texcoord[0];\n"
+"ATTRIB iTex1        = vertex.texcoord[1];\n"
+"ATTRIB iTex2        = vertex.texcoord[2];\n"
+"PARAM  mvp[4]       = { state.matrix.mvp };\n"
+"PARAM  modelview    = state.matrix.mvp.row[2];\n"
+"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
+"PARAM  texMatrix2[4]= { state.matrix.texture[3] };\n"
+"PARAM  fogparams    = state.fog.params;\n"
+"TEMP   disttemp;\n"
+"OUTPUT oColor       = result.color;\n"
+"OUTPUT oTex0        = result.texcoord[0];\n"
+"OUTPUT oTex1        = result.texcoord[1];\n"
+"OUTPUT oTex2        = result.texcoord[2];\n"
+"OUTPUT oTex3        = result.texcoord[3];\n"
+"OUTPUT oTex4        = result.texcoord[4];\n"
+"OUTPUT oFog         = result.fogcoord;\n"
+"DP4   oTex3.x, texMatrix[0], iPos;\n"
+"DP4   oTex3.y, texMatrix[1], iPos;\n"
+"DP4   oTex3.z, texMatrix[2], iPos;\n"
+"DP4   oTex3.w, texMatrix[3], iPos;\n"
+"DP4   oTex4.x, texMatrix2[0], iPos;\n"
+"DP4   oTex4.y, texMatrix2[1], iPos;\n"
+"DP4   oTex4.z, texMatrix2[2], iPos;\n"
+"DP4   oTex4.w, texMatrix2[3], iPos;\n"
+"MOV   oTex0, iTex0;\n"
+"MOV   oTex1, iTex1;\n"
+"MOV   oTex2, iTex2;\n"
+"MOV   oColor, iColor;\n"
+"DP4   disttemp.x, modelview, iPos;\n"
+"SUB   disttemp.x, fogparams.z, disttemp.x;\n"
+"MUL   oFog.x, disttemp.x, fogparams.w;\n"
 "END";
 
 static char fragmentprogram[] =
 "!!ARBfp1.0\n"
+"OPTION ARB_precision_hint_fastest;\n"
 "ATTRIB tex0 = fragment.texcoord[0];\n"
 "ATTRIB tex1 = fragment.texcoord[1];\n"
 "ATTRIB tex2 = fragment.texcoord[2];\n"
 "ATTRIB tex3 = fragment.texcoord[3];\n"
 "ATTRIB col = fragment.color.primary;\n"
+"ATTRIB fogCoord = fragment.fogcoord;\n"
+"PARAM fogcolor = state.fog.color;\n"
 "PARAM scaler = { 16, 8, 2, -1 };\n"
 "OUTPUT outColor = result.color;\n"
 "TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
-"TEMP diffdot, specdot, selfshadow\n;"
+"TEMP diffdot, specdot, selfshadow;\n"
 "TEX normalmap, tex0, texture[0], 2D;\n"
 "MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"TEX lightvec, tex1, texture[1], CUBE;\n"
-"MAD lightvec, lightvec, scaler.b, scaler.a;\n"
-"TEX halfvec, tex2, texture[2], CUBE;\n"
-"MAD halfvec, halfvec, scaler.b, scaler.a;\n"
-"TEX colormap, tex0, texture[3], 2D;\n"
-"TEX atten, tex3, texture[4], 3D;\n"
+"DP3 lightvec.x, tex1, tex1;\n"
+"RSQ lightvec.x, lightvec.x;\n"
+"MUL lightvec, tex1, lightvec.x;\n"
+"TEX colormap, tex0, texture[1], 2D;\n"
+"DP3 halfvec.x, tex2, tex2;\n"
+"RSQ halfvec.x, halfvec.x;\n"
+"MUL halfvec, tex2, halfvec.x;\n"
+"TEX atten, tex3, texture[2], 3D;\n"
 "DP3_SAT diffdot, normalmap, lightvec;\n"
 "MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
 "DP3_SAT specdot.a, normalmap, halfvec;\n"
 "MUL diffdot, diffdot, colormap;\n"
 "POW specdot.a, specdot.a, scaler.r;\n"
-"MUL_SAT diffdot, diffdot, selfshadow.r;\n"
-"MUL_SAT specdot.a, specdot.a, normalmap.a;\n"
+"MUL specdot.a, specdot.a, normalmap.a;\n"
+"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
 "MUL atten, col, atten;\n"
-"ADD diffdot, diffdot, specdot.a;\n"
-"MUL_SAT outColor, diffdot, atten;\n"
+"MUL_SAT diffdot, diffdot, atten;\n"
+"LRP outColor, fogCoord.x, diffdot, fogcolor;\n"
 "END";
-
 
 static char fragmentprogram2[] =
 "!!ARBfp1.0\n"
+"OPTION ARB_precision_hint_fastest;\n"
 "ATTRIB tex0 = fragment.texcoord[0];\n"
 "ATTRIB tex1 = fragment.texcoord[1];\n"
 "ATTRIB tex2 = fragment.texcoord[2];\n"
 "ATTRIB tex3 = fragment.texcoord[3];\n"
 "ATTRIB tex4 = fragment.texcoord[4];\n"
 "ATTRIB col = fragment.color.primary;\n"
+"ATTRIB fogCoord = fragment.fogcoord;\n"
+"PARAM fogcolor = state.fog.color;\n"
 "PARAM scaler = { 16, 8, 2, -1 };\n"
 "OUTPUT outColor = result.color;\n"
-"TEMP normalmap, lightvec, halfvec, colormap, atten, filter;\n"
-"TEMP diffdot, specdot, selfshadow\n;"
+"TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
+"TEMP diffdot, specdot, selfshadow, filter;\n"
 "TEX normalmap, tex0, texture[0], 2D;\n"
 "MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"TEX lightvec, tex1, texture[1], CUBE;\n"
-"MAD lightvec, lightvec, scaler.b, scaler.a;\n"
-"TEX halfvec, tex2, texture[2], CUBE;\n"
-"MAD halfvec, halfvec, scaler.b, scaler.a;\n"
-"TEX colormap, tex0, texture[3], 2D;\n"
-"TEX atten, tex3, texture[4], 3D;\n"
-"TEX filter, tex4, texture[5], CUBE;\n"
+"DP3 lightvec.x, tex1, tex1;\n"
+"RSQ lightvec.x, lightvec.x;\n"
+"MUL lightvec, tex1, lightvec.x;\n"
+"TEX colormap, tex0, texture[1], 2D;\n"
+"DP3 halfvec.x, tex2, tex2;\n"
+"RSQ halfvec.x, halfvec.x;\n"
+"MUL halfvec, tex2, halfvec.x;\n"
+"TEX atten, tex3, texture[2], 3D;\n"
 "DP3_SAT diffdot, normalmap, lightvec;\n"
 "MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
 "DP3_SAT specdot.a, normalmap, halfvec;\n"
 "MUL diffdot, diffdot, colormap;\n"
 "POW specdot.a, specdot.a, scaler.r;\n"
-"MUL_SAT diffdot, diffdot, selfshadow.r;\n"
-"MUL_SAT specdot.a, specdot.a, normalmap.a;\n"
+"TEX filter, tex4, texture[3], CUBE;\n"
+"MUL specdot.a, specdot.a, normalmap.a;\n"
+"MUL atten, atten, filter;\n"
+"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
 "MUL atten, col, atten;\n"
-"ADD diffdot, diffdot, specdot.a;\n"
-"MUL diffdot, diffdot, atten;\n"
-"MUL_SAT outColor, diffdot, filter;\n"
+"MUL_SAT diffdot, diffdot, atten;\n"
+"LRP outColor, fogCoord.x, diffdot, fogcolor;\n"
 "END";
-
 
 static GLuint fragment_programs[2];
 static GLuint vertex_programs[2];
@@ -559,21 +558,15 @@ void GL_DisableDiffuseShaderARB()
     glDisable(GL_VERTEX_PROGRAM_ARB);
 
     GL_SelectTexture(GL_TEXTURE1_ARB);
-    glDisable(GL_TEXTURE_CUBE_MAP_ARB);
-
-    GL_SelectTexture(GL_TEXTURE2_ARB);
-    glDisable(GL_TEXTURE_CUBE_MAP_ARB);
-
-    GL_SelectTexture(GL_TEXTURE3_ARB);
     glDisable(GL_TEXTURE_2D);
 
-    GL_SelectTexture(GL_TEXTURE4_ARB);
+    GL_SelectTexture(GL_TEXTURE2_ARB);
     glDisable(GL_TEXTURE_3D);
     glPopMatrix();
 
     if (currentshadowlight->filtercube)
     {
-	GL_SelectTexture(GL_TEXTURE5_ARB);
+	GL_SelectTexture(GL_TEXTURE3_ARB);
 	glDisable(GL_TEXTURE_CUBE_MAP_ARB);
 	glPopMatrix();
     }
@@ -594,17 +587,9 @@ void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
     //  register combiner setup does not change only the bound texture)
 
     GL_SelectTexture(GL_TEXTURE1_ARB);
-    glEnable(GL_TEXTURE_CUBE_MAP_ARB);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
-
-    GL_SelectTexture(GL_TEXTURE2_ARB);
-    glEnable(GL_TEXTURE_CUBE_MAP_ARB);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
-
-    GL_SelectTexture(GL_TEXTURE3_ARB);
     glEnable(GL_TEXTURE_2D);
 
-    GL_SelectTexture(GL_TEXTURE4_ARB);
+    GL_SelectTexture(GL_TEXTURE2_ARB);
     glMatrixMode(GL_TEXTURE);
     glPushMatrix();
     glLoadIdentity();
@@ -625,7 +610,7 @@ void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
 
     if (currentshadowlight->filtercube)
     {
-	GL_SelectTexture(GL_TEXTURE5_ARB);
+	GL_SelectTexture(GL_TEXTURE3_ARB);
 	glMatrixMode(GL_TEXTURE);
 	glPushMatrix();
 	glLoadIdentity();
@@ -686,7 +671,7 @@ void R_DrawWorldARBDiffuseSpecular(lightcmd_t *lightCmds)
 
         GL_SelectTexture(GL_TEXTURE0_ARB);
         GL_Bind(t->gl_texturenum+1);
-        GL_SelectTexture(GL_TEXTURE3_ARB);
+        GL_SelectTexture(GL_TEXTURE1_ARB);
         GL_Bind(t->gl_texturenum);
 
         glBegin(command);
@@ -766,7 +751,7 @@ void R_DrawBrushARBDiffuseSpecular(entity_t *e)
 
         GL_SelectTexture(GL_TEXTURE0_ARB);
         GL_Bind(t->gl_texturenum+1);
-        GL_SelectTexture(GL_TEXTURE3_ARB);
+        GL_SelectTexture(GL_TEXTURE1_ARB);
         GL_Bind(t->gl_texturenum);
 
         glBegin(GL_TRIANGLE_FAN);
@@ -802,7 +787,7 @@ void R_DrawAliasFrameARBDiffuseSpecular (aliashdr_t *paliashdr, aliasframeinstan
 
     GL_SelectTexture(GL_TEXTURE0_ARB);
     GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]+1);
-    GL_SelectTexture(GL_TEXTURE3_ARB);
+    GL_SelectTexture(GL_TEXTURE1_ARB);
     GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
         
     indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
@@ -861,7 +846,6 @@ void R_DrawBrushBumpedARB(entity_t *e)
 {
     GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
-
 
     GL_EnableDiffuseSpecularShaderARB(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos);
     R_DrawBrushARBDiffuseSpecular(e);
