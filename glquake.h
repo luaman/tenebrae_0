@@ -420,7 +420,9 @@ void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
 
 #ifndef _WIN32
-#define APIENTRY /* */
+#ifndef APIENTRY
+# define APIENTRY /* */
+#endif
 #endif
 
 #if !defined (__APPLE__) && !defined (MACOSX)
