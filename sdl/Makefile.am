@@ -92,6 +92,7 @@ tenebrae_sdl_SOURCES =			\
 	$(MASTER_DIR)/sv_user.c		\
 	$(MASTER_DIR)/sys.h			\
 	$(MASTER_DIR)/sys_sdl.c		\
+	$(MASTER_DIR)/sys_uxfindfirst.c	\
 	$(MASTER_DIR)/te_scripts.c		\
 	$(MASTER_DIR)/te_scripts.h		\
 	$(MASTER_DIR)/vgamodes.h		\

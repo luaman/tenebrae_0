@@ -17,11 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 /* 
    Sys_Find* implementation for UNIX like systems
-   system conformance :
+   system conformance :   
 
-   GLIBC < 2.2 based system
+   system not having the glob system call :
 
        ISO/IEC 9945-2 (fnmatch)
        BSD 4.3        (dirent syscalls)
@@ -32,15 +33,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-/* glibc < 2.3 */
-
 #include "quakedef.h"
-#include <dirent.h>
-#include <fnmatch.h>
 #include <errno.h>
 
-#if 1
-//#if defined(__GLIBC__) && !(__GLIBC_PREREQ(2,3))
+#if !defined(__GLIBC__)
+
+#include <dirent.h>
+#include <fnmatch.h>
 
 #define UXDATA_GRANULARITY 10
 
@@ -56,9 +55,6 @@ int uxdata_free (uxdirdata_t *ud)
 {
 	int i;
 	closedir (ud->dir);
-	// table
-	if (ud->lsize % UXDATA_GRANULARITY)
-		ud->lsize += UXDATA_GRANULARITY - (ud->lsize % UXDATA_GRANULARITY);
 	Z_Free (ud->list);
 }
 
@@ -74,18 +70,20 @@ dirdata_t *Sys_Findfirst (char *dirname, char *filter, dirdata_t *dirdata)
 	DIR *dir;
 	struct dirent *entry;
 	struct dirent **list;
+	int pathlen;	
 
 	if (dirdata && filter){
-		uxdata = Z_Malloc (sizeof(uxdirdata_t));
-		uxdata->pathlen = strlen (dirname);
-		if (uxdata->pathlen >= MAX_OSPATH)
-			return;
-		dir = opendir (dirname);
+		pathlen = strlen (dirname);
+		if (pathlen >= MAX_OSPATH-1)
+			return NULL;
+		strncpy (dirdata->entry, dirname, sizeof(dirdata->entry));
+		dir = opendir (dirdata->entry);
 		if (dir == NULL) {
-			Z_Free (uxdata);
 			return NULL;
 		}
+		uxdata = Z_Malloc (sizeof(uxdirdata_t));
 		uxdata->count = 0;
+		uxdata->pathlen = pathlen;
 		uxdata->lsize = 10;
 		uxdata->list = Z_Malloc (sizeof(struct dirent *) * (uxdata->lsize));
 		
@@ -117,11 +115,10 @@ dirdata_t *Sys_Findfirst (char *dirname, char *filter, dirdata_t *dirdata)
 			uxdata->count = 0;
 			// sort the entry list
 			qsort(uxdata->list, uxdata->lsize, sizeof(struct dirent *),direntp_compare);
-			strncpy (dirdata->entry, dirname, sizeof(dirdata->entry));
-			uxdata->pathlen = strlen (dirname);
-			if (dirname[uxdata->pathlen-1] != '/') {
-				dirdata->entry[uxdata->pathlen]='/';
+			if (dirname[pathlen-1] != '/') {
+				dirdata->entry[pathlen]='/';
 				uxdata->pathlen++;
+				dirdata->entry[uxdata->pathlen]=0;
 			}
 			strncpy (dirdata->entry+uxdata->pathlen, uxdata->list[0]->d_name, sizeof(dirdata->entry)-uxdata->pathlen);
 			uxdata->dir = dir;
@@ -228,3 +225,4 @@ void Sys_Findclose (dirdata_t *dirdata)
 }
 
 #endif
+
