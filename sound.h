@@ -89,6 +89,22 @@ typedef struct
 	int		dataofs;		// chunk starts this many bytes from file start
 } wavinfo_t;
 
+typedef struct //MP3 Playback - Eradicator
+{
+	int                     samplerate;		// Samplerate (44100, 22050, 11025)
+	byte                    channels;		// Channels (1 = Mono, 2 = Stereo)
+	int                     samples;		// Number of samples
+
+	byte                    *mp3data;		// Pointer to the compressed MP3 data from the file
+	int                     mp3pos;			// Position in the compressed buffer
+	int                     mp3size;		// Size of the compressed buffer
+
+	byte                    *rawdata;		// Pointer to the decompressed MP3 data
+	int                     rawpos;			// Position in the decompressed buffer
+	int                     rawsize;		// Size of the decompressed buffer
+} mp3_t;
+
+
 void S_Init (void);
 void S_Startup (void);
 void S_Shutdown (void);
@@ -173,5 +189,10 @@ void SNDDMA_Submit(void);
 
 void S_AmbientOff (void);
 void S_AmbientOn (void);
+
+#ifdef _WIN32
+void *S_LockBuffer(void); //New Sound - Eradicator
+void S_UnlockBuffer(void);
+#endif
 
 #endif

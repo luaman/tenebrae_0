@@ -727,3 +727,47 @@ void SNDDMA_Shutdown(void)
 	FreeSound ();
 }
 
+//New Sound Functions - Eradicator
+DWORD dsound_dwSize;
+DWORD dsound_dwSize2;
+DWORD *dsound_pbuf;
+DWORD *dsound_pbuf2;
+void *S_LockBuffer(void)
+{
+	int reps;
+	HRESULT hresult;
+
+	if (pDSBuf)
+	{
+		reps = 0;
+
+		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &dsound_pbuf, &dsound_dwSize, &dsound_pbuf2, &dsound_dwSize2, 0)) != DS_OK)
+		{
+			if (hresult != DSERR_BUFFERLOST)
+			{
+				Con_Printf ("S_LockBuffer: DS::Lock Sound Buffer Failed\n");
+				S_Shutdown ();
+				S_Startup ();
+				return NULL;
+			}
+
+			if (++reps > 10000)
+			{
+				Con_Printf ("S_LockBuffer: DS: couldn't restore buffer\n");
+				S_Shutdown ();
+				S_Startup ();
+				return NULL;
+			}
+		}
+		return dsound_pbuf;
+	}
+	else
+		return shm->buffer;
+}
+
+void S_UnlockBuffer(void)
+{
+	if (pDSBuf)
+		pDSBuf->lpVtbl->Unlock(pDSBuf, dsound_pbuf, dsound_dwSize, dsound_pbuf2, dsound_dwSize2);
+}
+

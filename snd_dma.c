@@ -63,7 +63,7 @@ int			num_sfx;
 
 sfx_t		*ambient_sfx[NUM_AMBIENTS];
 
-int 		desired_speed = 11025;
+int 		desired_speed = 22050; //Better sample rate (once 11025) - Eradicator
 int 		desired_bits = 16;
 
 int sound_started=0;
@@ -80,6 +80,7 @@ cvar_t ambient_fade = {"ambient_fade", "100"};
 cvar_t snd_noextraupdate = {"snd_noextraupdate", "0"};
 cvar_t snd_show = {"snd_show", "0"};
 cvar_t _snd_mixahead = {"_snd_mixahead", "0.1", true};
+cvar_t snd_reversestereo = {"snd_reversestereo", "0", true}; //Reverse Stereo - Eradicator
 
 
 // ====================================================================
@@ -95,7 +96,6 @@ cvar_t _snd_mixahead = {"_snd_mixahead", "0.1", true};
 
 qboolean fakedma = false;
 int fakedma_updates = 15;
-
 
 void S_AmbientOff (void)
 {
@@ -166,7 +166,6 @@ S_Init
 */
 void S_Init (void)
 {
-
 	Con_Printf("\nSound Initialization\n");
 
 	if (COM_CheckParm("-nosound"))
@@ -192,6 +191,7 @@ void S_Init (void)
 	Cvar_RegisterVariable(&snd_noextraupdate);
 	Cvar_RegisterVariable(&snd_show);
 	Cvar_RegisterVariable(&_snd_mixahead);
+	Cvar_RegisterVariable(&snd_reversestereo); //Reverse Stereo - Eradicator
 
 	if (host_parms.memsize < 0x800000)
 	{
@@ -216,9 +216,32 @@ void S_Init (void)
 	{
 		shm = (void *) Hunk_AllocName(sizeof(*shm), "shm");
 		shm->splitbuffer = 0;
-		shm->samplebits = 16;
-		shm->speed = 22050;
-		shm->channels = 2;
+		//shm->samplebits = 16;
+		if (COM_CheckParm("-samplebits")) //Better sample bits (once 16) - Eradicator
+		{
+			shm->samplebits = Q_atoi(com_argv[COM_CheckParm("-samplebits")+1]);
+		}
+		else
+		{
+			shm->samplebits = 16;
+		}
+		if (COM_CheckParm("-samplerate")) //Better sample rate (once 11025) - Eradicator
+		{
+			shm->speed = Q_atoi(com_argv[COM_CheckParm("-samplerate")+1]);
+		}
+		else
+		{
+			shm->speed = 22050;
+		}
+		//shm->channels = 2;
+		if (COM_CheckParm("-sndchannels")) //Better sound channels (once 2) - Eradicator
+		{
+			shm->channels = Q_atoi(com_argv[COM_CheckParm("-sndchannels")+1]);
+		}
+		else
+		{
+			shm->channels = 2;
+		}
 		shm->samples = 32768;
 		shm->samplepos = 0;
 		shm->soundalive = true;
@@ -227,9 +250,7 @@ void S_Init (void)
 		shm->buffer = Hunk_AllocName(1<<16, "shmbuf");
 	}
 
-	if ( shm ) {
-	  Con_Printf ("Sound sampling rate: %i\n", shm->speed);
-	}
+	Con_Printf ("Sound sampling rate: %i\n", shm->speed);
 
 	// provides a tick sound until washed clean
 
@@ -857,7 +878,6 @@ void S_ExtraUpdate (void)
 
 void S_Update_(void)
 {
-#ifndef SDL	
 	unsigned        endtime;
 	int				samps;
 	
@@ -902,7 +922,6 @@ void S_Update_(void)
 	S_PaintChannels (endtime);
 
 	SNDDMA_Submit ();
-#endif /* ! SDL */
 }
 
 /*
