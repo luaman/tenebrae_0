@@ -42,7 +42,9 @@ float gl_Material_Color2[4] = {0.9, 0.9, 0.9, 0.9};
 void R_DrawLightEntitiesGF3 (shadowlight_t *l);
 void R_DrawLightEntitiesGF (shadowlight_t *l);
 void R_DrawLightEntitiesGEN (shadowlight_t *l);
+#ifndef __glx__
 void R_DrawLightEntitiesRadeon (shadowlight_t *l); //PA:
+#endif
 
 void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not have parameters.
 {
@@ -50,9 +52,11 @@ void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not ha
 		R_DrawWorldBumpedGF3(/* l */);	// <AWE> Function has no parameters.
 	} else if (gl_nvcombiner) {
 		R_DrawWorldBumpedGF(/* l */);	// <AWE> Function has no parameters.
+#ifndef __glx__
 	//PA:
 	} else if (gl_radeon) {
         R_DrawWorldBumpedRadeon(/* l */);
+#endif
 	} else {
 		R_DrawWorldBumpedGEN(/* l */);
 	}
@@ -64,9 +68,11 @@ void R_DrawLightEntities (shadowlight_t *l)
 		R_DrawLightEntitiesGF3(l);
 	} else if (gl_nvcombiner) {
 		R_DrawLightEntitiesGF(l);
+#ifndef __glx__
 	//PA:
 	} else if (gl_radeon) {
 		R_DrawLightEntitiesRadeon(l);
+#endif
 	} else {
 		R_DrawLightEntitiesGEN(l);
 	}
@@ -223,6 +229,7 @@ void R_DrawLightEntitiesGF3 (shadowlight_t *l)
 	glDepthMask (1);
 }
 
+#ifndef __glx__
 //PA:
 void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 {
@@ -279,3 +286,4 @@ void R_DrawLightEntitiesRadeon (shadowlight_t *l)
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask (1);
 }
+#endif

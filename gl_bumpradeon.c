@@ -101,9 +101,12 @@ unsigned int shaders;
 //<AWE> "diffuse_program_object" has to be defined static. Otherwise nameclash with gl_bumpgf.c
 static unsigned int diffuse_program_object;
 
-#if defined(SDL)
+#if defined (SDL)
 #define SAFE_GET_PROC( func, type, name)     \
    func = (type) SDL_GL_GetProcAddress (name);
+#elif defined (__glx__)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) glXGetProcAddressARB (name);
 #else
 #define SAFE_GET_PROC( func, type, name)     \
    func = (type) wglGetProcAddress( name);

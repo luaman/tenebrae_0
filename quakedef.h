@@ -72,7 +72,7 @@ void	VID_UnlockBuffer (void);
 #endif
 
 //PENTA: win32 we use assembler
-#if defined(_WIN32)
+#if defined(_WIN32) || defined __glx__
 #define USE_ASM 1
 #endif
 

@@ -41,6 +41,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <SDL/SDL_opengl.h>
 #endif
 
+#if defined (__glx__)
+#include <GL/glx.h>
+#endif
+
 void GL_BeginRendering (int *x, int *y, int *width, int *height);
 void GL_EndRendering (void);
 
@@ -529,7 +533,7 @@ extern PFNGLMULTITEXCOORD3FVARBPROC qglMultiTexCoord3fvARB;
 #endif /* !__APPLE__ && !MACOSX */
 
 // - DC - 
-#if !defined(SDL)
+#if !defined(SDL) && !defined (__glx__)
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFVNVPROC) (GLenum pname, const GLfloat *params);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFNVPROC) (GLenum pname, GLfloat param);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERIVNVPROC) (GLenum pname, const GLint *params);
@@ -561,7 +565,7 @@ extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParam
 
 
 // <AWE> : MacOS X 10.2: defined in <OpenGL/glext.h>
-#if !defined (__APPLE__) && !defined (MACOSX) && !defined(SDL)
+#if !defined (__APPLE__) && !defined (MACOSX) && !defined(SDL) && !defined (__glx__)
 
 //PENTA: texture3d
 #define GL_PACK_SKIP_IMAGES               0x806B
@@ -583,7 +587,7 @@ extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParam
 #define GL_MAX_3D_TEXTURE_SIZE            0x8073
 #define GL_MAX_3D_TEXTURE_SIZE_EXT        0x8073
 
-#endif /* !__APPLE__ && !MACOSX && !SDL */
+#endif /* !__APPLE__ && !MACOSX && !SDL && !__glx__ */
 
 typedef void (APIENTRY * PFNGLTEXIMAGE3DEXT)(GLenum target, GLint level, GLenum internalformat,
 											 GLsizei width, GLsizei height, GLsizei depth,
@@ -995,7 +999,7 @@ extern PFNGLVERTEXATTRIBS4UBVNVPROC qglVertexAttribs4ubvNV ;
 #endif /* !__APPLE__ && !MACOSX */
 
 // <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X. -DC- and SDL 
-#if defined (__APPLE__) || defined (MACOSX) || defined(SDL)
+#if defined (__APPLE__) || defined (MACOSX) || defined(SDL) || defined (__glx__)
 
 typedef void (APIENTRY * PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC) (GLsizei length, const GLvoid *pointer);
 typedef void (APIENTRY * PFNGLVERTEXARRAYRANGEAPPLEPROC) (GLsizei size, const GLvoid *pointer);
