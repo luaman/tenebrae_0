@@ -1,5 +1,4 @@
-%option noyy_scan_buffer
-%option noyy_scan_bytes
+
 %option noyy_scan_string
 %option 8bit
 
@@ -152,7 +151,7 @@ ID       [a-z][a-z0-9_]*
 		return TOK_FLOAT_CONST;
             }
             
-emmiter	{ return TOK_EMMITER; }
+emitter	{ return TOK_EMITTER; }
 velocity	{  return TOK_VELOCITY; }
 lifetime	{  return TOK_LIFETIME; }
 flags		{  return TOK_FLAGS; }
@@ -177,6 +176,7 @@ onhit			{  return TOK_ONHIT; }
 	    }
 	    
 <<EOF>>  {  BEGIN(INITIAL); return TOK_FILE_END; }
+\000     {  BEGIN(INITIAL); return TOK_FILE_END; }
 
 [ \t\x0D] 	 { /* eat whitespace */ }
 
@@ -234,100 +234,28 @@ int SC_ParseToken() {
 	return yylex();
 }
 
-void SC_Start(FILE *fin) {
+static void *buffHandle = NULL;
+
+/*
+Parse from the given block of bytes
+*/
+void SC_Start(const char *bytes,int len) {
 	line_num = 1;
 	strcpy(string_buf,"newfile");
+	
+	buffHandle = yy_scan_bytes(bytes,len);
+	
 	//Con_Printf("new file\n");
+	/*
 	if (YY_CURRENT_BUFFER)
 		yy_delete_buffer( YY_CURRENT_BUFFER );
     yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE));
 
 	yyrestart(fin);
+	*/
 }
 
-/*            
-#define PARSERERROR(x) printf("Script error at line %i: %s\n",line_num,x)
-
-int main(int argc, char **argv ) {
-    int token, var, i;
-    ParticleEffect_t effect;
-    ++argv, --argc;  // skip over program name 
-    
-    if ( argc > 0 )
-            yyin = fopen( argv[0], "r" );
-    else
-            yyin = stdin;
-
-    string_buf_ptr = string_buf;
-     //start counting at line 1...
-    
-    while ( (token = yylex()) != TOK_FILE_END) {
-    
-    	if (token == TOK_PARTICLE) {
-      		
-    		printf("Start new particle %s\n",yylex_str());
-    	
-    		if (yylex() != '{') PARSERERROR("'{' expected");
-  
-
-  		while ((var = yylex()) != '}' && (var != TOK_FILE_END) ) {
-  			switch (var) {
-				case TOK_EMMITER:
-					//parse emmiter shape
-					yylex_str();
-					
-					//parse emmiter values
-					for (i=0; i<3; i++) 
-						effect.emmiterParams1[i] = yylex_float();
-						
-					for (i=0; i<3; i++) 
-						effect.emmiterParams2[i] = yylex_float();	
-				break;
-				case TOK_VELOCITY:
-					//parese velocity mins maxs
-					for (i=0; i<3; i++) 
-						effect.velParams1[i] = yylex_float();
-					for (i=0; i<3; i++) 
-						effect.velParams1[i] = yylex_float();
-				break;
-				case TOK_LIFETIME:
-					//parse lifetime mins maxs
-					effect.minlife = yylex_float();
-					effect.maxlife = yylex_float();
-				break;
-				
-				case TOK_MOVETYPE:
-					yylex_str();
-				break;
-				case TOK_WEIGHT:
-					effect.weight = yylex_float();
-				break;
-				case TOK_DRAG:
-					effect.drag = yylex_float();
-				break;
-				case TOK_BLENDFUNC:
-					yylex_str();
-					yylex_str();
-				break;
-				case TOK_BOUNCES:
-					effect.numbounces = (int)yylex_float();
-				break;
-				case TOK_MAP:
-					yylex_str();
-				break;
-				default:
-					printf("Unknown field in particle definition at line %i\n",line_num);
-			}
-  		}
-	} else if (token == TOK_DECAL) {
-  		while ((var = yylex()) != '}') {
-			//do nothing yet...
-  		}	
-	}
-    		
-    }
-        
-    return 0;
+void SC_End() {
+	yy_delete_buffer( buffHandle );	
+	buffHandle = NULL;
 }
-*/
-

@@ -113,14 +113,14 @@ void R_AddEffectsScript(const char *filename) {
 	//char	newname[256];
 	char* str;
 
-	COM_FOpenFile(filename, &fin);
+	buffer = COM_LoadTempFile (filename);
 
-	if (!fin) {
+	if (!buffer) {
 		Con_Printf("\002Can't load particle effects from: %s\n",filename);
 		return;
 	}
 
-	SC_Start(fin);
+	SC_Start(buffer,strlen(buffer));
 
 	Con_Printf("Loading particle effects from: %s\n",filename);
 
@@ -146,7 +146,7 @@ void R_AddEffectsScript(const char *filename) {
   
   			while ((var = SC_ParseToken()) != '}' && (var != TOK_FILE_END) ) {
   				switch (var) {
-					case TOK_EMMITER:
+					case TOK_EMITTER:
 						//parse emmiter shape
 						str = SC_ParseIdent();
 						
@@ -257,6 +257,8 @@ void R_AddEffectsScript(const char *filename) {
 			Con_Printf("\002Script error at line %i: Expected definiton (found id%i/%s)\n",line_num,var,str);
 		}
     }
+
+	SC_End();
 }
 
 void R_InitParticleEffects() {

@@ -29,7 +29,7 @@ Header for interfacing with the lexer
 #define TOK_ID 260
 
 //Particle tokens
-#define TOK_EMMITER 300
+#define TOK_EMITTER 300
 #define TOK_VELOCITY 301
 #define TOK_LIFETIME 302
 #define TOK_FLAGS 303
@@ -48,7 +48,8 @@ Header for interfacing with the lexer
 #define TOK_ORIENTATION 314
 #define TOK_ONHIT 315
 
-void SC_Start(FILE *fin);
+void SC_Start(const char *bytes, int len);
+void SC_End(void);
 char *SC_ParseString();
 float SC_ParseFloat();
 char *SC_ParseIdent();
