@@ -372,7 +372,8 @@ void R_DrawWorldGF3Diffuse(lightcmd_t *lightCmds) {
 		GL_Bind(t->gl_texturenum);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			//skip attent texture coord.
 			lightPos+=2;
@@ -430,7 +431,8 @@ void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 		GL_Bind(t->gl_texturenum);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
 			lightP = &lightCmds[lightPos].asFloat;
@@ -496,7 +498,8 @@ void R_DrawBrushGF3Diffuse(entity_t *e) {
 		GL_Bind(t->gl_texturenum);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
@@ -536,7 +539,8 @@ void R_DrawBrushGF3Specular(entity_t *e) {
 		GL_Bind(t->gl_texturenum);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
@@ -645,7 +649,7 @@ void R_DrawWorldBumpedGF3() {
 
 	glDepthMask (0);
 	glShadeModel (GL_SMOOTH);
-		
+
 	if (currentshadowlight->filtercube) {
 		//draw attent into dest alpha
 		GL_DrawAlpha();
@@ -696,7 +700,7 @@ void R_DrawBrushBumpedGF3(entity_t *e) {
 }
 
 void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
-		
+
 	if (currentshadowlight->filtercube) {
 		//draw attent into dest alpha
 		GL_DrawAlpha();

@@ -795,7 +795,8 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
 		GL_Bind(t->gl_texturenum);
 
         glBegin(command);
-        v = surf->polys->verts[0];
+        //v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
         for (i=0; i<num; i++, v+= VERTEXSIZE)
         {
             //skip attent texture coord.
@@ -874,7 +875,8 @@ void R_DrawBrushRadeonDiffuseSpecular(entity_t *e)
 		GL_Bind(t->gl_texturenum);
 
         glBegin(GL_POLYGON);
-        v = poly->verts[0];
+        //v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
         for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
         {       
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);

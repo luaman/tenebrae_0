@@ -367,7 +367,8 @@ void R_DrawWorldLLV(lightcmd_t *lightCmds) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			//skip attent texture coord.
 			lightPos+=2;
@@ -440,7 +441,8 @@ void R_DrawWorldHAV(lightcmd_t *lightCmds) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
 			lightP = &lightCmds[lightPos].asFloat;
@@ -507,8 +509,8 @@ void R_DrawWorldATT(lightcmd_t *lightCmds) {
 		}
 
 		num = surf->polys->numverts;
-		v = surf->polys->verts[0];
-
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		
 		glColor4f( (&lightCmds[lightPos].asFloat)[0] *b,
 				   (&lightCmds[lightPos].asFloat)[1] *b,
@@ -561,7 +563,8 @@ void R_DrawWorldWV(lightcmd_t *lightCmds) {
 		}
 
 		num = surf->polys->numverts;
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 
 		//XYZ
 		t = R_TextureAnimation (surf->texinfo->texture);
@@ -616,7 +619,8 @@ void R_DrawBrushLLV(entity_t *e) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(&ins->tslights[count+j][0]);
@@ -661,7 +665,8 @@ void R_DrawBrushHAV(entity_t *e) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(&ins->tshalfangles[count+j][0]);
@@ -708,7 +713,8 @@ void R_DrawBrushATT(entity_t *e) {
 		glColor4f(bright,bright,bright,bright);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord2fv(&ins->atencoords[count+j][0]);
@@ -751,7 +757,8 @@ void R_DrawBrushWV(entity_t *e) {
 		GL_Bind (t->gl_texturenum);
 
 		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(v);
