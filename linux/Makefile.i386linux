@@ -23,12 +23,13 @@ MASTER_DIR=/usr/local/share/games/quake
 BUILD_DEBUG_DIR=debug$(ARCH)$(GLIBC)
 BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
 
-LEX=/usr/bin/flex -i
+LEX=/usr/bin/flex -i -Cfr
 CC=/usr/bin/gcc
 
 BASE_CFLAGS= -Dstricmp=strcasecmp -D__glx__ -DBASEDIR="$(MASTER_DIR)" -DGLQUAKE -DUSERPREF_DIR
-RELEASE_CFLAGS=$(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
+#RELEASE_CFLAGS=$(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
 	-fomit-frame-pointer -fexpensive-optimizations
+RELEASE_CFLAGS=$(BASE_CFLAGS) -O6
 DEBUG_CFLAGS=$(BASE_CFLAGS) -g
 LDFLAGS=-lm -ldl -L/usr/X11R6/lib -lGL -lGLU -lpthread -lX11 -lXext -lXxf86dga -lXxf86vm -lm -lpng -lz
 
