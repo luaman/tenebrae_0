@@ -269,9 +269,9 @@ dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
   char dirfilter[MAX_OSPATH];
   if (dirdata)
   {
-    windata=Z_Malloc (sizeof(windata_t));
+    windata=Z_Malloc (sizeof(windirdata_t));
     sprintf(dirfilter,"%s/%s", dir, filter);
-    windata.handle = _findfirst (dirfilter, windata->fileinfo);
+    windata->handle = _findfirst (dirfilter, &windata->fileinfo);
     if (windata->handle!=-1){
       strncpy(windata->dir,dir,MAX_OSPATH); 
       sprintf(dirdata->entry,"%s/%s", dir, windata->fileinfo.name);
