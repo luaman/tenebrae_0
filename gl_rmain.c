@@ -55,6 +55,7 @@ int			mirrortexturenum;	// quake texturenum, not gltexturenum
 qboolean	mirror;
 qboolean	glare;
 mplane_t	*mirror_plane;
+mplane_t	mirror_far_plane; //far plane of the view frustum for mirrors
 int			mirror_clipside;
 msurface_t	*causticschain;
 int			caustics_textures[8];
@@ -148,10 +149,12 @@ cvar_t	sh_noshadowpopping = {"sh_noshadowpopping","1"};
 cvar_t	mir_detail = {"mir_detail","1",true};
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
 cvar_t	mir_forcewater = {"mir_forcewater","0"};
+cvar_t	mir_distance = {"mir_distance","400",true};
 cvar_t  gl_wireframe = {"gl_wireframe","0"}; 
 cvar_t  gl_caustics = {"gl_caustics","1"};
 cvar_t  gl_truform = {"gl_truform","0"};
 cvar_t  gl_truform_tesselation = {"gl_truform_tesselation","4"};
+cvar_t	gl_transformlerp = {"gl_transformlerp","0",true};//Erad - transform interpolation cvar (off by default due to bugs)
 
 cvar_t	fog_r = {"fog_r","0.2"};
 cvar_t	fog_g = {"fog_g","0.1"};
@@ -180,10 +183,13 @@ typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
 
 // actually in gl_bumpradeon (duh...)
 extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
-extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesfATI;
+extern PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI;
 
 #define GL_INCR_WRAP_EXT                                        0x8507
 #define GL_DECR_WRAP_EXT                                        0x8508
+
+
+#define	MIN_PLAYER_MIRROR 48 //max size of player bounding box
 
 //extern	cvar_t	gl_ztrick; PENTA: Removed
 
@@ -204,99 +210,102 @@ qboolean R_CullBox (vec3_t mins, vec3_t maxs)
 	return false;
 }
 
+
 /*
 =============
 R_RotateForEntity
 
-New transform interpolated - Eradicator
+Erad - transform interpolation
 =============
 */
 void R_RotateForEntity (entity_t *e)
 {
 	float timepassed;
 	float blend;
-    vec3_t d;
-    int i;
+	vec3_t d;
+	int i;
 
-	//Hack to stop t lerping view models - Eradicator
-	if ((!strcmp (e->model->name, "progs/v_shot.mdl")) || (!strcmp (e->model->name, "progs/v_shot2.mdl"))
-		|| (!strcmp (e->model->name, "progs/v_nail.mdl")) || (!strcmp (e->model->name, "progs/v_nail2.mdl"))
-		|| (!strcmp (e->model->name, "progs/v_rock.mdl")) || (!strcmp (e->model->name, "progs/v_rock2.mdl"))
-		|| (!strcmp (e->model->name, "progs/v_axe.mdl")) || (!strcmp (e->model->name, "progs/v_light.mdl")))
-	{
-		R_UnlerpedRotateForEntity (e);
-		return;
+
+	//Hack to stop t lerping view models and player - Eradicator 
+    if ((!strcmp (e->model->name, "progs/v_shot.mdl")) || (!strcmp (e->model->name, "progs/v_shot2.mdl")) 
+		|| (!strcmp (e->model->name, "progs/v_nail.mdl")) || (!strcmp (e->model->name, "progs/v_nail2.mdl")) 
+        || (!strcmp (e->model->name, "progs/v_rock.mdl")) || (!strcmp (e->model->name, "progs/v_rock2.mdl")) 
+        || (!strcmp (e->model->name, "progs/v_axe.mdl")) || (!strcmp (e->model->name, "progs/v_light.mdl"))
+		|| (!strcmp (e->model->name, "progs/players.mdl")) || (!gl_transformlerp.value)) 
+    {  
+		R_UnlerpedRotateForEntity(e); 
+		return; 
 	}
 
     timepassed = realtime - e->translate_start_time; 
 
     if (e->translate_start_time == 0 || timepassed > 1)
     {
-	    e->translate_start_time = realtime;
-        VectorCopy (e->origin, e->origin1);
-        VectorCopy (e->origin, e->origin2);
-    }
-
-    if (!VectorCompare (e->origin, e->origin2))
-    {
 		e->translate_start_time = realtime;
-        VectorCopy (e->origin2, e->origin1);
-        VectorCopy (e->origin,  e->origin2);
-        blend = 0;
-    }
-    else
-    {
+		VectorCopy (e->origin, e->origin1);
+		VectorCopy (e->origin, e->origin2);
+	}
+
+	if (!VectorCompare (e->origin, e->origin2))
+	{
+		e->translate_start_time = realtime;
+		VectorCopy (e->origin2, e->origin1);
+		VectorCopy (e->origin,  e->origin2);
+		blend = 0;
+	}
+	else
+	{
 		blend =  timepassed / 0.1;
 
-	    if (cl.paused || blend > 1) blend = 1;
-        }
-			VectorSubtract (e->origin2, e->origin1, d);
+		if (cl.paused || blend > 1) blend = 1;
+	}
 
-			glTranslatef (
-            e->origin1[0] + (blend * d[0]),
-            e->origin1[1] + (blend * d[1]),
-            e->origin1[2] + (blend * d[2]));
+	VectorSubtract (e->origin2, e->origin1, d);
 
-            timepassed = realtime - e->rotate_start_time; 
+	glTranslatef (
+		e->origin1[0] + (blend * d[0]),
+		e->origin1[1] + (blend * d[1]),
+		e->origin1[2] + (blend * d[2]));
 
-            if (e->rotate_start_time == 0 || timepassed > 1)
-            {
-				e->rotate_start_time = realtime;
-                VectorCopy (e->angles, e->angles1);
-                VectorCopy (e->angles, e->angles2);
-            }
+	timepassed = realtime - e->rotate_start_time; 
 
-            if (!VectorCompare (e->angles, e->angles2))
-            {
-				e->rotate_start_time = realtime;
-                VectorCopy (e->angles2, e->angles1);
-                VectorCopy (e->angles,  e->angles2);
-                blend = 0;
-            }
-            else
-            {
-                blend = timepassed / 0.1;
+	if (e->rotate_start_time == 0 || timepassed > 1)
+	{
+		e->rotate_start_time = realtime;
+		VectorCopy (e->angles, e->angles1);
+		VectorCopy (e->angles, e->angles2);
+	}
+
+	if (!VectorCompare (e->angles, e->angles2))
+	{
+		e->rotate_start_time = realtime;
+		VectorCopy (e->angles2, e->angles1);
+		VectorCopy (e->angles,  e->angles2);
+		blend = 0;
+	}
+	else
+	{
+		blend = timepassed / 0.1;
  
-                if (cl.paused || blend > 1) 
-					blend = 1;
-			}
+		if (cl.paused || blend > 1) blend = 1;
+		}
 			VectorSubtract (e->angles2, e->angles1, d);
 
-			for (i = 0; i < 3; i++) 
-			{
-                if (d[i] > 180)
-                {
-					d[i] -= 360;
-                }
-                else if (d[i] < -180)
-                {
-					d[i] += 360;
-				}
+             for (i = 0; i < 3; i++) 
+             {
+                 if (d[i] > 180)
+                 {
+                     d[i] -= 360;
+                 }
+                 else if (d[i] < -180)
+                 {
+                     d[i] += 360;
+                 }
 			}
-	glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
-	glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
-	glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
-}
+		glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
+		glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
+		glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
+	}
 
 void R_UnlerpedRotateForEntity (entity_t *e)
 {
@@ -852,34 +861,34 @@ void R_DrawAliasShadowVolume (entity_t *e)
 
     for (i=0;i<maxnumsurf;++i)
     {
-	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-
-	if (!aliasframeinstant) {
-	    glPopMatrix ();
+		paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+		
+		if (!aliasframeinstant) {
+			glPopMatrix ();
             Con_Printf("R_DrawAliasShadowVolume: missing instant for ent %s\n", e->model->name);	
-	    return;
-	}
-
-	/*  doesn't fit with new structs
-	    if (paliashdr != ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr) {
-	    //Sys_Error("Cache trashed");
-	    r_cache_thrash = true;
-	    ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr = paliashdr;
-	    }
-	*/
-
-	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
-	{
-	    glPopMatrix ();
-	    return;
-	}
-
-	//
-	// draw all the triangles
-	//
-	R_DrawAliasSurfaceShadowVolume(paliashdr,aliasframeinstant);
-	aliasframeinstant = aliasframeinstant->_next;
-	//VectorCopy(oldlightpos,currentshadowlight->origin);
+			return;
+		}
+		
+		/*  doesn't fit with new structs
+		if (paliashdr != ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr) {
+		//Sys_Error("Cache trashed");
+		r_cache_thrash = true;
+		((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr = paliashdr;
+		}
+		*/
+		
+		if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
+		{
+			glPopMatrix ();
+			return;
+		}
+		
+		//
+		// draw all the triangles
+		//
+		R_DrawAliasSurfaceShadowVolume(paliashdr,aliasframeinstant);
+		aliasframeinstant = aliasframeinstant->_next;
+		//VectorCopy(oldlightpos,currentshadowlight->origin);
     } /* for paliashdr */
 
     glPopMatrix();
@@ -1013,9 +1022,9 @@ void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_
 	if ( gl_truform.value )
 	{
 	    glEnable(GL_PN_TRIANGLES_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
 	}
 
 
@@ -1116,6 +1125,7 @@ void R_DrawAliasModel (float bright)
 	aliashdr_t	*paliashdr;
         aliasframeinstant_t *aliasframeinstant;
         alias3data_t *data;
+	vec3_t	mins,maxs;
 
         //R_PrepareEntityForDraw (bright);
 
@@ -1140,14 +1150,19 @@ void R_DrawAliasModel (float bright)
         for (i=0;i<maxnumsurf;++i){
              
              paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-              
+             
              if (!aliasframeinstant) {
                   glPopMatrix();
                   Con_Printf("R_DrawAliasModel: missing instant for ent %s\n", currententity->model->name);	
                   return;
              }
+             
+             /* disabled for now because it doesn't work with viewent 
+             VectorAdd (currententity->origin,paliashdr->mins, mins);
+             VectorAdd (currententity->origin,paliashdr->maxs, maxs);
 
-             R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
+             if (!R_CullBox (mins, maxs))                  */
+                  R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
              aliasframeinstant = aliasframeinstant->_next; 
         }
 
@@ -1219,6 +1234,10 @@ void R_DrawAmbientEntities ()
 		if (mirror) {
 			if (mirror_clipside == BoxOnPlaneSide(mins, maxs, mirror_plane)) {
 				continue;
+			}
+
+			if ( BoxOnPlaneSide(mins, maxs, &mirror_far_plane) == 1) {
+				return;
 			}
 		}
 
@@ -1575,7 +1594,15 @@ void R_DrawViewModel (void)
 							  //but they don't poke into walls) - Eradicator
 		glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
 
-	R_DrawAliasModel (0.1);
+	//Erad - don't want to lerp view models (disable this to see why ;)
+	if (gl_transformlerp.value)
+	{
+		gl_transformlerp.value = 0;
+		R_DrawAliasModel (0.1);
+		gl_transformlerp.value = 1;
+	}
+	else
+		R_DrawAliasModel (0.1);
 
 	if ( gl_calcdepth.value ) //Calc Depth - Eradicator
 		glDepthRange (gldepthmin, gldepthmax);
@@ -2203,8 +2230,7 @@ void R_RenderScene (void)
 		//Other methods may give better results (exhaustive for example)
 		//but i'm convinced you can't save more clears than those that you
 		//save with this.
-		if ((!sh_nocleversave.value) && (!sh_noscissor.value)) 
-		{
+		if ((!sh_nocleversave.value) && (!sh_noscissor.value)) {
 			qboolean foundone = false;
 			for (j=0; j<numUsedShadowLights; j++) {
 
@@ -2212,22 +2238,23 @@ void R_RenderScene (void)
 
 				l = usedshadowlights[j];
 				currentshadowlight = l;
-				if (R_CheckRectList(&l->scizz))
-				{
+				if (R_CheckRectList(&l->scizz)) {
 					foundone = true;
 					break;
 				}
 			}
-            if (!foundone) {   
-				R_SetTotalRect(); //Only clear dirty part   
-				glClear(GL_STENCIL_BUFFER_BIT);   
-                R_ClearRectList();   
-                for (j=0; j<numUsedShadowLights; j++) {   
-					l = usedshadowlights[j];   
-                    currentshadowlight = l;   
-                    if (usedshadowlights[j]->visible) break;   
-                }   
-            } 
+			
+			if (!foundone) {
+				R_SetTotalRect(); //Only clear dirty part
+				glClear(GL_STENCIL_BUFFER_BIT);
+				R_ClearRectList();
+				for (j=0; j<numUsedShadowLights; j++) {
+					l = usedshadowlights[j];
+					currentshadowlight = l;
+					if (usedshadowlights[j]->visible) break;
+				}
+			}
+
 		} else {
 			l = usedshadowlights[i];
 			currentshadowlight = l;
@@ -2431,13 +2458,22 @@ void R_AllocateMirror(msurface_t *surf)
 {
 	int i,oldest,oindex;
 	mirrorplane_t *mir = NULL;
+	vec3_t	tempnormal;
 
 	//#define NUM_MIRROR_PLANES 8
 	//extern mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
+
+	//see if surface is part of an existing mirror
 	for (i=0; i<NUM_MIRROR_PLANES; i++) {
-		if ((surf->plane->normal[0] == mirrorplanes[i].plane.normal[0]) &&
-			(surf->plane->normal[1] == mirrorplanes[i].plane.normal[1]) &&
-			(surf->plane->normal[2] == mirrorplanes[i].plane.normal[2]) &&
+
+		VectorCopy(surf->plane->normal,tempnormal);
+		//if (surf->flags & SURF_PLANEBACK) {
+		//	VectorInverse(tempnormal);
+		//}
+
+		if ((tempnormal[0] == mirrorplanes[i].plane.normal[0]) &&
+			(tempnormal[1] == mirrorplanes[i].plane.normal[1]) &&
+			(tempnormal[2] == mirrorplanes[i].plane.normal[2]) &&
 			(surf->plane->dist == mirrorplanes[i].plane.dist))
 		{
 			mir = &mirrorplanes[i];
@@ -2446,7 +2482,7 @@ void R_AllocateMirror(msurface_t *surf)
 		}
 	}
 
-
+	//allocate new mirror
 	if (!mir) {
 		oldest = r_framecount;
 		oindex = -1;
@@ -2464,6 +2500,9 @@ void R_AllocateMirror(msurface_t *surf)
 
 		mir = &mirrorplanes[oindex];
 		VectorCopy(surf->plane->normal,mir->plane.normal);
+		//if (surf->flags & SURF_PLANEBACK) {
+		//	VectorInverse(mir->plane.normal);
+		//}
 		mir->plane.dist = surf->plane->dist;
 		mir->plane.type = surf->plane->type;
 		mir->plane.signbits = surf->plane->signbits;
@@ -2485,6 +2524,7 @@ void R_Mirror (mirrorplane_t *mir)
 	entity_t	*ent;
 	int			ox, oy, ow, oh, ofovx, ofovy, cl_oldvisedicts;
 	vec3_t		oang, oorg;
+	qboolean	drawplayer;
 
 	if (mirror) {
 		Con_Printf("Warning: Resursive mirrors\n");
@@ -2500,6 +2540,25 @@ void R_Mirror (mirrorplane_t *mir)
 	//setup mirrored view origin & direction
 	VectorCopy(r_refdef.vieworg, oorg);
 	d = DotProduct (r_refdef.vieworg, mir->plane.normal) - mir->plane.dist;
+
+	//camera is to far away from mirror don't update it...
+	if (abs(d) > mir_distance.value) {
+		mirror = false;
+		return;
+	}
+
+	//player is very close to mirror don't draw it since he interects it and this gives bad artefacts
+	if (abs(d) < MIN_PLAYER_MIRROR) {
+		drawplayer = false;
+	} else {
+		drawplayer = true;
+	}
+
+	//calculate a far plane for the mirror, stuff to far away from mirrors is not drawn anymore...
+	VectorCopy(mir->plane.normal,mirror_far_plane.normal);
+	//VectorInverse(mirror_far_plane.normal);
+	mirror_far_plane.dist = DotProduct(r_refdef.vieworg,mir->plane.normal) + mir_distance.value;
+
 	VectorMA (r_refdef.vieworg, -2*d, mir->plane.normal, r_refdef.vieworg);
 
 	if (d < 0) {
@@ -2548,7 +2607,7 @@ void R_Mirror (mirrorplane_t *mir)
 		r_drawentities.value = 0;
 	} else {
 		//Hack add player to back of list	
-		if (cl_entities[cl.viewentity].model) {
+		if (drawplayer && cl_entities[cl.viewentity].model) {
 			ent = &cl_entities[cl.viewentity];
 			if (cl_numvisedicts < MAX_VISEDICTS)
 			{
@@ -2635,7 +2694,8 @@ void R_SetupMirrorShader(msurface_t *surf,mirrorplane_t *mir) {
 
 	if ((surf->flags & SURF_DRAWTURB) && !(surf->flags & SURF_GLASS)) {
 		//it is water
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE);
 		glEnable(GL_BLEND);
 		return;
 	} else {
