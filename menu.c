@@ -1851,8 +1851,8 @@ void M_Quit_Draw (void)
 	M_Print      (16, 36, " Charles Hollemeersch\n");
 	M_PrintWhite (16, 52, "Art\n");
 	M_Print      (16, 60, " Willi Hammes\n");
-	M_Print      (16, 76, "Radeon Path\n");
-	M_PrintWhite (16, 84," Jaaco Panaan\n");
+	M_PrintWhite (16, 76, "Radeon Path\n");
+	M_Print      (16, 84," Jarno Paananen\n");
 	M_Print      (16, 100,"Additional credits\n");
 	M_Print      (16, 108," Matt McChesney\n"); 
 	//M_PrintWhite (16, 164, "''Non omnis moriar''");
@@ -1863,7 +1863,7 @@ void M_Quit_Draw (void)
 	M_PrintWhite (16, 12,str);
 	M_PrintWhite (16, 28,  "Programming\n");
 	M_Print (16, 36,       " Charles Hollemeersch\n");
-	M_Print (16, 44,       " Jaaco Panaan\n");
+	M_Print (16, 44,       " Jarno Paananen\n");
 	M_Print (16, 52,       " Matt McChesney\n");
 	M_Print (16, 60,       "\n");
 	M_PrintWhite (16, 68,  "Art\n");
