@@ -406,7 +406,7 @@ qboolean InShadowEntity(entity_t *ent) {
 			}
 		}
 		if (ent->numleafs == 0) {
-			Con_Printf("Ent with no leafs");
+			//Con_Printf("Ent with no leafs");
 			return true;
 		}
 		return false;
