@@ -56,6 +56,9 @@ qboolean	mirror;
 qboolean	glare;
 mplane_t	*mirror_plane;
 int			mirror_clipside;
+msurface_t	*causticschain;
+int			caustics_textures[8];
+qboolean	busy_caustics = false;
 
 //
 // view origin
@@ -135,11 +138,23 @@ cvar_t	sh_colormaps = {"sh_colormaps","1"};//PENTA: enable disable textures on t
 cvar_t	sh_playershadow = {"sh_playershadow","1"};//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 cvar_t	sh_nocache = {"sh_nocache","0"};
 cvar_t	sh_glares = {"sh_glares","0"};
+cvar_t	sh_noefrags = {"sh_noefrags","0"};
 
 cvar_t	mir_detail = {"mir_detail","1",true};//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
 cvar_t	mir_forcewater = {"mir_forcewater","0"};
 cvar_t  gl_wireframe = {"gl_wireframe","0"}; 
+cvar_t  gl_caustics = {"gl_caustics","1"};
+
+cvar_t	fog_r = {"fog_r","0.2"};
+cvar_t	fog_g = {"fog_g","0.1"};
+cvar_t	fog_b = {"fog_b","0.0"};
+cvar_t	fog_start = {"fog_start","256"};
+cvar_t	fog_end = {"fog_end","700"};
+cvar_t	fog_enabled = {"fog_enabled","1"};
+cvar_t  fog_waterfog = {"fog_waterfog","1"}; 
+vec3_t	fog_color;
+
 mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
 int mirror_contents;
 
@@ -170,6 +185,16 @@ void R_RotateForEntity (entity_t *e)
     glRotatef (e->angles[1],  0, 0, 1);
     glRotatef (-e->angles[0],  0, 1, 0);
     glRotatef (e->angles[2],  1, 0, 0);
+}
+
+int CL_PointContents (vec3_t p)
+{
+	int		cont;
+
+	cont = SV_HullPointContents (&cl.worldmodel->hulls[0], 0, p);
+	if (cont <= CONTENTS_CURRENT_0 && cont >= CONTENTS_CURRENT_DOWN)
+		cont = CONTENTS_WATER;
+	return cont;
 }
 
 /*
@@ -784,16 +809,18 @@ void R_DrawAliasModel (entity_t *e, float bright)
 		glScalef (paliashdr->scale[0]*2, paliashdr->scale[1]*2, paliashdr->scale[2]*2);
 	}
 
-	anim = (int)(cl.time*10) & 3;
-    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
+	if (!busy_caustics) {
+		anim = (int)(cl.time*10) & 3;
+		GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
 
-	// we can't dynamically colormap textures, so they are cached
-	// seperately for the players.  Heads are just uncolored.
-	if (currententity->colormap != vid.colormap && !gl_nocolors.value)
-	{
-		i = currententity - cl_entities;
-		if (i >= 1 && i<=cl.maxclients /* && !strcmp (currententity->model->name, "progs/player.mdl") */)
-		    GL_Bind(playertextures - 1 + i);
+		// we can't dynamically colormap textures, so they are cached
+		// seperately for the players.  Heads are just uncolored.
+		if (currententity->colormap != vid.colormap && !gl_nocolors.value)
+		{
+			i = currententity - cl_entities;
+			if (i >= 1 && i<=cl.maxclients /* && !strcmp (currententity->model->name, "progs/player.mdl") */)
+				GL_Bind(playertextures - 1 + i);
+		}
 	}
 
 	//XYZ
@@ -809,6 +836,8 @@ void R_DrawAliasModel (entity_t *e, float bright)
 		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
 	glColor3f(bright, bright, bright);
+	//if (busy_caustics)
+	//	glColor3f(1,1,1);
 	R_SetupAliasFrame (paliashdr, currententity->aliasframeinstant);
 
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -816,6 +845,8 @@ void R_DrawAliasModel (entity_t *e, float bright)
 	glShadeModel (GL_FLAT);
 	if (gl_affinemodels.value)
 		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+	c_alias_polys += paliashdr->numtris;
 
 	glPopMatrix ();
 }
@@ -875,7 +906,7 @@ void R_DrawAmbientEntities ()
 			} else if (gl_wireframe.value) {
 				R_DrawAliasModel (currententity, 0.0);
 			}else {
-				brightness = R_LightPoint (currententity->origin)/255.0 * sh_lightmapbright.value;
+				brightness = (R_LightPoint (currententity->origin)/255.0) * sh_lightmapbright.value;
 				R_DrawAliasModel (currententity,brightness);
 			}
 			break;
@@ -1848,6 +1879,7 @@ void R_RenderScene (void)
 {
 	int i, j;
 	shadowlight_t *l = NULL;
+	vec3_t color_black = {0.0, 0.0, 0.0};
 
 	R_SetupFrame ();
 
@@ -2023,9 +2055,11 @@ void R_RenderScene (void)
 		glDisable(GL_STENCIL_TEST);
 
 		//sprites only recive "shadows" from the cubemap not the stencil
+		glFogfv(GL_FOG_COLOR, color_black);
 		if (!sh_visiblevolumes.value) {
 			R_DrawLightSprites ();
 		}
+		glFogfv(GL_FOG_COLOR, fog_color);
 
 		glDepthMask(GL_TRUE);		
 
@@ -2043,6 +2077,8 @@ void R_RenderScene (void)
 
 	GL_DisableMultitexture();
 
+	glFogfv(GL_FOG_COLOR, color_black);
+
 	R_DrawFullbrightSprites();
 	
 	if (skytexturenum >= 0) {
@@ -2051,8 +2087,13 @@ void R_RenderScene (void)
 		cl.worldmodel->textures[skytexturenum]->texturechain = NULL;
 	}
 
+
+	R_DrawCaustics();
+
 	R_DrawParticles (); //to fix the particles triangles showing up after water
 						//put this behind the water drawing#ifdef GLTEST
+
+	glFogfv(GL_FOG_COLOR, fog_color);
 }
 
 void R_InitMirrorChains()
@@ -2199,8 +2240,11 @@ void R_Mirror (mirrorplane_t *mir)
 	r_refdef.vrect.height = 256;
 
 
-	r_refdef.fov_x = 90.0;
-	r_refdef.fov_y = 90.0;//CalcFov (90.0, r_refdef.vrect.width, r_refdef.vrect.height);
+//	r_refdef.fov_x = 90.0;
+//	r_refdef.fov_y = 90.0;//CalcFov (90.0, r_refdef.vrect.width, r_refdef.vrect.height);
+	r_refdef.fov_x = scr_fov.value;
+	r_refdef.fov_y = CalcFov (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
+
 
 	//Note:  This was probably already a problem with the original quake mirrors
 	//the static entities are added in all mirror passes making that by the end of
@@ -2478,7 +2522,9 @@ r_refdef must be set before the first call
 void R_RenderView (void)
 {
 	double	time1 = 0.0, time2;
-//	GLfloat colors[4] = {(GLfloat) 0.0, (GLfloat) 0.0, (GLfloat) 1, (GLfloat) 0.20};
+	GLfloat colors[4] = {(GLfloat) 0.2, (GLfloat) 0.1, (GLfloat) 0.0, (GLfloat) 0.20};
+	float oldfogen;
+	int	viewcont;
 
 	if (r_norefresh.value)
 		return;
@@ -2502,6 +2548,29 @@ void R_RenderView (void)
 
 	R_Clear ();
 
+	viewcont = CL_PointContents(r_origin);
+	if ((viewcont == CONTENTS_WATER) && (fog_waterfog.value)){
+		glFogi(GL_FOG_MODE, GL_LINEAR);
+		fog_color[0] = 50/255.0;
+		fog_color[1] = 50/255.0;
+		fog_color[2] = 0.0;
+		glFogfv(GL_FOG_COLOR, fog_color);
+		glFogf(GL_FOG_END, 400);
+		glFogf(GL_FOG_START, 0);
+		glEnable(GL_FOG);
+		oldfogen = fog_enabled.value;
+		fog_enabled.value = 1.0;
+	} else {
+		glFogi(GL_FOG_MODE, GL_LINEAR);
+		fog_color[0] = fog_r.value/255.0;
+		fog_color[1] = fog_g.value/255.0;
+		fog_color[2] = fog_b.value/255.0;
+		glFogfv(GL_FOG_COLOR, fog_color);
+		glFogf(GL_FOG_END, fog_end.value);
+		glFogf(GL_FOG_START, fog_start.value);
+		if (fog_enabled.value) glEnable(GL_FOG);
+	}
+
 	if (mir_detail.value > 0) {
 		R_RenderMirrors();
 		//	glClear (GL_DEPTH_BUFFER_BIT);
@@ -2513,25 +2582,20 @@ void R_RenderView (void)
 
 	R_ClearMirrorChains();
 
-
-
 	// render normal view
-
-/***** Experimental silly looking fog ******
-****** Use r_fullbright if you enable ******
-	glFogi(GL_FOG_MODE, GL_LINEAR);
-	glFogfv(GL_FOG_COLOR, colors);
-	glFogf(GL_FOG_END, 512.0);
-	glEnable(GL_FOG);
-********************************************/
 
 	R_RenderScene ();
 	//R_DrawViewModel ();
+	glFogfv(GL_FOG_COLOR, fog_color);
 	R_DrawWaterSurfaces ();
 	R_DrawMirrorSurfaces ();
 
 //  More fog right here :)
-//	glDisable(GL_FOG);
+
+	if ((viewcont == CONTENTS_WATER) && (fog_waterfog.value)){
+		fog_enabled.value = oldfogen;
+	}
+	glDisable(GL_FOG);
 //  End of all fog code...
 
 	//Draw a poly over the screen (underwater, slime, blood hit)
