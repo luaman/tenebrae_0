@@ -25,7 +25,22 @@ qboolean			isDedicated;
 
 int noconinput = 0;
 
+
+#if defined (USERPREF_DIR)
+char *prefdir=  ".quake";
+#endif
+
+#if defined (BASEDIR)
+/* - DC - won't work without this  */
+#define macro_string(x) _macro_string(x)
+#define _macro_string(x) #x
+char *basedir = macro_string(BASEDIR);
+#undef macro_string
+#undef _macro_string
+#else
 char *basedir = ".";
+#endif
+
 char *cachedir = "/tmp";
 
 cvar_t  sys_linerefresh = {"sys_linerefresh","0"};// set for entity display
@@ -365,6 +380,43 @@ void moncontrol(int x)
 {
 }
 
+
+// - DC - create user pref directory
+#if defined (USERPREF_DIR)
+char *Sys_InitUserDir(void)
+{
+  char *home;
+  char *userdir;
+  struct stat stat_buf;
+
+  home = getenv("HOME");
+  if (!home){
+    Sys_Error("Environment variable HOME not found.\n");
+  }
+  userdir = (char *)malloc(strlen(home)+strlen(prefdir)+1);
+  strcpy(userdir,home);
+  if (home[strlen(home)-1]!='/')
+    strcat(userdir,"/");
+
+  if (stat(userdir,&stat_buf)){
+    Sys_Error("could not stat %s\n",userdir);
+  }
+  
+  strcat(userdir,prefdir);
+  if (stat(userdir,&stat_buf)){
+    if (errno == ENOENT)
+      Sys_mkdir(userdir);
+    else
+      Sys_Error("error while stating %s\n",userdir);  
+  }
+  if (!S_ISDIR(stat_buf.st_mode))
+    Sys_Error("%s is not a directory\n",userdir);
+
+  return userdir;
+}
+#endif
+
+
 int main (int c, char **v)
 {
 
@@ -373,21 +425,38 @@ int main (int c, char **v)
 	extern int vcrFile;
 	extern int recording;
 	static int frame;
-
+	int mb_mem_size=20;
+	int j;
 	moncontrol(0);
 
 //	signal(SIGFPE, floating_point_exception_handler);
 	signal(SIGFPE, SIG_IGN);
 
-	parms.memsize = 20*1024*1024;
-	parms.membase = malloc (parms.memsize);
-	parms.basedir = basedir;
-	//parms.cachedir = cachedir;
-	parms.cachedir = "";
 
 	COM_InitArgv(c, v);
 	parms.argc = com_argc;
 	parms.argv = com_argv;
+
+
+	j = COM_CheckParm ("-mem");
+	if (j)
+		mb_mem_size =
+			(int) (Q_atof (com_argv[j + 1]));
+
+	parms.memsize = mb_mem_size*1024*1024;
+	parms.membase = malloc (parms.memsize);
+	// not enough memory !!
+	if (!parms.membase){
+	  Sys_Error("Not enough memory - asked for %d - change with -mem <value in Mb> \n",mb_mem_size);
+	}
+
+#if defined (USERPREF_DIR)
+	parms.userdir = Sys_InitUserDir ();
+#endif
+	parms.basedir = basedir;
+
+	// caching is disabled by default, use -cachedir to enable
+	parms.cachedir = "";
 
 	Sys_Init();
 

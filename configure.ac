@@ -66,6 +66,12 @@ AM_PATH_SDL($SDL_VERSION,
             AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
 )
 
+# Game data 
+QUAKE_GAMEDIR=quake/
+
+AC_SUBST(QUAKE_GAMEDIR)
+
+
 CFLAGS="$CFLAGS $SDL_CFLAGS -DSDL"
 LIBS="$LIBS $SDL_LIBS"
 

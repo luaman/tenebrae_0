@@ -292,6 +292,9 @@ typedef struct
 typedef struct
 {
 	char	*basedir;
+#if defined (USERPREF_DIR)
+	char	*userdir;		// - DC - for user pref dir
+#endif
 	char	*cachedir;		// for development over ISDN lines
 	int		argc;
 	char	**argv;

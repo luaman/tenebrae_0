@@ -103,7 +103,7 @@ The file "parms.txt" will be read out of the game directory and appended to the 
 // ClearLink is used for new headnodes
 void ClearLink (link_t *l)
 {
-	l->prev = l->next = l;
+        l->prev = l->next = l;
 }
 
 void RemoveLink (link_t *l)
@@ -1267,6 +1267,10 @@ typedef struct
 char    com_cachedir[MAX_OSPATH];
 char    com_gamedir[MAX_OSPATH];
 
+#ifdef  USERPREF_DIR
+char    com_prefdir[MAX_OSPATH];
+#endif
+
 typedef struct searchpath_s
 {
 	char    filename[MAX_OSPATH];
@@ -1713,6 +1717,7 @@ Sets com_gamedir, adds the directory to the head of the path,
 then loads and adds pak1.pak pak2.pak ... 
 ================
 */
+
 void COM_AddGameDirectory (char *dir)
 {
 	int                             i;
@@ -1720,8 +1725,8 @@ void COM_AddGameDirectory (char *dir)
 	pack_t                  *pak;
 	char                    pakfile[MAX_OSPATH];
 
-	strcpy (com_gamedir, dir);
 
+	strcpy (com_gamedir, dir);
 //
 // add the directory to the search path
 //
@@ -1751,6 +1756,50 @@ void COM_AddGameDirectory (char *dir)
 
 }
 
+
+/* - DC -
+================
+COM_AddGameFS
+
+ for a given base directory, call COM_AddGameDirectory on 
+ various sub-directories 
+ 
+================
+*/
+
+void COM_AddGameFS (char *basedir)
+{
+  int i;
+//
+// start up with GAMENAME by default (id1)
+//
+	COM_AddGameDirectory (va("%s/"GAMENAME, basedir) );
+	
+//PENTA: Make mods possible by making tenebrae part of the game
+
+	COM_AddGameDirectory (va("%s/tenebrae", basedir) );
+
+	if (COM_CheckParm ("-rogue")){
+		COM_AddGameDirectory (va("%s/rogue", basedir) );
+	}
+	if (COM_CheckParm ("-hipnotic")){
+		COM_AddGameDirectory (va("%s/hipnotic", basedir) );
+	}
+
+//
+// -game <gamedir>
+// Adds basedir/gamedir as an override game
+//
+	i = COM_CheckParm ("-game");
+	if (i && i < com_argc-1)
+	{
+		com_modified = true;
+		COM_AddGameDirectory (va("%s/%s", basedir, com_argv[i+1]));
+	}
+}
+
+
+
 /*
 ================
 COM_InitFilesystem
@@ -1758,9 +1807,13 @@ COM_InitFilesystem
 */
 void COM_InitFilesystem (void)
 {
-	int             i, j;
+	int             i,j;
 	char    basedir[MAX_OSPATH];
+#if defined (USERPREF_DIR) /* - DC - user dir */
+	char    userdir[MAX_OSPATH];
+#endif
 	searchpath_t    *search;
+
 
 //
 // -basedir <path>
@@ -1798,29 +1851,21 @@ void COM_InitFilesystem (void)
 	else
 		com_cachedir[0] = 0;
 
-//
-// start up with GAMENAME by default (id1)
-//
-	COM_AddGameDirectory (va("%s/"GAMENAME, basedir) );
-	
-//PENTA: Make mods possible by making tenebrae part of the game
-	COM_AddGameDirectory (va("%s/tenebrae", basedir) );
 
-	if (COM_CheckParm ("-rogue"))
-		COM_AddGameDirectory (va("%s/rogue", basedir) );
-	if (COM_CheckParm ("-hipnotic"))
-		COM_AddGameDirectory (va("%s/hipnotic", basedir) );
 
-//
-// -game <gamedir>
-// Adds basedir/gamedir as an override game
-//
-	i = COM_CheckParm ("-game");
-	if (i && i < com_argc-1)
+	COM_AddGameFS (basedir);
+
+#if defined (USERPREF_DIR) /* - DC - user dir */
+	strcpy (userdir, host_parms.userdir);
+
+	j = strlen (userdir);
+	if (j > 0)
 	{
-		com_modified = true;
-		COM_AddGameDirectory (va("%s/%s", basedir, com_argv[i+1]));
+		if ((userdir[j-1] == '\\') || (userdir[j-1] == '/'))
+			userdir[j-1] = 0;
 	}
+	COM_AddGameFS (userdir);
+#endif
 
 //
 // -path <dir or packfile> [<dir or packfile>] ...

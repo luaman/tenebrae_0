@@ -3,7 +3,9 @@ bin_PROGRAMS = tenebrae.sdl
 
 tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ -lGL -lGLU
 
-tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DSDL
+
+# datadir is a variable defined by autoconf to @prefix@/share/ 
+tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DSDL -DUSERPREF_DIR -DBASEDIR=@datadir@@QUAKE_GAMEDIR@
 
 
 tenebrae_sdl_SOURCES =		\
