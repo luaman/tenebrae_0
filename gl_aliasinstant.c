@@ -441,8 +441,20 @@ void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
 	}
 
 	if (!forcevis) {
-		VectorAdd (e->origin,e->model->mins, mins);
-		VectorAdd (e->origin,e->model->maxs, maxs);
+
+
+		if (e->angles[0] || e->angles[1] || e->angles[2])
+		{
+			int i;
+			for (i=0 ; i<3 ; i++)
+			{
+				mins[i] = e->origin[i] - e->model->radius;
+				maxs[i] = e->origin[i] + e->model->radius;
+			}
+		} else {
+			VectorAdd (e->origin,e->model->mins, mins);
+			VectorAdd (e->origin,e->model->maxs, maxs);
+		}
 
 		if (R_CullBox (mins, maxs))
 			aliasframeinstant->shadowonly = true;

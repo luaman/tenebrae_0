@@ -419,6 +419,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 		pheader->frames[i].bboxmax.v[1] = (byte)frame->bounds[1][1]/pheader->scale[1];
 		pheader->frames[i].bboxmax.v[2] = (byte)frame->bounds[1][2]/pheader->scale[2];
 	}
+	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
 
 	//calculate radius
 	mod->radius = max(Length(mod->mins),Length(mod->maxs));

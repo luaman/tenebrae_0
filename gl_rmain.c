@@ -842,9 +842,18 @@ void R_DrawAmbientEntities ()
 	{
 		currententity = cl_visedicts[i];
 
-
-		VectorAdd (currententity->origin,currententity->model->mins, mins);
-		VectorAdd (currententity->origin,currententity->model->maxs, maxs);
+		if (currententity->angles[0] || currententity->angles[1] || currententity->angles[2])
+		{
+			int i;
+			for (i=0 ; i<3 ; i++)
+			{
+				mins[i] = currententity->origin[i] - currententity->model->radius;
+				maxs[i] = currententity->origin[i] + currententity->model->radius;
+			}
+		} else {
+			VectorAdd (currententity->origin,currententity->model->mins, mins);
+			VectorAdd (currententity->origin,currententity->model->maxs, maxs);
+		}
 
 		if (R_CullBox (mins, maxs))
 			continue;
