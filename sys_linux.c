@@ -489,7 +489,7 @@ int main (int c, char **v)
 	parms.argc = com_argc;
 	parms.argv = com_argv;
 
-	j = COM_CheckParm ("-mem");
+	j = COM_CheckParm ("-heapsize");
 	if (j)
 		mb_mem_size =
 			(int) (Q_atof (com_argv[j + 1]));
@@ -498,7 +498,7 @@ int main (int c, char **v)
 	parms.membase = malloc (parms.memsize);
 	// not enough memory !!
 	if (!parms.membase){
-	  Sys_Error("Not enough memory - asked for %d - change with -mem <value in Mb> \n",mb_mem_size);
+	  Sys_Error("Not enough memory - asked for %d - change with -heapsize <value in Mb> \n",mb_mem_size);
 	}
 
 #if defined (USERPREF_DIR)
