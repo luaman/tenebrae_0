@@ -317,11 +317,60 @@ void Key_Console (int key)
 	}
 
 	if (key == K_TAB)
-	{	// command completion
-		cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
-		if (!cmd)
+	{
+		//Rehash of tab completion - Eradicator
+		int c, v, a;
+
+		c = Cmd_CompleteCountPossible (key_lines[edit_line]+1);
+		v = Cvar_CompleteCountPossible (key_lines[edit_line]+1);
+		a = Cmd_CompleteAliasCountPossible (key_lines[edit_line]+1);
+
+		if (!(c + v + a))
+			return;
+
+		if (c + v > 1)
+		{
+			Con_Printf("\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+
+			if (c)
+			{
+				if (c==1)
+					Con_Printf("1 possible command:\n");
+				else
+					Con_Printf("%i possible commands:\n", c);
+				Cmd_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			if (v)
+			{
+				if (v==1)
+					Con_Printf("1 possible cvar:\n");
+				else
+					Con_Printf("%i possible cvars:\n", v);
+				Cvar_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			if (a)
+			{
+				if (a==1)
+					Con_Printf("1 possible alias:\n");
+				else
+					Con_Printf("%i possible aliases:\n", a);
+				Cmd_CompleteAliasPrintPossible (key_lines[edit_line]+1);
+			}
+			return;
+		}
+
+		if (c)
+			cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
+
+		if (v)
 			cmd = Cvar_CompleteVariable (key_lines[edit_line]+1);
-		if (cmd)
+
+		if (a)
+			cmd = Cmd_CompleteAlias (key_lines[edit_line]+1);
+
+		if(cmd)
 		{
 			Q_strcpy (key_lines[edit_line]+1, cmd);
 			key_linepos = Q_strlen(cmd)+1;

@@ -95,6 +95,82 @@ char *Cvar_CompleteVariable (char *partial)
 	return NULL;
 }
 
+/*
+============
+Cvar_CompleteCountPossible
+============
+*/
+int Cvar_CompleteCountPossible (char *partial)
+{
+	cvar_t	*cvar;
+	int	len;
+	int	h;
+
+	h=0;
+
+	len = Q_strlen(partial);
+	
+	if (!len)
+		return 0;
+		
+	// Loop through the cvars and count all partial matches
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+		if (!Q_strncmp (partial,cvar->name, len))
+			h++;
+	return h;
+}
+
+/*
+============
+Cvar_CompletePrintPossible
+============
+*/
+void Cvar_CompletePrintPossible (char *partial)
+{
+	cvar_t	*cvar;
+	int	len;
+	int	lpos;
+	int	out;
+	int	con_linewidth;
+	char	sout[32];
+	char	lout[2048];
+
+	len = Q_strlen(partial);
+	lpos = 0;
+	Q_strcpy(lout,"");
+
+	// Determine the width of the console
+	con_linewidth = (vid.width >> 3) - 3;
+
+	// Loop through the cvars and print all matches
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+		if (!Q_strncmp (partial,cvar->name, len))
+		{
+			Q_strcpy(sout, cvar->name);
+
+			out = Q_strlen(sout);
+			lpos += out;
+
+			// Pad with spaces
+			for (out; out<20; out++)		
+			{
+				if (lpos < con_linewidth)
+					Q_strcat (sout, " ");
+				
+				lpos++;
+			}
+
+			Q_strcat (lout, sout);
+
+			if (lpos > con_linewidth - 24)
+				for  (lpos; lpos < con_linewidth; lpos++)
+					Q_strcat(lout, " ");
+
+			if (lpos >= con_linewidth)
+				lpos = 0;
+		}
+	Con_Printf ("%s\n\n", lout);
+}
 
 /*
 ============
