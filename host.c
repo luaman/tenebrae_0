@@ -80,6 +80,8 @@ cvar_t	coop = {"coop","0"};			// 0 or 1
 cvar_t	pausable = {"pausable","1"};
 cvar_t	pausedemo = {"pausedemo","0"};//Pause Demo - Eradicator
 
+cvar_t	timescalecvar = {"timescale","1"};//Timescale - Eradicator
+
 cvar_t	temp1 = {"temp1","0"};
 
 int			fps_count;
@@ -229,6 +231,7 @@ void Host_InitLocal (void)
 	Cvar_RegisterVariable (&coop);
 
 	Cvar_RegisterVariable (&pausable);
+	Cvar_RegisterVariable (&timescalecvar); //Timesclae - Eradicator
 
 	Cvar_RegisterVariable (&temp1);
 
@@ -507,7 +510,11 @@ qboolean Host_FilterTime (float time)
 	if (!cls.timedemo && realtime - oldrealtime < 1.0/72.0)
 		return false;		// framerate is too high
 
-	host_frametime = realtime - oldrealtime;
+	if (timescalecvar.value == 1) //Timescale - Eradicator
+		host_frametime = (realtime - oldrealtime);
+	else
+		host_frametime = (realtime - oldrealtime) * timescalecvar.value;
+
 	oldrealtime = realtime;
 
 	if (host_framerate.value > 0)
