@@ -243,6 +243,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&mir_detail);
 	Cvar_RegisterVariable (&mir_frameskip);
 	Cvar_RegisterVariable (&mir_forcewater);
+	Cvar_RegisterVariable (&mir_distance);
 	Cvar_RegisterVariable (&gl_wireframe);
 
 	Cvar_RegisterVariable (&fog_r);

@@ -367,6 +367,7 @@ extern	cvar_t	mir_detail; //PENTA: mirror detail level
 							//3: Full
 extern	cvar_t	mir_frameskip; //PENTA: mirror is updated every i'th frame
 extern	cvar_t	mir_forcewater; //Forces all quake's water to be reflecting.
+extern	cvar_t	mir_distance; //maximum drawing distance
 extern  cvar_t	gl_wireframe;
 extern  cvar_t	fog_r;
 extern  cvar_t	fog_g;
