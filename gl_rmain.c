@@ -261,33 +261,35 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 	return pspriteframe;
 }
 
-
 /*
 =================
 R_DrawSpriteModel
 
 =================
 */
-void R_DrawSpriteModel (entity_t *e)
+#define VectorScalarMult(a,b,c) {c[0]=a[0]*b;c[1]=a[1]*b;c[2]=a[2]*b;}
+void R_DrawSpriteModel (entity_t *e) //Oriented Sprite Fix - Eradicator
 {
 	vec3_t	point;
 	mspriteframe_t	*frame;
 	float		*up, *right;
 	vec3_t		v_forward, v_right, v_up;
 	msprite_t		*psprite;
+	vec3_t		fixed_origin;
+	vec3_t		temp;
 
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 	frame = R_GetSpriteFrame (e);
 	psprite = currententity->model->cache.data;
 
-	//overriden sprites are drawn in another routine
-	//if (psprite->type >= SPR_VP_PARALLEL_UPRIGHT_OVER)
-	//	return;
+	VectorCopy(e->origin,fixed_origin);
 
 	if (psprite->type == SPR_ORIENTED)
 	{	// bullet marks on walls
 		AngleVectors (currententity->angles, v_forward, v_right, v_up);
+		VectorScalarMult(v_forward,-2,temp);
+		VectorAdd(temp,fixed_origin,fixed_origin);
 		up = v_up;
 		right = v_right;
 	}
@@ -297,38 +299,39 @@ void R_DrawSpriteModel (entity_t *e)
 		right = vright;
 	}
 
-	//glColor3f (1,1,1);
+	glColor3f (1,1,1);
 
-	//GL_DisableMultitexture();
+	GL_DisableMultitexture();
 
     GL_Bind(frame->gl_texturenum);
 
-	//glEnable (GL_ALPHA_TEST);
+	glEnable (GL_ALPHA_TEST);
 	glBegin (GL_QUADS);
 
 	glTexCoord2f (0, 1);
-	VectorMA (e->origin, frame->down, up, point);
+	//VectorMA (e->origin, frame->down, up, point); //Old
+	VectorMA (fixed_origin, frame->down, up, point); //Fixed Origin
 	VectorMA (point, frame->left, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (0, 0);
-	VectorMA (e->origin, frame->up, up, point);
+	VectorMA (fixed_origin, frame->up, up, point);
 	VectorMA (point, frame->left, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (1, 0);
-	VectorMA (e->origin, frame->up, up, point);
+	VectorMA (fixed_origin, frame->up, up, point);
 	VectorMA (point, frame->right, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (1, 1);
-	VectorMA (e->origin, frame->down, up, point);
+	VectorMA (fixed_origin, frame->down, up, point);
 	VectorMA (point, frame->right, right, point);
 	glVertex3fv (point);
 	
 	glEnd ();
 
-	//glDisable (GL_ALPHA_TEST);
+	glDisable (GL_ALPHA_TEST);
 }
 
 /*
@@ -2685,9 +2688,8 @@ void R_RenderView (void)
 
 	/*Rendering fog in black for particles is done to stop triangle effect on the 
 	particles. It is done right before and fixed after each particle draw function 
-	to avoid effection fog on the water. A particle draw is done before and after
-	the water draw to make sure particles are rendered over the surface of the 
-	water. - Eradicator*/
+	to avoid effection fog on the water. A particle draw is done after the water 
+	draw to make sure particles are rendered over the surface of the water. - Eradicator*/
 
 	R_DrawWaterSurfaces ();
 	R_DrawMirrorSurfaces ();
