@@ -17,8 +17,8 @@ NOARCH=noarch
 
 #MOUNT_DIR=/src/tenebrae
 MOUNT_DIR=../
-MASTER_DIR=/home/dc/quake
-#MASTER_DIR=/usr/share/games/quake
+
+MASTER_DIR=/usr/local/share/games/quake
 
 BUILD_DEBUG_DIR=debug$(ARCH)$(GLIBC)
 BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
@@ -26,7 +26,7 @@ BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
 EGCS=/usr/bin/gcc
 CC=$(EGCS)
 
-BASE_CFLAGS= -Dstricmp=strcasecmp -D__glx__ -DBASEDIR="$(MASTER_DIR)" -DGLQUAKE
+BASE_CFLAGS= -Dstricmp=strcasecmp -D__glx__ -DBASEDIR="$(MASTER_DIR)" -DGLQUAKE -DUSERPREF_DIR
 RELEASE_CFLAGS=$(BASE_CFLAGS) -mpentiumpro -O6 -ffast-math -funroll-loops \
 	-fomit-frame-pointer -fexpensive-optimizations
 DEBUG_CFLAGS=$(BASE_CFLAGS) -g
