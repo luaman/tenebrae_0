@@ -264,12 +264,9 @@ GL_TENEBRAE_SRCS =		\
 	$(MASTER_DIR)/gl_svbsp.c		
 
 EXTRA_DIST =			\
-	$(MASTER_DIR)/gl_vidlinux.c		\
-	$(MASTER_DIR)/WinQuake.dsp		\
-	$(MASTER_DIR)/WinQuake.dsw		\
-	$(MASTER_DIR)/WinQuake.mdp		\
-	$(MASTER_DIR)/WinQuake.opt		\
-	$(MASTER_DIR)/WinQuake.plg		\
+	$(MASTER_DIR)/sdl/configure.ac		\
+	$(MASTER_DIR)/sdl/Makefile.am		\
+	$(MASTER_DIR)/sdl/autogen.sh		\
 	$(MASTER_DIR)/quake.ico		\
 	$(MASTER_DIR)/winquake.rc		\
 	$(QUAKE_SRCS)		\
@@ -284,5 +281,5 @@ EXTRA_DIST =			\
 	$(GL_WIN_SRCS)
 
 dist-hook:
-	cp -rp macosx docs dxsdk gas2masm $(distdir)/
+	cp -rp $(MASTER_DIR)/win $(MASTER_DIR)/linux $(MASTER_DIR)/macosx $(MASTER_DIR)/dxsdk $(MASTER_DIR)/gas2masm $(distdir)/
 
