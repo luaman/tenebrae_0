@@ -519,17 +519,23 @@ void SCR_DrawFPS (void)
 	}
 
 	sprintf(st, "FPS: %d NumLights: %d ClearsSaved %d\n", lastfps,numUsedShadowLights,numClearsSaved);
-
-	x = vid.width - strlen(st) * 16 - 16;
-	y = 0 ; //vid.height - (sb_lines * (vid.height/240) )- 16;
-//	Draw_TileClear(x, y, strlen(st)*16, 16);
+	x = 16;
+	y = 0 ;
 	Draw_String(x, y, st);
 
 	sprintf(st, "Alias Cache: %d Requests, %d Full Hits,  %d Partial Hits\n", aliasCacheRequests,aliasFullCacheHits,aliasPartialCacheHits);
+	x = 16;
 	y = 16;
 	Draw_String(x, y, st);
+
 	sprintf(st, "Brush Cache: %d Requests, %d Full Hits,  %d Partial Hits\n", brushCacheRequests,brushFullCacheHits,brushPartialCacheHits);
+	x = 16;
 	y = 32;
+	Draw_String(x, y, st);
+
+	sprintf(st, "Poly counts: %d Alias polys, %d Brush polys\n", c_alias_polys, c_brush_polys);
+	x = 16;
+	y = 48;
 	Draw_String(x, y, st);
 }
 
