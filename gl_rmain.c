@@ -2961,6 +2961,8 @@ void R_RenderView (void)
 		glFogf(GL_FOG_START, fog_start.value);
 		if (fog_enabled.value && !gl_wireframe.value) 
 			glEnable(GL_FOG);
+                else
+                        glDisable(GL_FOG);
 	}
 
 	if (mir_detail.value > 0) {

@@ -24,7 +24,6 @@ by "Eric Lengyel" in "Game Programming Gems 2"
 */
 
 #include "quakedef.h"
-#include "r_local.h"
 
 #define MAX_DECALS			1024	// default max # of decals at one
 										//  time
