@@ -153,25 +153,102 @@ typedef enum {
 	pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2
 } ptype_t;
 
+typedef enum {
+	pb_add, pb_subtract
+} pblend_t;
+
+
+typedef enum {
+	emt_box
+} emtype_t;
+
+typedef enum {
+	align_view, align_vel, align_surf
+} align_t;
+
+typedef struct ParticleEffect_s {
+	char name[64];
+	vec3_t emmiterParams1, emmiterParams2; //mins maxs of emmiter box
+	emtype_t emmiterType; //currently only box is supported
+	vec3_t startcolormin, startcolormax, endcolormin, endcolormax;
+	vec3_t velocitymin, velocitymax; //min max velocity
+	float	lifemin, lifemax; //min max life
+	int	movetype; //how it moves (gravity/collision...)
+	vec3_t	gravity;
+	float	rotmin, rotmax;//rotaiton speed
+	float	growmin, growmax;//scale speed (make second smaller to shrink)
+	float	sizemin, sizemax;//scale speed (make second smaller to shrink)
+	vec3_t	drag; //drag of particle (how fast it looses it's speed)
+	int	srcblend, dstblend; // gl enums for blend modes
+	int	numbounces; //number of bounces before particle is deleted
+	int	texture; //gl object of the texture	
+	align_t	align;//particle is aligned with its velocity
+	float	velscale;
+	struct ParticleEffect_s *spawn; //particle effect to spawn on hit
+	struct ParticleEffect_s *next;
+} ParticleEffect_t;
+
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
 typedef struct particle_s
 {
 // driver-usable fields
 	vec3_t		org;
-	float		color;
+	vec3_t		color;
 // drivers never touch the following fields
 	struct particle_s	*next;
 	vec3_t		vel;
-	float		ramp;
-	float		die;
-	ptype_t		type;
+	//float		ramp;
+	float		die, lifetime;
+	//ptype_t		type;
 //PENTA: Nicer particles (tm)
 	int			texture; //texture object of particle
 	int			numbounces; //number of bounces left before deletion set to zero for no bounce
 	float		rot;
 	float		rspeed;
+	float		size;
+	float		growspeed;
+	qboolean	velaligned;
+	//pblend_t	blendfunc;
+	vec3_t		startcolor, endcolor;
+	int			srcblend, dstblend;
+	vec3_t		gravity;
+	vec3_t		drag;
+	float		velscale;
+	ParticleEffect_t *spawn; 
 } particle_t;
 
+typedef enum {
+	dt_blood
+} dtype_t;
+
+#define MAX_DECAL_VERTICES 128
+#define MAX_DECAL_TRIANGLES 64
+//PENTA: Decals
+typedef struct decal_s
+{
+	vec3_t		origin;
+	vec3_t		normal;
+	vec3_t		tangent;
+	float		radius;
+
+	float		color[4], startcolor[4], endcolor[4];
+	struct decal_s	*next;
+	float		die;
+	float		lifetime;
+	dtype_t		type;
+	int			texture; //texture object of particle
+	int			srcblend;
+	int			dstblend;
+
+	//geometry of decail
+	int	vertexCount, triangleCount;
+	vec3_t		vertexArray[MAX_DECAL_VERTICES];
+	float		texcoordArray[MAX_DECAL_VERTICES][2];
+	int			triangleArray[MAX_DECAL_TRIANGLES][3];
+} decal_t;
+
+void R_SpawnDecal(vec3_t center, vec3_t normal, vec3_t tangent, ParticleEffect_t *effect);
+float RandomMinMax(float min, float max);
 
 //====================================================
 
@@ -1264,6 +1341,7 @@ qboolean	R_CheckRectList (screenrect_t *rec);
 void		R_ClearBrushInstantCaches (void);
 void		R_ClearInstantCaches (void);
 void		R_ClearParticles (void);
+void		R_ClearDecails(void);
 void		R_ClearRectList (void);
 void		R_ConstructShadowVolume (shadowlight_t *light);
 qboolean	R_ContributeFrame (shadowlight_t *light);
@@ -1286,6 +1364,7 @@ void		R_DrawBrushWV (entity_t *e);
 void		R_DrawGlare (void);
 void		R_DrawLightEntities (shadowlight_t *l);
 void		R_DrawParticles (void);
+void		R_DrawDecals (void);
 void		R_DrawShadowVolume (shadowlight_t *light);
 void		R_DrawSkyChain (msurface_t *s);
 void		R_DrawSpriteModelWV (entity_t *e);
@@ -1303,6 +1382,7 @@ void		R_InitDrawWorld (void);
 void		R_InitGlare (void);
 void		R_InitMirrorChains (void);
 void		R_InitParticles (void);
+void		R_InitDecals (void);
 void		R_InitShadowsForFrame (void);
 int		R_LightPoint (vec3_t p);
 void		R_LoadVertexProgram (void);
