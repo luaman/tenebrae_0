@@ -735,13 +735,13 @@ void R_ParticleExplosion (vec3_t org)
 	ParticleEffect_t *eff;
 	
 	eff = ParticleEffectForName("pt_explosion1");
-	for (i=0 ; i<256 ; i++)
+	for (i=0 ; i<128 ; i++)
 	{
 		InitParticleFromEffect(eff,org);
 	}
 
 	eff = ParticleEffectForName("pt_explosion2");
-	for (i=0 ; i<256 ; i++)
+	for (i=0 ; i<128 ; i++)
 	{
 		InitParticleFromEffect(eff,org);
 	}
@@ -761,7 +761,7 @@ void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 	ParticleEffect_t *eff;
 
 	eff = ParticleEffectForName("pt_explosion1");
-	for (i=0 ; i<512 ; i++)
+	for (i=0 ; i<64 ; i++)
 	{
 		InitParticleFromEffect(eff,org);
 	}
@@ -781,13 +781,13 @@ void R_BlobExplosion (vec3_t org)
 	ParticleEffect_t *eff;	
 
 	eff = ParticleEffectForName("pt_voreexplosion1");
-	for (i=0 ; i<256 ; i++)
+	for (i=0 ; i<64 ; i++)
 	{
 		InitParticleFromEffect(eff,org);
 	}
 
 	eff = ParticleEffectForName("pt_voreexplosion2");
-	for (i=0 ; i<256 ; i++)
+	for (i=0 ; i<64 ; i++)
 	{
 		InitParticleFromEffect(eff,org);
 	}
