@@ -254,6 +254,9 @@ void R_Init (void)
 
 	Cvar_RegisterVariable (&fog_waterfog);
 	Cvar_RegisterVariable (&gl_caustics);
+	Cvar_RegisterVariable (&gl_truform);
+	Cvar_RegisterVariable (&gl_truform_tesselation);
+
 	R_InitParticleEffects();
 	R_InitParticles ();
 	R_InitDecals ();
@@ -281,6 +284,7 @@ void R_TranslatePlayerSkin (int playernum)
 	unsigned	translate32[256];
 	int		i, j, s;
 	model_t		*model;
+	alias3data_t 	*data;
 	aliashdr_t 	*paliashdr;
 	byte		*original;
 	static unsigned	pixels[512*256], *out;		// <AWE> added "static" otherwise array has to be <32kb.
@@ -320,7 +324,10 @@ void R_TranslatePlayerSkin (int playernum)
 	if (model->type != mod_alias)
 		return; // only translate skins on alias models
 
-	paliashdr = (aliashdr_t *)Mod_Extradata (model);
+        // HACK HACK HACK -> garanted to work with original player model _ONLY_
+        data = (alias3data_t *)Mod_Extradata (model);
+	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[0]);
+
 	s = paliashdr->skinwidth * paliashdr->skinheight;
 	if (currententity->skinnum < 0 || currententity->skinnum >= paliashdr->numskins) {
 		Con_Printf("(%d): Invalid player skin #%d\n", playernum, currententity->skinnum);
