@@ -1003,7 +1003,8 @@ void R_DrawAliasObjectLight(entity_t *e,void (*AliasGeoSender) (aliashdr_t *pali
              paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
 
              if (!aliasframeinstant) {
-                  Con_Printf("R_DrawAliasObjectLight: missing instant for ent %s\n", e->model->name);	
+                  glPopMatrix();
+                  Con_Printf("R_DrawAliasObjectLight: missing instant for ent %s\n", e->model->name);
                   return;
              }
 
@@ -1011,6 +1012,7 @@ void R_DrawAliasObjectLight(entity_t *e,void (*AliasGeoSender) (aliashdr_t *pali
 
 	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
 	{
+                glPopMatrix();
 		return;
 	}
 
