@@ -205,7 +205,6 @@ void R_Init (void)
 	Cvar_RegisterVariable (&r_wateralpha);
 	Cvar_RegisterVariable (&r_dynamic);
 	Cvar_RegisterVariable (&r_novis);
-	Cvar_RegisterVariable (&r_speeds);
 
 	Cvar_RegisterVariable (&gl_finish);
 	Cvar_RegisterVariable (&gl_clear);
@@ -435,6 +434,10 @@ R_NewMap
 void R_NewMap (void)
 {
 	int		i;
+	
+	//Exec a config file in maps dir with same name as the map - Eradicator
+	//Cbuf_AddText(va("exec maps/%s.cfg\n", sv.name));
+	//Cbuf_Execute();
 	
 	for (i=0 ; i<256 ; i++)
 		d_lightstylevalue[i] = 264;		// normal light value
