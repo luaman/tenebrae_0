@@ -69,8 +69,8 @@ typedef void (APIENTRY * PFNGLGETPROGRAMNAMEDPARAMETERDVNVPROC) (GLuint id, GLsi
 #ifndef GL_EXT_stencil_two_side
 #define GL_EXT_stencil_two_side 1
 typedef void (APIENTRY * PFNGLACTIVESTENCILFACEEXTPROC) (GLenum face);
-PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
 #endif
+PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
 
 static char vertexprogram[] =
 "!!VP1.1\n"
