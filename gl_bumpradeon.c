@@ -261,7 +261,7 @@ qboolean	GL_LookupRadeonSymbols (void)
 void GL_CreateShadersRadeon()
 {
     float scaler[4] = {0.5f, 0.5f, 0.5f, 0.5f};
-    GLuint matrix;
+    GLuint mvp, projmatrix;
     GLuint texturematrix;
     GLuint vertex;
     GLuint texcoord0;
@@ -269,6 +269,9 @@ void GL_CreateShadersRadeon()
     GLuint texcoord2;
     GLuint color;
     GLuint supportedTmu;
+    GLuint disttemp, disttemp2, disttemp3;
+    GLuint fogstart, fogend;
+    GLuint fogstart2, fogend2, zscaler, scaletemp;
 
 #if !defined(__APPLE__) && !defined (MACOSX)
     SAFE_GET_PROC( qglGenFragmentShadersATI, PFNGLGENFRAGMENTSHADERSATIPROC, "glGenFragmentShadersATI");
@@ -548,36 +551,116 @@ void GL_CreateShadersRadeon()
 
     glEnable(GL_VERTEX_SHADER_EXT);
 
-    // Generates a necessary input for the diffuse bumpmapping registers
-    matrix        = qglBindParameterEXT( GL_MVP_MATRIX_EXT );
-    vertex        = qglBindParameterEXT( GL_CURRENT_VERTEX_EXT );
-    color         = qglBindParameterEXT( GL_CURRENT_COLOR );
-    texturematrix = qglBindTextureUnitParameterEXT( GL_TEXTURE4_ARB, GL_TEXTURE_MATRIX );
-    texcoord0     = qglBindTextureUnitParameterEXT( GL_TEXTURE0_ARB, GL_CURRENT_TEXTURE_COORDS );
-    texcoord1     = qglBindTextureUnitParameterEXT( GL_TEXTURE1_ARB, GL_CURRENT_TEXTURE_COORDS );
-    texcoord2     = qglBindTextureUnitParameterEXT( GL_TEXTURE2_ARB, GL_CURRENT_TEXTURE_COORDS );
-
     diffuse_program_object = qglGenVertexShadersEXT(1);
-
+    checkerror();
     qglBindVertexShaderEXT(diffuse_program_object);
+    checkerror();
     qglBeginVertexShaderEXT();
+    checkerror();
+
+    // Generates a necessary input for the diffuse bumpmapping registers
+    mvp           = qglBindParameterEXT( GL_MVP_MATRIX_EXT );
+    checkerror();
+    projmatrix    = qglBindParameterEXT( GL_PROJECTION_MATRIX );
+    checkerror();
+    vertex        = qglBindParameterEXT( GL_CURRENT_VERTEX_EXT );
+    checkerror();
+    color         = qglBindParameterEXT( GL_CURRENT_COLOR );
+    checkerror();
+    texturematrix = qglBindTextureUnitParameterEXT( GL_TEXTURE4_ARB, GL_TEXTURE_MATRIX );
+    checkerror();
+    texcoord0     = qglBindTextureUnitParameterEXT( GL_TEXTURE0_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord1     = qglBindTextureUnitParameterEXT( GL_TEXTURE1_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord2     = qglBindTextureUnitParameterEXT( GL_TEXTURE2_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    disttemp      = qglGenSymbolsEXT(GL_VECTOR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    disttemp2     = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    disttemp3     = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    fogstart      = qglBindParameterEXT( GL_FOG_START );
+    checkerror();
+    fogend        = qglBindParameterEXT( GL_FOG_END );
+    checkerror();
+    fogstart2     = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    fogend2       = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    zscaler       = qglGenSymbolsEXT(GL_VECTOR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    scaletemp     = qglGenSymbolsEXT(GL_VECTOR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
 
     // Transform vertex to view-space
-    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_VERTEX_EXT, matrix, vertex );
+    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, disttemp, mvp, vertex );
+    checkerror();
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_VERTEX_EXT, disttemp );
+    checkerror();
     
     // Transform vertex by texture matrix and copy to output
     qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_TEXTURE_COORD4_EXT, texturematrix, vertex );
+    checkerror();
 
-    //copy tex coords of unit 0 to unit 3
+    // copy tex coords of unit 0 to unit 3
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD0_EXT, texcoord0);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD1_EXT, texcoord1);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD2_EXT, texcoord2);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD3_EXT, texcoord0);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_COLOR0_EXT, color);
+    checkerror();
+
+    // the fog values don't seem to be normalized to view, so we have to normalize them
+    // get z component from projection matrix
+    qglExtractComponentEXT( zscaler, projmatrix, 2);
+    checkerror();
+
+    // prepare { 0, 0, value, 1 } vector
+    qglSwizzleEXT(scaletemp, scaletemp, GL_ZERO_EXT, GL_ZERO_EXT, GL_ZERO_EXT, GL_ONE_EXT);
+    checkerror();
+
+    // first calculate scaled fog start
+    qglInsertComponentEXT(scaletemp, fogstart, 2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_DOT4_EXT, fogstart2, zscaler, scaletemp );
+    checkerror();
+
+    // then scaled fog end
+    qglInsertComponentEXT(scaletemp, fogend, 2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_DOT4_EXT, fogend2, zscaler, scaletemp );
+    checkerror();
+
+    // ok, now we have scaled fog parameters, calculate view distance
+    qglShaderOp2EXT( GL_OP_DOT3_EXT, disttemp2, disttemp, disttemp);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_RECIP_SQRT_EXT, disttemp3, disttemp2);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_RECIP_EXT, disttemp2, disttemp3);
+    checkerror();
+
+    // calculate fog values end - z and end - start
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp3, fogend2, disttemp2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp2, fogend2, fogstart2);
+    checkerror();
+
+    // divide end - z by end - start, that's it
+    qglShaderOp1EXT( GL_OP_RECIP_EXT, disttemp2, disttemp2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_MUL_EXT, GL_OUTPUT_FOG_EXT, disttemp2, disttemp3);
+    checkerror();
+
     qglEndVertexShaderEXT();
+    checkerror();
 
     glDisable(GL_VERTEX_SHADER_EXT);
-
 }
 
 
@@ -618,8 +701,8 @@ void GL_DisableDiffuseShaderRadeon()
     //tex 3 = color map
     //tex 4 = (attenuation or light filter, depends on light settings)
 
-    glDisable(GL_FRAGMENT_SHADER_ATI);
     glDisable(GL_VERTEX_SHADER_EXT);
+    glDisable(GL_FRAGMENT_SHADER_ATI);
 
     GL_SelectTexture(GL_TEXTURE1_ARB);
     glDisable(GL_TEXTURE_CUBE_MAP_ARB);
@@ -692,10 +775,11 @@ void GL_EnableDiffuseSpecularShaderRadeon(qboolean world, vec3_t lightOrig)
 
     glEnable(GL_FRAGMENT_SHADER_ATI);
     glEnable(GL_VERTEX_SHADER_EXT);
-
-    
+   
     qglBindFragmentShaderATI( shaders );
+    checkerror();
     qglBindVertexShaderEXT( diffuse_program_object );
+    checkerror();
 }
 
 
