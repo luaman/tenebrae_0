@@ -30,7 +30,10 @@ int svBsp_NumMissedPlanes;
 int svBsp_NumMissedNodes;
 
 //FIXME: Decent allocation
-#define MAX_PLANE_POOL 10000
+
+//1Meg plane pool :)
+#define MAX_PLANE_POOL 65536
+
 #define MAX_NODE_POOL 10000
 
 plane_t PlanePool[MAX_PLANE_POOL];
