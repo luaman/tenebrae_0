@@ -274,7 +274,11 @@ extern	cvar_t	sh_colormaps;//PENTA: enable disable textures on the world (light 
 extern	cvar_t	sh_playershadow;//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 extern	cvar_t	sh_nocache;
 extern	cvar_t	sh_glares;
+extern	cvar_t	sh_noefrags;
 
+extern	cvar_t	fog_waterfog;
+extern	cvar_t	gl_caustics;
+extern  cvar_t	scr_fov;	// 10 - 170
 extern	cvar_t	mir_detail; //PENTA: mirror detail level
 							//0: no mirrors
 							//1: World only
@@ -283,6 +287,13 @@ extern	cvar_t	mir_detail; //PENTA: mirror detail level
 extern	cvar_t	mir_frameskip; //PENTA: mirror is updated every i'th frame
 extern	cvar_t	mir_forcewater; //Forces all quake's water to be reflecting.
 extern  cvar_t	gl_wireframe;
+extern  cvar_t	fog_r;
+extern  cvar_t	fog_g;
+extern  cvar_t	fog_b;
+extern  cvar_t	fog_start;
+extern  cvar_t	fog_end;
+extern  cvar_t	fog_enabled;
+extern	vec3_t	fog_color;
 
 extern	int			mirrortexturenum;	// quake texturenum, not gltexturenum
 extern	qboolean	mirror;
@@ -1064,7 +1075,8 @@ typedef struct shadowlight_s {
 	qboolean castShadow;//lights casts shadows
 	qboolean halo;		//light has a halo
 	mleaf_t	*leaf;		//leaf this light is in
-	byte vis[MAX_MAP_LEAFS/8];//visibility information for nodes
+	byte vis[MAX_MAP_LEAFS/8];//redone pvs for light, only poly's in nodes
+	byte entvis[MAX_MAP_LEAFS/8];//original pvs a light origin
 	msurface_t	**visSurf; //the surfaces that should cast shadows for this light (only when static)
 	int		*volumeCmds;  //gl commands to draw the shadow volume
 	float	*volumeVerts;
@@ -1215,7 +1227,7 @@ extern int brushCacheRequests, brushFullCacheHits, brushPartialCacheHits;	// <AW
 svnode_t *R_CreateEmptyTree(void);
 svnode_t *R_AddShadowCaster(svnode_t *node, vec3_t *v, int vnum, msurface_t *surf,int depth);
 svnode_t *ExpandVolume(vec3_t *v,int *sign, int vnum, msurface_t *surf);
-plane_t *AllocPlane(void);
+plane_t *AllocPlane(plane_t *tryplane);
 svnode_t *AllocNode(void);
 svnode_t *NodeFromEdge(vec3_t *v,int vnum, int edgeindex);
 float CalcFov (float fov_x, float width, float height);
@@ -1285,6 +1297,7 @@ void		R_SetupInstantForLight(entity_t *e);
 void		R_SetupInstants (void);
 qboolean	R_ShouldDrawViewModel (void);
 void		R_StoreEfrags (efrag_t **ppefrag);
+void		R_FillEntityLeafs (entity_t *ent);
 void		R_WorldMultiplyTextures (void);
 void		R_WorldToObjectMatrix(entity_t *e, matrix_4x4 result);
 
@@ -1309,6 +1322,7 @@ void		GL_EnableColorShader (qboolean specular);
 void		GL_GetOverrideName (char *identifier, char *tail, char *dest);
 int		GL_LoadCubeMap (int identifier);
 void		GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr);
+void		R_DrawAliasModel (entity_t *e, float bright);
 void		GL_ModulateAlphaDrawColor (void);
 void		GL_SelectTexture (GLenum target);
 void		GL_Set2D (void);
@@ -1316,7 +1330,8 @@ void		GL_SetupCubeMapMatrix (qboolean world);
 void		GL_SubdivideSurface (msurface_t *fa);
 void		GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha);
 int		GL_LoadLuma(char *identifier, qboolean mipmap);
-
+void		R_DrawCaustics(void);
+int			CL_PointContents (vec3_t p);
 void		V_CalcBlend (void);
 
 qboolean 	VID_Is8bit (void);
@@ -1333,3 +1348,11 @@ typedef struct mirrorplane_s {
 extern mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
 extern int mirror_contents;
 extern int newenvmap;
+
+msurface_t	*causticschain;
+extern int	caustics_textures[8];
+extern qboolean	busy_caustics;
+
+extern char	skybox_name[64];
+extern float skybox_cloudspeed;
+extern qboolean skybox_hasclouds;
