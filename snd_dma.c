@@ -57,7 +57,7 @@ int			soundtime;		// sample PAIRS
 int   		paintedtime; 	// sample PAIRS
 
 
-#define	MAX_SFX		512
+#define MAX_SFX		4096 //Increased from 512 to 4096 - Eradicator
 sfx_t		*known_sfx;		// hunk allocated [MAX_SFX]
 int			num_sfx;
 
@@ -531,9 +531,12 @@ void S_StartSound(int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float f
 			continue;
 		if (check->sfx == sfx && !check->pos)
 		{
-			skip = rand () % (int)(0.1*shm->speed);
-			if (skip >= target_chan->end)
-				skip = target_chan->end - 1;
+			//Fixed skip calculations - Eradicator
+			skip = 0.1 * shm->speed;
+			if (skip > sc->length)
+				skip = sc->length;
+			if (skip > 0)
+				skip = rand() % skip;
 			target_chan->pos += skip;
 			target_chan->end -= skip;
 			break;
