@@ -1330,7 +1330,8 @@ void SV_CheckWaterTransition (edict_t *ent)
 	}
 	else
 	{
-		if (ent->v.watertype != CONTENTS_EMPTY)
+		if ((ent->v.watertype != CONTENTS_EMPTY)&&(ent->v.watertype != CONTENTS_SOLID)) 
+		//Added extra check to stop splashing bug (thx to DrLabMan for tip) - Eradicator
 		{	// just crossed into water
 			SV_StartSound (ent, 0, "misc/h2ohit1.wav", 255, 1);
 		}		
