@@ -640,42 +640,6 @@ void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
     GL_SelectTexture(GL_TEXTURE0_ARB);
 }
 
-
-void GL_EnableAttentShaderARB(aliaslightinstant_t *instant)
-{
-    float invrad = 1/currentshadowlight->radius;
-    glMatrixMode(GL_TEXTURE);
-    glPushMatrix();
-    glLoadIdentity();
-    glTranslatef(0.5,0.5,0.5);
-    glScalef(0.5,0.5,0.5);
-    glScalef(invrad, invrad, invrad);
-    if (!instant)
-    {
-        glTranslatef(-currentshadowlight->origin[0],
-                     -currentshadowlight->origin[1],
-                     -currentshadowlight->origin[2]);
-    }
-    else
-    {
-        glTranslatef(-instant->lightpos[0],
-                     -instant->lightpos[1],
-                     -instant->lightpos[2]);
-    }
-
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_3D, atten3d_texture_object);
-}
-
-void GL_DisableAttentShaderARB()
-{
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glDisable(GL_TEXTURE_3D);
-    glEnable(GL_TEXTURE_2D);
-}
-
 void R_DrawWorldARBDiffuseSpecular(lightcmd_t *lightCmds) 
 {
     int command, num, i;
