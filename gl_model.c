@@ -1761,6 +1761,9 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	{
 		mod->mins[i] = aliasbboxmins[i] * pheader->scale[i] + pheader->scale_origin[i];
 		mod->maxs[i] = aliasbboxmaxs[i] * pheader->scale[i] + pheader->scale_origin[i];
+                pheader->mins[i] = mod->mins[i];
+                pheader->maxs[i] = mod->maxs[i];
+                
 	}
 	mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
 

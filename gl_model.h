@@ -336,6 +336,7 @@ typedef struct {
 	int			flags;
 	float		size;
 
+     vec3_t					mins,maxs;	// bounding box
 	int					numposes;
 	int					poseverts;
 	int					posedata;	// numposes*poseverts trivert_t

@@ -1028,6 +1028,7 @@ void R_DrawAliasModel (float bright)
 	aliashdr_t	*paliashdr;
         aliasframeinstant_t *aliasframeinstant;
         alias3data_t *data;
+	vec3_t	mins,maxs;
 
         //R_PrepareEntityForDraw (bright);
 
@@ -1052,14 +1053,19 @@ void R_DrawAliasModel (float bright)
         for (i=0;i<maxnumsurf;++i){
              
              paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-              
+             
              if (!aliasframeinstant) {
                   glPopMatrix();
                   Con_Printf("R_DrawAliasModel: missing instant for ent %s\n", currententity->model->name);	
                   return;
              }
+             
+             /* disabled for now because it doesn't work with viewent 
+             VectorAdd (currententity->origin,paliashdr->mins, mins);
+             VectorAdd (currententity->origin,paliashdr->maxs, maxs);
 
-             R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
+             if (!R_CullBox (mins, maxs))                  */
+                  R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
              aliasframeinstant = aliasframeinstant->_next; 
         }
 

@@ -440,46 +440,42 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
           pheader->numposes = surf->numFrames;
 	pheader->poseverts = surf->numVerts;
 
+	//Allocate the vertices
+	verts = Hunk_Alloc (pheader->numposes * pheader->poseverts * sizeof(ftrivertx_t) );
+	pheader->posedata = (byte *)verts - (byte *)pheader;
+	xyz = (md3XyzNormal_t *) ( (byte *)surf + surf->ofsXyzNormals );
+
 	//Convert the frames
 	frame = (md3Frame_t *) ( (byte *)pinmodel + pinmodel->ofsFrames );
 	for (i=0; i<pheader->numframes; i++, frame++) {
 		strcpy (pheader->frames[i].name, frame->name);
-
-		//setup correct bounding box
-		for (j=0; j<3; j++) {
-			mod->mins[j] = min(mod->mins[j],frame->bounds[0][j]);
-			mod->maxs[j] = max(mod->maxs[j],frame->bounds[1][j]);
-		}
-
 		pheader->frames[i].firstpose = i;
 		pheader->frames[i].numposes = 1;
 		pheader->frames[i].frame = i;
 		pheader->frames[i].interval = 0.1f;
-
-		//bounding box for frame
-		pheader->frames[i].bboxmin.v[0] = (byte)frame->bounds[0][0]/pheader->scale[0];
-		pheader->frames[i].bboxmin.v[1] = (byte)frame->bounds[0][1]/pheader->scale[1];
-		pheader->frames[i].bboxmin.v[2] = (byte)frame->bounds[0][2]/pheader->scale[2];
-		pheader->frames[i].bboxmax.v[0] = (byte)frame->bounds[1][0]/pheader->scale[0];
-		pheader->frames[i].bboxmax.v[1] = (byte)frame->bounds[1][1]/pheader->scale[1];
-		pheader->frames[i].bboxmax.v[2] = (byte)frame->bounds[1][2]/pheader->scale[2];
-	}
-	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
-
-
-	//Convert the vertices
-	verts = Hunk_Alloc (pheader->numposes * pheader->poseverts * sizeof(ftrivertx_t) );
-	pheader->posedata = (byte *)verts - (byte *)pheader;
-	xyz = (md3XyzNormal_t *) ( (byte *)surf + surf->ofsXyzNormals );
-	for (i=0; i<pheader->numposes; i++) {
+                pheader->mins[0] = pheader->mins[1] = pheader->mins[2] =  99999.0;
+                pheader->maxs[0] = pheader->maxs[1] = pheader->maxs[2] = -99999.0; 
+                //Convert the vertices
 		for (j=0; j<pheader->poseverts; j++) {
 			k = i*pheader->poseverts+j;
 			verts[k].v[0] = xyz[k].xyz[0]*MD3_XYZ_SCALE;
 			verts[k].v[1] = xyz[k].xyz[1]*MD3_XYZ_SCALE;
 			verts[k].v[2] = xyz[k].xyz[2]*MD3_XYZ_SCALE;
 			verts[k].lightnormalindex = xyz[k].normal;
+                        //setup correct surface bounding box
+                        for (l=0; l<3; l++) {
+                             pheader->mins[l] = min(pheader->mins[l],verts[k].v[l]);
+                             pheader->maxs[l] = max(pheader->maxs[l],verts[k].v[l]);
+                        }
 		}
+		//setup correct model bounding box
+		for (j=0; j<3; j++) {
+			mod->mins[j] = min(mod->mins[j],pheader->mins[j]);
+			mod->maxs[j] = max(mod->maxs[j],pheader->maxs[j]);
+		}
+
 	}
+	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
 
 	//Convert the triangles
 	tris = Hunk_Alloc (pheader->numtris * sizeof(mtriangle_t));
@@ -619,6 +615,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
         
         /* monster or player models only ? */
         /* tags */
+     /*
         tag = (md3tag_t *)( (byte *)pinmodel + pinmodel->ofsTags );
 
         for (i = 0; i< pinmodel->numTags; ++i){
@@ -640,7 +637,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
                   VectorCopy(palias3->weaponTag.origin,tag[i].origin);
              }
         }
-
+     */
 
 	if (!strcmp (mod->name, "progs/g_shot.mdl") || //Hack to give .md3 files renamed to .mdl rotate effects - Eradicator
  		!strcmp (mod->name, "progs/g_nail.mdl") ||

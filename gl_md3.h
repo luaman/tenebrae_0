@@ -18,7 +18,7 @@ typedef struct aliastag_s
 
 typedef struct alias3data_s {
      int		numSurfaces;		// size of tables
-     aliastag_t		weaponTag;		// 
+     //aliastag_t		weaponTag;		// 
      aliasoffset_t	ofsSurfaces[1];		// subsurfaces header table : allocated at loading time
 } alias3data_t;
 
