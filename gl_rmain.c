@@ -150,6 +150,8 @@ cvar_t	mir_frameskip = {"mir_frameskip","1",true};
 cvar_t	mir_forcewater = {"mir_forcewater","0"};
 cvar_t  gl_wireframe = {"gl_wireframe","0"}; 
 cvar_t  gl_caustics = {"gl_caustics","1"};
+cvar_t  gl_truform = {"gl_truform","0"};
+cvar_t  gl_truform_tesselation = {"gl_truform_tesselation","4"};
 
 cvar_t	fog_r = {"fog_r","0.2"};
 cvar_t	fog_g = {"fog_g","0.1"};
@@ -162,6 +164,26 @@ float fog_color[4];
 
 mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
 int mirror_contents;
+
+#define GL_PN_TRIANGLES_ATI                       0x87F0
+#define GL_MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI 0x87F1
+#define GL_PN_TRIANGLES_POINT_MODE_ATI            0x87F2
+#define GL_PN_TRIANGLES_NORMAL_MODE_ATI           0x87F3
+#define GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI     0x87F4
+#define GL_PN_TRIANGLES_POINT_MODE_LINEAR_ATI     0x87F5
+#define GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI      0x87F6
+#define GL_PN_TRIANGLES_NORMAL_MODE_LINEAR_ATI    0x87F7
+#define GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI 0x87F8
+
+typedef void (APIENTRY *PFNGLPNTRIANGLESIATIPROC)(GLenum pname, GLint param);
+typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
+
+// actually in gl_bumpradeon (duh...)
+extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
+extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesfATI;
+
+#define GL_INCR_WRAP_EXT                                        0x8507
+#define GL_DECR_WRAP_EXT                                        0x8508
 
 //extern	cvar_t	gl_ztrick; PENTA: Removed
 
@@ -646,58 +668,10 @@ R_DrawAliasShadowVolume
 
 =================
 */
-void R_DrawAliasShadowVolume (entity_t *e)
+
+void R_DrawAliasSurfaceShadowVolume (aliashdr_t	*paliashdr, aliasframeinstant_t *aliasframeinstant)
 {
-	model_t		*clmodel;
-	aliashdr_t	*paliashdr;
-	//vec3_t		oldlightpos;
-
-	currententity = e;
-	
-	clmodel = currententity->model;
-
-
-        /* no shadows casting for these */
-        if (clmodel->flags && EF_NOSHADOW)
-             return;
-
-	/*
-	Don't cull to frustum models behind you may still cast shadows
-  
-	if (R_CullBox (mins, maxs))
-		return;
-	*/
-
-	VectorCopy (currententity->origin, r_entorigin);
-	VectorSubtract (r_origin, r_entorigin, modelorg);
-
-	//
-	// locate the proper data
-	//
-	if (!e->aliasframeinstant) {
-		Con_Printf("no instant for ent %s\n", clmodel->name);	
-		return;
-	}
-
-	paliashdr = Mod_Extradata (e->model);//((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr;
-
-	if (paliashdr != ((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr) {
-		//Sys_Error("Cache trashed");
-		r_cache_thrash = true;
-		((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr = paliashdr;
-	}
-
-	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
-	{
-		return;
-	}
-
-	//
-	// draw all the triangles
-	//
-    glPushMatrix ();
-	R_RotateForEntity (e);
-
+#if 1
 	//
 	//Pass 1 increase
 	//
@@ -705,7 +679,7 @@ void R_DrawAliasShadowVolume (entity_t *e)
 	glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
 	glCullFace(GL_FRONT);
 
-	R_DrawAliasFrameShadowVolume2 (paliashdr, e->aliasframeinstant);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
 
 	//
 	// Second Pass. Decrease Stencil Value In The Shadow
@@ -714,10 +688,106 @@ void R_DrawAliasShadowVolume (entity_t *e)
 	glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
 	glCullFace(GL_BACK);
 	
-	R_DrawAliasFrameShadowVolume2 (paliashdr, e->aliasframeinstant);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+#else
+        glDisable(GL_CULL_FACE);
+	glCullFace(GL_FRONT_AND_BACK);
+        checkerror();
+	glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+        checkerror();
+	qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
+        checkerror();
+	qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+        checkerror();
+	qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+        checkerror();
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
 
-	glPopMatrix();
+        glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+#endif
+}
+
+
+void R_DrawAliasShadowVolume (entity_t *e)
+{
+    model_t		*clmodel;
+    aliashdr_t	*paliashdr;
+    alias3data_t    *data;
+    aliasframeinstant_t *aliasframeinstant;        
+    int i,maxnumsurf;
+    //vec3_t		oldlightpos;
+
+    currententity = e;
+	
+    clmodel = currententity->model;
+
+    /* no shadows casting for these */
+    if (clmodel->flags && EF_NOSHADOW)
+	return;
+
+    //
+    // locate the proper data
+    //
+    if (!e->aliasframeinstant) {
+	Con_Printf("no instant for ent %s\n", clmodel->name);	
+	return;
+    }
+
+    /*
+      Don't cull to frustum models behind you may still cast shadows
+  
+      if (R_CullBox (mins, maxs))
+      return;
+    */
+
+    VectorCopy (currententity->origin, r_entorigin);
+    VectorSubtract (r_origin, r_entorigin, modelorg);
+
+    //
+    // locate the proper data
+    //
+    // data = (alias3data_t *)Mod_Extradata (e->model);
+
+    aliasframeinstant = e->aliasframeinstant;
+
+    data = (alias3data_t *)Mod_Extradata (e->model);
+    maxnumsurf = data->numSurfaces;        
+        
+    glPushMatrix ();
+    R_RotateForEntity (e);
+
+    for (i=0;i<maxnumsurf;++i)
+    {
+	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+
+	if (!aliasframeinstant) {
+            Con_Printf("R_DrawAliasShadowVolume: missing instant for ent %s\n", e->model->name);	
+	    return;
+	}
+
+	/*  doesn't fit with new structs
+	    if (paliashdr != ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr) {
+	    //Sys_Error("Cache trashed");
+	    r_cache_thrash = true;
+	    ((aliasframeinstant_t *)e->model->aliasframeinstant)->paliashdr = paliashdr;
+	    }
+	*/
+
+	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
+	{
+	    return;
+	}
+
+	//
+	// draw all the triangles
+	//
+	R_DrawAliasSurfaceShadowVolume(paliashdr,aliasframeinstant);
+	aliasframeinstant = aliasframeinstant->_next;
 	//VectorCopy(oldlightpos,currentshadowlight->origin);
+    } /* for paliashdr */
+
+    glPopMatrix();
 }
 
 /*
@@ -755,12 +825,15 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	//GL_DrawAliasFrame (paliashdr, pose);
 	glVertexPointer(3, GL_FLOAT, 0, instant->vertices);
 	glEnableClientState(GL_VERTEX_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, instant->normals);
+	glEnableClientState(GL_NORMAL_ARRAY);
 	glTexCoordPointer(2, GL_FLOAT, 0, texcoos);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -804,62 +877,24 @@ void R_DrawAliasTangent (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 }
 
 
-
 /*
 =================
-R_DrawAliasModel
+R_DrawAliasSurface
+DC : draw one surface from a model
 
 =================
 */
-void R_DrawAliasModel (entity_t *e, float bright)
-{
-	int			i;
-	model_t		*clmodel;
-	aliashdr_t	*paliashdr;
-	float		an;
-	int			anim;
 
-	clmodel = currententity->model;
-/*
-	VectorAdd (currententity->origin, clmodel->mins, mins);
-	VectorAdd (currententity->origin, clmodel->maxs, maxs);
-
-	if (R_CullBox (mins, maxs))
-		return;
-
-*/
-	VectorCopy (currententity->origin, r_entorigin);
-	VectorSubtract (r_origin, r_entorigin, modelorg);
-
-	shadelight = bright;
 	
-	an = e->angles[1]/180*M_PI;
-	shadevector[0] = cos(-an);
-	shadevector[1] = sin(-an);
-	shadevector[2] = 1;
-	VectorNormalize (shadevector);
 
-	//
-	// locate the proper data
-	//
-	if (!currententity->aliasframeinstant) return;
-
-
-	paliashdr = Mod_Extradata (e->model);
-	//((aliasframeinstant_t *)currententity->aliasframeinstant)->paliashdr;
+void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_t *instant)
+{
+        int i;
+	int			anim;
 
 	//
 	// draw all the triangles
 	//
-	GL_DisableMultitexture();
-
-    glPushMatrix ();
-	R_RotateForEntity (e);
-
-	//PENTA: see comment in DrawAliasFrame
-	if (!strcmp (clmodel->name, "progs/eyes.mdl") && gl_doubleeyes.value) {
-		glScalef (paliashdr->scale[0]*2, paliashdr->scale[1]*2, paliashdr->scale[2]*2);
-	}
 
 	if (!busy_caustics) {
 		anim = (int)(cl.time*10) & 3;
@@ -880,6 +915,14 @@ void R_DrawAliasModel (entity_t *e, float bright)
 		glDisable(GL_TEXTURE_2D);
 	}
 
+	if ( gl_truform.value )
+	{
+	    glEnable(GL_PN_TRIANGLES_ATI);
+//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
+//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
+//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
+	}
+
 	if (gl_smoothmodels.value)
 		glShadeModel (GL_SMOOTH);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -890,11 +933,39 @@ void R_DrawAliasModel (entity_t *e, float bright)
 	glColor3f(bright, bright, bright);
 	//if (busy_caustics)
 	//	glColor3f(1,1,1);
-	R_SetupAliasFrame (paliashdr, currententity->aliasframeinstant);
+        R_SetupAliasFrame (paliashdr, instant);
+
+        // Draw luma if present
+        if ( !busy_caustics )
+        {
+            anim = (int)(cl.time*10) & 3;
+            if ( paliashdr->gl_lumatex[currententity->skinnum][anim] != 0)
+            {
+                glFogfv(GL_FOG_COLOR, color_black);
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_ONE, GL_ONE);
+                GL_SelectTexture(GL_TEXTURE1_ARB);
+                glDisable(GL_TEXTURE_2D);
+                GL_SelectTexture(GL_TEXTURE0_ARB);
+                glColor3f(1, 1, 1);
+
+                GL_Bind( paliashdr->gl_lumatex[currententity->skinnum][anim] );
+
+                R_SetupAliasFrame (paliashdr, instant);
+
+                glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
+                GL_SelectTexture(GL_TEXTURE1_ARB);
+                glEnable(GL_TEXTURE_2D);
+                GL_SelectTexture(GL_TEXTURE0_ARB);
+                GL_SelectTexture(GL_TEXTURE1_ARB);
+                glDisable(GL_BLEND);
+                glFogfv(GL_FOG_COLOR, fog_color);
+            }
+        }
 
 	if ((sh_showtangent.value) && (!busy_caustics)) {
 		glDisable(GL_TEXTURE_2D);
-		R_DrawAliasTangent(paliashdr, currententity->aliasframeinstant);
+             R_DrawAliasTangent(paliashdr, instant);
 		glEnable(GL_TEXTURE_2D);
 	}
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -906,9 +977,107 @@ void R_DrawAliasModel (entity_t *e, float bright)
 	c_alias_polys += paliashdr->numtris;
 
 	glPopMatrix ();
+	if ( gl_truform.value )
+	{
+	    glDisable(GL_PN_TRIANGLES_ATI);
+	}
 }
 
+ 
+ 
+/*
+=================
+R_DrawAliasModel
+
+=================
+*/
+
+
+void R_PrepareEntityForDraw (float bright)
+{
+	float		an;
+
+  
+/*
+	model_t		*clmodel;
+
+	clmodel = currententity->model;
+
+	VectorAdd (currententity->origin, clmodel->mins, mins);
+	VectorAdd (currententity->origin, clmodel->maxs, maxs);
+
+	if (R_CullBox (mins, maxs))
+		return;
+
+*/
+	VectorCopy (currententity->origin, r_entorigin);
+	VectorSubtract (r_origin, r_entorigin, modelorg);
+
+	shadelight = bright;
+	
+	an = currententity->angles[1]/180*M_PI;
+	shadevector[0] = cos(-an);
+	shadevector[1] = sin(-an);
+	shadevector[2] = 1;
+	VectorNormalize (shadevector);
+   
+}
+
+
+void R_DrawAliasModel (float bright)
+{
+	int			i,maxnumsurf;
+	aliashdr_t	*paliashdr;
+        aliasframeinstant_t *aliasframeinstant;
+        alias3data_t *data;
+
+        R_PrepareEntityForDraw (bright);
+
+        GL_DisableMultitexture();
+
+        glPushMatrix ();
+
+        R_RotateForEntity (currententity);
+
+	data = (alias3data_t *)Mod_Extradata (currententity->model);
+        maxnumsurf = data->numSurfaces;        
+
+        aliasframeinstant = currententity->aliasframeinstant;
+        
+        for (i=0;i<maxnumsurf;++i){
+             
+             paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+              
+             if (!aliasframeinstant) {
+                  Con_Printf("R_DrawAliasModel: missing instant for ent %s\n", currententity->model->name);	
+                  return;
+             }
+
+             R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
+             aliasframeinstant = aliasframeinstant->_next; 
+        }
+	glPopMatrix ();
+        
+}
+  
 //==================================================================================
+
+
+void R_DrawAmbientAlias (void (*r_func)(float bright))
+{     
+     float	brightness;
+     if (currententity->model->flags & EF_FULLBRIGHT)
+     {
+          r_func ( 1.0);
+          //XYZ
+     } else if (gl_wireframe.value) {
+          r_func ( 0.0);
+     }else {
+          brightness = (R_LightPoint (currententity->origin)/255.0) * sh_lightmapbright.value;
+          r_func (brightness);
+     }
+}
+
 
 /*
 =============
@@ -919,7 +1088,6 @@ R_DrawAmbientEntities
 void R_DrawAmbientEntities ()
 {
 	int		i;
-	float	brightness;
 	vec3_t	mins,maxs;
 
 	if (!r_drawentities.value)
@@ -955,19 +1123,8 @@ void R_DrawAmbientEntities ()
 		switch (currententity->model->type)
 		{
 		case mod_alias:
-
-			if (currententity->model->flags & EF_FULLBRIGHT)
-			{
-				R_DrawAliasModel (currententity, 1.0);
-			//XYZ
-			} else if (gl_wireframe.value) {
-				R_DrawAliasModel (currententity, 0.0);
-			}else {
-				brightness = (R_LightPoint (currententity->origin)/255.0) * sh_lightmapbright.value;
-				R_DrawAliasModel (currententity,brightness);
-			}
+                     R_DrawAmbientAlias (R_DrawAliasModel);
 			break;
-
 		case mod_brush:
 			glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
 			R_DrawBrushModel(currententity);
@@ -983,125 +1140,11 @@ void R_DrawAmbientEntities ()
 =============
 PENTA:
 R_DrawLightEntities
+-> moved to gl_bumpdriver.c
 =============
 */
-/*
-void R_DrawViewModelLight (void);
-float gl_Light_Ambience[4] = {0.03,0.03,0.03,0.03};
-float gl_Light_Diffuse[4] = {0.03,0.03,0.03,0.03};
-float gl_Light_Specular[4] = {0,0,0,0};
-float gl_Material_Color[4] = {0.9, 0.9, 0.9, 0.9};
-
-void R_DrawLightEntities (shadowlight_t *l)
-{
-	int		i;
-	float	colorscale;
-	vec3_t	dist, maxs, mins;
-	float	pos[4];
-	if (!r_drawentities.value)
-		return;
-
-	//add color for this light
-	//glEnable (GL_BLEND);
-	//glBlendFunc (GL_ONE, GL_ONE);
-
-	
-	//	Meshes: we use vertex lighting
-	
-	//glDisable(GL_TEXTURE_2D);
-	//glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-
-	glEnable(GL_NORMALIZE);
-	
-	pos[0] = l->origin[0];
-	pos[1] = l->origin[1];
-	pos[2] = l->origin[2];
-	pos[3] = 1;
-
-	glLightfv(GL_LIGHT0, GL_POSITION,&pos[0]);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, &l->color[0]);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, &gl_Light_Ambience[0]);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, &gl_Light_Specular[0]);
-	glEnable(GL_COLOR_MATERIAL);
-
-	//We don't draw sprites they do not cast/recieve shadows
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
-	{
-		currententity = cl_lightvisedicts[i];
-
-		if (currententity->model->type == mod_alias)
-		{
-
-			//these models are full bright 
-			if (!strcmp (currententity->model->name, "progs/flame2.mdl")
-			|| !strcmp (currententity->model->name, "progs/flame.mdl") 
-			|| strstr (currententity->model->name, "bolt")
-			|| !strcmp (currententity->model->name, "progs/lavaball")
-			|| !strcmp (currententity->model->name, "progs/laser")
-			|| !strcmp (currententity->model->name, "progs/k_spike") )
-				continue;
 
 
-			VectorAdd (currententity->origin,currententity->model->mins, mins);
-			VectorAdd (currententity->origin,currententity->model->maxs, maxs);
-
-			if (R_CullBox (mins, maxs))
-				continue;
-
-			//We do attent instead of opengl since gl doesn't seem to do
-			//what we want, it never really gets to zero.
-			VectorSubtract (currententity->origin,l->origin,dist);
-			colorscale = 1 - (Length(dist) / l->radius);
-
-			//if it's to dark we save time by not drawing it
-			if (colorscale < 0.1) continue;
-			glColor4f(colorscale*l->color[0],colorscale*l->color[1],colorscale*l->color[2],colorscale);
-			//R_DrawAliasModel (currententity,colorscale);
-			R_DrawAliasObjectLight(currententity, R_DrawAliasBumped);
-		}
-	}
-
-	R_DrawViewModelLight();
-
-	glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
-
-	
-	//	Brushes: we use the same thecnique as the world
-	
-	
-	//glEnable(GL_TEXTURE_2D);
-	GL_Bind(glow_texture_object);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glShadeModel (GL_SMOOTH);
-	//glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.2);
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
-	{
-		currententity = cl_lightvisedicts[i];
-
-		if (currententity->model->type == mod_brush)
-		{
-			 //R_DrawBrushModelAttent(currententity);
-			//R_DrawBrushObjectLight(currententity, R_DrawBrushATT);
-			R_DrawBrushObjectLight(currententity, R_DrawBrushBumped);
-		}
-
-	}
-	
-	glAlphaFunc(GL_GREATER,0.666);//Satan!
-	glDisable(GL_ALPHA_TEST);
-	glColor3f (1,1,1);
-	
-
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	//reset gl state
-	glDisable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-*/
 /*
 =============
 R_DrawEntitiesOnList
@@ -1128,7 +1171,7 @@ void R_DrawEntitiesOnList (void)
 		switch (currententity->model->type)
 		{
 		case mod_alias:
-			R_DrawAliasModel (currententity,1.0);
+			R_DrawAliasModel (1.0);
 			break;
 
 		case mod_brush:
@@ -1256,8 +1299,10 @@ void R_DrawEntitiesShadowVolumes (int type)
 	VectorCopy(currententity->angles,angles);
 	//during intermissions the viewent model is nil
 	if (currententity->model) 
-		if ((currententity->model->type == type) && (currententity->model->type == mod_alias)
-			&& (sh_playershadow.value) && (!chase_active.value)) { //Fix for two player shadows in chase cam - Eradicator
+             if ((currententity->model->type == type) 
+                 && (type == mod_alias)
+                 && (sh_playershadow.value) 
+                 && (!chase_active.value)) { //Fix for two player shadows in chase cam - Eradicator
 			//for lights cast by the player don't add the player's shadow
 			if (currentshadowlight->owner != currententity) {
 				//HACK: only horizontal angle this looks better
@@ -1428,7 +1473,7 @@ void R_DrawViewModel (void)
 							  //but they don't poke into walls) - Eradicator
 		glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
 
-	R_DrawAliasModel (currententity,0.1);
+	R_DrawAliasModel (0.1);
 
 	if ( gl_calcdepth.value ) //Calc Depth - Eradicator
 		glDepthRange (gldepthmin, gldepthmax);
@@ -2118,6 +2163,7 @@ void R_RenderScene (void)
 			//Calculate the shadow volume (does nothing when static)
 			R_ConstructShadowVolume(l);
 
+#if 1
 			//Pass 1 increase
 			glCullFace(GL_BACK);
 			glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
@@ -2139,8 +2185,29 @@ void R_RenderScene (void)
 			glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
 			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
 
-			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_alias);
+#else
+//                        glCullFace(GL_FRONT_AND_BACK);
+                        glDisable(GL_CULL_FACE);
+                        checkerror();
+    	                glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+                        checkerror();
+	                qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
+                        checkerror();
+	                qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+                        checkerror();
+	                qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+                        checkerror();
 
+			if (sh_worldshadows.value) R_DrawShadowVolume(l);
+
+                        //PENTA: we could do the same thing for brushes as for aliasses
+			//Pass 1 increase
+			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
+
+                        glEnable(GL_CULL_FACE);
+#endif
+			if (sh_entityshadows.value)
+			    R_DrawEntitiesShadowVolumes(mod_alias);
 
 			//Reenable drawing
 			glCullFace(GL_FRONT);
