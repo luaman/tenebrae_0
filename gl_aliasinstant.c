@@ -299,11 +299,32 @@ void R_InterpolateTangents(aliashdr_t *paliashdr, aliasframeinstant_t *instant, 
 /*
 R_InterpolateBinomials
 */
-void R_InterpolateBinomials(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
+void R_InterpolateBinomials(aliashdr_t *paliashdr, aliasframeinstant_t *instant, int pose1, int pose2, float blend) {
+	float 		blend1;
+	vec3_t		*verts1;
+	vec3_t		*verts2;
+	float		*binor1, *binor2;
 	int			i;
 
+	if (paliashdr->binormals == 0) return;
+
+	verts1 = (vec3_t *) ((byte *) paliashdr + paliashdr->binormals);
+	verts2 = verts1;
+
+	verts1 += pose1 * paliashdr->poseverts;
+	verts2 += pose2 * paliashdr->poseverts;
+
+	blend1 = 1-blend;
+
 	for (i=0; i<paliashdr->poseverts; i++) {
-		CrossProduct(instant->normals[i],instant->tangents[i],instant->binomials[i]);
+
+		binor1 = (float *)&verts1[i];
+		binor2 = (float *)&verts2[i];
+
+		//interpolate them
+		instant->binomials[i][0] = binor1[0] * blend1 + binor2[0] * blend;
+		instant->binomials[i][1] = binor1[1] * blend1 + binor2[1] * blend;
+		instant->binomials[i][2] = binor1[2] * blend1 + binor2[2] * blend;
 	}
 }
 
@@ -459,7 +480,7 @@ void R_SetupAliasInstantForFrame(entity_t *e, qboolean forcevis, aliashdr_t *pal
 		if (!aliasframeinstant->shadowonly) {
 			R_InterpolateNormals(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
 			R_InterpolateTangents(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
-			R_InterpolateBinomials(paliashdr, aliasframeinstant);
+			R_InterpolateBinomials(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
 		}
           R_InterpolateTriPlanes(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
 		aliasframeinstant->updateframe = r_framecount;
@@ -774,7 +795,7 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 	{
 		R_CalcVolumeVerts(aliasframeinstant, aliaslightinstant);
 
-		if (!aliasframeinstant->shadowonly) {
+		//if (!aliasframeinstant->shadowonly) {
 			if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 				R_CalcAttenColors(aliasframeinstant, aliaslightinstant);
 			}
@@ -789,16 +810,16 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 			aliaslightinstant->lastframeinstant = aliasframeinstant;
 			aliaslightinstant->lastent = e;
 			aliaslightinstant->lasthdr = paliashdr;
-		}
+		//}
 	}
 
 	aliasCacheRequests++;
 	//Half angles only change when the viewer changes his position
 	//this happens a lot so recalculate only this.
 	if ((update) || CheckHalfAngle(aliaslightinstant)) {
-		if (!aliasframeinstant->shadowonly) {
+		//if (!aliasframeinstant->shadowonly) {
 			R_SetupLightHAV(aliasframeinstant, aliaslightinstant);
-		}
+		//}
 		VectorCopy(r_refdef.vieworg,aliaslightinstant->lastvorg);
 
 		if(!update) aliasPartialCacheHits++;
