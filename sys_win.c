@@ -112,10 +112,10 @@ int		findhandle (void)
 
 /*
 ================
-filelength
+lengthoffile //Renamed from filelength to stop conflict - Eradicator
 ================
 */
-int filelength (FILE *f)
+int lengthoffile (FILE *f)
 {
 	int		pos;
 	int		end;
@@ -154,7 +154,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	{
 		sys_handles[i] = f;
 		*hndl = i;
-		retval = filelength(f);
+		retval = lengthoffile(f);
 	}
 
 	VID_ForceLockState (t);
@@ -267,12 +267,21 @@ dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
 {
   static windirdata_t windata; // FIX-ME : non reentrant...yuk
   char dirfilter[MAX_OSPATH];
-  if (dirdata){
+  if (dirdata)
+  {
+#if !defined(_WIN32) //You can't use snprintf in Windows
     snprintf(dirfilter,MAX_OSPATH,"%s/%s", dir, filter);
+#else
+	sprintf(dirfilter,"%s/%s", dir, filter);
+#endif
     windata.handle = _findfirst (dirfilter, &windata.fileinfo);
     if (windata.handle!=-1){
       strncpy(windata.dir,dir,MAX_OSPATH); 
-      snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", dir, windata.fileinfo.name);
+#if !defined(_WIN32)
+    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", dir, windata.fileinfo.name);
+#else
+	sprintf(dirdata->entry,"%s/%s", dir, windata.fileinfo.name);
+#endif
       dirdata->internal=&windata;
       return dirdata;
     }
@@ -287,7 +296,11 @@ dirdata_t *Sys_Findnext (dirdata_t *dirdata)
     windata=dirdata->internal;
     // next entry ?
     if (_findnext( windata->handle, &(windata->fileinfo))!=-1){
-      snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", windata->dir, windata->fileinfo.name);
+#if !defined(_WIN32)
+    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", windata->dir, windata->fileinfo.name);
+#else
+	sprintf(dirdata->entry,"%s/%s", windata->dir, windata->fileinfo.name);
+#endif
       return dirdata;
     }
     // no -> close 
