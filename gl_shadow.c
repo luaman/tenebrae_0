@@ -383,6 +383,8 @@ Some efrag based sceme may cut even more ents!
 
 qboolean InShadowEntity(entity_t *ent) {
 	
+	int i, leafindex;
+
 	model_t	*entmodel = ent->model;
 	vec3_t dst;
 	float radius, d;
@@ -392,7 +394,22 @@ qboolean InShadowEntity(entity_t *ent) {
 	d = Length (dst);
 
 	if (d < (currentshadowlight->radius + radius)) {
-		return true;
+		
+		if (sh_noefrags.value) return true;
+		
+		for (i=0; i<ent->numleafs;i++) {
+			leafindex = ent->leafnums[i];
+			//leaf ent is in is visible from light
+			if (currentshadowlight->entvis[leafindex>>3] & (1<<(leafindex&7)))
+			{
+				return true;
+			}
+		}
+		if (ent->numleafs == 0) {
+			Con_Printf("Ent with no leafs");
+			return true;
+		}
+		return false;
 	}
 	return false;
 }
@@ -681,6 +698,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		lightleaf = Mod_PointInLeaf (light->origin, cl.worldmodel);
 		lightvis = Mod_LeafPVS (lightleaf, cl.worldmodel);
 		Q_memcpy(&light->vis,lightvis,MAX_MAP_LEAFS/8);
+		Q_memcpy(&light->entvis, lightvis, MAX_MAP_LEAFS/8);
 	}
 
 	if (HasSharedLeafs(lightvis,&worldvis[0])) {
@@ -1620,6 +1638,7 @@ void CutLeafs(byte *vis) {
 			c = leaf->nummarksurfaces;
 			surf = leaf->firstmarksurface;
 			
+			if (leaf->index != i) Con_Printf("Weird leaf index %i, %i\n",i,leaf->index);
 			found = false;
 			for (c=0; c<leaf->nummarksurfaces; c++, surf++) {			
 				if ((*surf)->polys->lightTimestamp == r_lightTimestamp) {
@@ -1959,6 +1978,7 @@ void R_CalcSvBsp(entity_t *ent) {
 		currentshadowlight->leaf = Mod_PointInLeaf (currentshadowlight->origin, cl.worldmodel);
 		lightvis = Mod_LeafPVS (currentshadowlight->leaf, cl.worldmodel);
 		Q_memcpy(&currentshadowlight->vis[0], lightvis, MAX_MAP_LEAFS/8);
+		Q_memcpy(&currentshadowlight->entvis[0], lightvis, MAX_MAP_LEAFS/8);
 		CutLeafs(currentshadowlight->vis);
 
 		//Precalculate the shadow volume / glow-texcoords
@@ -2142,16 +2162,32 @@ char *ParseEnt (char *data, qboolean *isLight, vec3_t origin)
 		} else if (!strcmp(keyname, "origin"))  {
 			ParseVector(com_token, origin);	
 		} else if (!strcmp(keyname, "_noautolight")) {
+
 			Con_Printf("Automatic light gen disabled\n");//XYW \n
+
 			foundworld = true;
+		} else if (!strcmp(keyname, "_skybox")) {
+			strcpy(skybox_name,com_token);
+
+		} else if (!strcmp(keyname, "_cloudspeed")) {
+			skybox_cloudspeed = atof(com_token);
+
 		} else if (!strcmp(keyname, "_lightmapbright")) {
+
 			//Con_Printf("Automatic light gen disabled");
+
 			sh_lightmapbright.value = atof(com_token);
+
 			Con_Printf("Lightmap brightness set to %f\n",sh_lightmapbright.value);
+
 		} else {
+
 			//just do nothing
+
 		}
 	}
+
+
 
 	if (foundworld) return NULL;
 	return data;
