@@ -52,4 +52,4 @@ test -f Makefile.in || \
 #conf_flags="--enable-maintainer-mode --enable-compile-warnings"
 echo Running $srcdir/configure $conf_flags "$@" ...
 $srcdir/configure --cache-file=config.cache $conf_flags "$@" && \
-  echo "Now type \`make' to compile giFT."
+  echo "Now type \`make' to compile tenebrae."
