@@ -181,7 +181,8 @@ void R_Glare ()
 {
 	int			ox, oy, ow, oh, ofovx, ofovy;
 
-	if (!sh_glares.value) return;
+	if (!sh_glares.value || gl_wireframe.value) 
+		return;
 
 	glare = true;
 
