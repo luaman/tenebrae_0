@@ -204,18 +204,18 @@ sndinitstat SNDDMA_InitDirect (void)
 		shm->channels = 2;
 	}
 	//shm->samplebits = 16;
-	if (COM_CheckParm("-samplebits")) //Better sample bits (once 16) - Eradicator
+	if (COM_CheckParm("-sndbits")) //Better sample bits (once 16) - Eradicator
 	{
-		shm->samplebits = Q_atoi(com_argv[COM_CheckParm("-samplebits")+1]);
+		shm->samplebits = Q_atoi(com_argv[COM_CheckParm("-sndbits")+1]);
 	}
 	else
 	{
 		shm->samplebits = 16;
 	}
 	//shm->speed = samplerate.value; //Better Sample Rate (once 11025) - Eradicator
-	if (COM_CheckParm("-samplerate"))
+	if (COM_CheckParm("-sndspeed"))
 	{
-		shm->speed = Q_atoi(com_argv[COM_CheckParm("-samplerate")+1]);
+		shm->speed = Q_atoi(com_argv[COM_CheckParm("-sndspeed")+1]);
 	}
 	else
 	{
