@@ -20,11 +20,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "te_scripts.h"
 
 #define MAX_PARTICLES			2048	// default max # of particles at one
 										//  time
+#define MAX_EMITTERS			256		// maximum number of particle emitters
 #define ABSOLUTE_MIN_PARTICLES	512		// no fewer than this no matter what's
 										//  on the command line
+
+typedef struct particleemitter_s {
+	ParticleEffect_t *effect; //what to spawn?
+	float die;				  //when to die?
+	float tick;				  //time between spawns
+	float nexttick;			  //time of next tick
+	int	count;				  //how many to spawn on tick
+	vec3_t	origin;			  //where to spawn
+	vec3_t	vel;			  //velocity to base on
+	struct particleemitter_s* next;
+} ParticleEmitter_t;
 
 int		ramp1[8] = {0x6f, 0x6d, 0x6b, 0x69, 0x67, 0x65, 0x63, 0x61};
 int		ramp2[8] = {0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x68, 0x66};
@@ -35,10 +48,301 @@ particle_t	*active_particles, *free_particles;
 particle_t	*particles;
 int			r_numparticles;
 
+ParticleEmitter_t *emitters, *active_emitters, *free_emitters;
+ParticleEffect_t *particleEffects;
+
 vec3_t			r_pright, r_pup, r_ppn;
 
 // <AWE> missing prototypes
 extern qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec3_t p1, vec3_t p2, trace_t *trace);
+
+
+ParticleEffect_t *ParticleEffectDefinedForName(const char *name);
+ParticleEffect_t *ParticleEffectForName(const char *name);
+
+//fill an effect with default values
+void DefaultEffect(ParticleEffect_t *eff) {
+	
+	int i;
+
+	strcpy(eff->name,"noname");
+	for (i=0; i<3; i++) {
+		eff->emmiterParams1[i] = -16;
+		eff->emmiterParams2[i] = 16;
+		eff->endcolormax[i] = 1;
+		eff->endcolormin[i] = 1;
+		eff->startcolormax[i] = 1;
+		eff->startcolormin[i] = 1;
+		eff->gravity[i] = 0;
+		eff->velocitymax[i] = 0;
+		eff->velocitymin[i] = 0;
+		eff->drag[i] = 1;
+	}
+
+	eff->emmiterType = emt_box; //currently only box is supported
+	eff->lifemin = 1;
+	eff->lifemax = 1;
+	eff->rotmin = 0;
+	eff->rotmax = 0;
+	eff->growmin = 0;
+	eff->growmax = 0;
+	eff->sizemin = 10;
+	eff->sizemax = 10;
+	eff->srcblend = GL_ONE;
+	eff->dstblend = GL_ONE;
+	eff->numbounces = 1;
+	eff->texture = 0;
+	eff->align = align_view;
+	eff->next = 0;
+	eff->velscale = 1/64;
+	eff->spawn = NULL;
+}
+/*
+=====================
+R_InitParticleEffects
+
+  Parse the particle effects out of the script file
+=====================
+*/
+void R_AddEffectsScript(const char *filename) {
+
+	FILE *fin;
+    int token, var, i;
+    ParticleEffect_t *effect;
+	char *buffer;
+	//char	newname[256];
+	char* str;
+
+	COM_FOpenFile(filename, &fin);
+
+	if (!fin) {
+		Con_Printf("\002Can't load particle effects from: %s\n",filename);
+		return;
+	}
+
+	SC_Start(fin);
+
+	Con_Printf("Loading particle effects from: %s\n",filename);
+
+    while ( (token = SC_ParseToken()) != TOK_FILE_END) {
+    
+		if (token == TOK_PARTICLE) {
+    		str = SC_ParseIdent();
+
+			//if it already exists just overwrite the old one...
+			effect = ParticleEffectDefinedForName(str);
+			if (!effect) {
+				effect = (ParticleEffect_t *)Hunk_Alloc(sizeof(ParticleEffect_t));			
+  				DefaultEffect(effect);
+				effect->next = particleEffects;
+				particleEffects = effect;
+				strcpy(effect->name,str);
+				//Con_Printf("effect %s\n",effect->name);
+			} else {
+				//Con_Printf("redifinition %s\n",effect->name);
+			}
+			
+    		if (SC_ParseToken() != '{') PARSERERROR("'{' expected");
+  
+  			while ((var = SC_ParseToken()) != '}' && (var != TOK_FILE_END) ) {
+  				switch (var) {
+					case TOK_EMMITER:
+						//parse emmiter shape
+						str = SC_ParseIdent();
+						
+						if (!strcmp(str,"box")) {
+							effect->emmiterType = emt_box;
+						} else {
+							PARSERERROR("Unknown emmiter shape");	
+						}
+
+						//parse emmiter values
+						for (i=0; i<3; i++)
+							effect->emmiterParams1[i] = SC_ParseFloat();
+							
+						for (i=0; i<3; i++) 
+							effect->emmiterParams2[i] = SC_ParseFloat();	
+					break;
+					case TOK_VELOCITY:
+						//parse velocity mins maxs
+						for (i=0; i<3; i++)
+							effect->velocitymin[i] = SC_ParseFloat();
+						for (i=0; i<3; i++) 
+							effect->velocitymax[i] = SC_ParseFloat();
+					break;
+					case TOK_STARTCOLOR:
+						//parse color mins maxs
+						for (i=0; i<3; i++)
+							effect->startcolormin[i] = SC_ParseFloat();
+						for (i=0; i<3; i++) 
+							effect->startcolormax[i] = SC_ParseFloat();
+					break;
+					case TOK_ENDCOLOR:
+						//parse color mins maxs
+						for (i=0; i<3; i++) 
+							effect->endcolormin[i] = SC_ParseFloat();
+						for (i=0; i<3; i++) 
+							effect->endcolormax[i] = SC_ParseFloat();
+					break;
+					case TOK_LIFETIME:
+						//parse lifetime mins maxs
+						effect->lifemin = SC_ParseFloat();
+						effect->lifemax = SC_ParseFloat();
+					break;
+					case TOK_FLAGS:
+						str = SC_ParseIdent();
+					break;
+					case TOK_GRAVITY:
+						for (i=0; i<3; i++) 
+							effect->gravity[i] = SC_ParseFloat();	
+					break;
+					case TOK_ROTATION:
+						effect->rotmin = SC_ParseFloat();
+						effect->rotmax = SC_ParseFloat();
+					break;
+					case TOK_GROW:
+						effect->growmin = SC_ParseFloat();
+						effect->growmax = SC_ParseFloat();
+					break;
+					case TOK_SIZE:
+						effect->sizemin = SC_ParseFloat();
+						effect->sizemax = SC_ParseFloat();
+					break;
+					case TOK_DRAG:
+						for (i=0; i<3; i++) 
+							effect->drag[i] = SC_ParseFloat();
+					break;
+					case TOK_BLENDFUNC:
+						effect->srcblend = SC_BlendModeForName(SC_ParseIdent());
+						effect->dstblend = SC_BlendModeForName(SC_ParseIdent());
+					break;
+					case TOK_BOUNCES:
+						effect->numbounces = (int)SC_ParseFloat();
+					break;
+					case TOK_MAP:
+						effect->texture = EasyTgaLoad(SC_ParseString());
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+					break;
+					case TOK_ORIENTATION:
+						str = SC_ParseIdent();
+						if (!strcmp(str,"view")) {
+							effect->align = align_view;
+						} else if (!strcmp(str,"vel")) {
+							//Con_Printf("Velocity aligned\n");
+							effect->align = align_vel;
+							effect->velscale = SC_ParseFloat();
+						} else if (!strcmp(str,"surface")) {
+							//Con_Printf("Velocity aligned\n");
+							effect->align = align_surf;
+						} else {
+							Con_Printf("\002Script error at line %i: Unknown orientation type %s\n",line_num,str);	
+						}
+					break;
+					case TOK_ONHIT:
+						str = SC_ParseIdent();
+						effect->spawn = ParticleEffectForName(str);
+						if (!effect->spawn)
+							printf("\002Script error at line %i: Particle %s not defined yet \n",line_num,str);
+					break;
+					default:
+						Con_Printf("\002Script error at line %i: Unknown field (id%i/%s) for particle definition\n",line_num,var,str);
+				}
+  			}
+		} else if (token == TOK_DECAL) {
+  			while ((var = yylex()) != '}') {
+			//do nothing yet...
+  			}	
+		} else {
+			Con_Printf("\002Script error at line %i: Expected definiton (found id%i/%s)\n",line_num,var,str);
+		}
+    }
+}
+
+void R_InitParticleEffects() {
+	//clear list
+	particleEffects = NULL;
+	//load all scripts
+	COM_FindAllExt("particles","particle",R_AddEffectsScript);
+}
+
+ParticleEffect_t *ParticleEffectDefinedForName(const char *name) {
+	
+	ParticleEffect_t *current;
+
+	current = particleEffects;
+
+	while (current) {
+		if (!strcmp(current->name,name)) {
+			return current;
+		}
+		current = current->next;
+	}
+	return NULL;
+}
+
+ParticleEffect_t *ParticleEffectForName(const char *name) {
+	
+	ParticleEffect_t *current;
+
+	current = ParticleEffectDefinedForName(name);
+	if (!current) Con_Printf("Effect not defined: %s\n",name);
+	return current;
+}
+
+
+float RandomMinMax(float min, float max) {
+	return min+((rand()%10000)/10000.0)*(max-min);
+}
+
+particle_t *InitParticleFromEffect(ParticleEffect_t *effect, vec3_t org) {
+
+	particle_t *p;
+	int i;
+
+	if (!effect) return NULL;
+
+	if (effect->align == align_surf) {
+		//we can't spawn them here since we need extra information like the surface normal and such...
+		return NULL;
+	}
+	
+	//allocate it
+	if (!free_particles)
+		return NULL;
+	p = free_particles;
+	free_particles = p->next;
+	p->next = active_particles;
+	active_particles = p;
+
+	//initialize the fields
+	p->lifetime = RandomMinMax(effect->lifemin,effect->lifemax);
+	p->die = cl.time + p->lifetime;
+	for (i=0; i<3; i++) {
+		p->vel[i] = RandomMinMax(effect->velocitymin[i],effect->velocitymax[i]);
+		p->startcolor[i] = RandomMinMax(effect->startcolormin[i],effect->startcolormax[i]);
+		p->endcolor[i] = RandomMinMax(effect->endcolormin[i],effect->endcolormax[i]);
+		p->org[i] = RandomMinMax(effect->emmiterParams1[i],effect->emmiterParams2[i])+org[i];
+	}
+
+	p->numbounces = effect->numbounces;
+	p->srcblend = effect->srcblend;
+	p->dstblend = effect->dstblend;
+	p->rspeed = RandomMinMax(effect->rotmin,effect->rotmax);
+	p->growspeed = RandomMinMax(effect->growmin,effect->growmax);
+	p->size = RandomMinMax(effect->sizemin,effect->sizemax);
+	if (effect->align == align_vel) {
+		p->velaligned = true;
+	} else {
+		p->velaligned = false;
+	}
+	p->velscale = effect->velscale;
+	p->texture = effect->texture;
+	p->spawn = effect->spawn;
+	VectorCopy(effect->gravity,p->gravity);
+	VectorCopy(effect->drag,p->drag);
+	return p;
+}
 
 /*
 ===============
@@ -64,49 +368,101 @@ void R_InitParticles (void)
 
 	particles = (particle_t *)
 			Hunk_AllocName (r_numparticles * sizeof(particle_t), "particles");
+
+	emitters = (ParticleEmitter_t *)
+			Hunk_AllocName (MAX_EMITTERS * sizeof(ParticleEmitter_t), "emitters");
 }
 
-#ifdef QUAKE2
-void R_DarkFieldParticles (entity_t *ent)
+/*
+===============
+R_ParseBasicEmitter
+
+Parse an emitter out of the server message
+Basic emitters don't actually spawn an emitter...
+===============
+*/
+void R_ParseBasicEmitter (void)
 {
-	int			i, j, k;
-	particle_t	*p;
-	float		vel;
-	vec3_t		dir;
 	vec3_t		org;
+	int			i, count;
+	char		*name;
+	ParticleEffect_t *eff;
+	particle_t		*p;
 
-	org[0] = ent->origin[0];
-	org[1] = ent->origin[1];
-	org[2] = ent->origin[2];
-	for (i=-16 ; i<16 ; i+=8)
-		for (j=-16 ; j<16 ; j+=8)
-			for (k=0 ; k<32 ; k+=8)
-			{
-				if (!free_particles)
-					return;
-				p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
-		
-				p->die = cl.time + 0.2 + (rand()&7) * 0.02;
-				p->color = 150 + rand()%6;
-				p->type = pt_slowgrav;
-				
-				dir[0] = j*8;
-				dir[1] = i*8;
-				dir[2] = k*8;
-	
-				p->org[0] = org[0] + i + (rand()&3);
-				p->org[1] = org[1] + j + (rand()&3);
-				p->org[2] = org[2] + k + (rand()&3);
-	
-				VectorNormalize (dir);						
-				vel = 50 + (rand()&63);
-				VectorScale (dir, vel, p->vel);
-			}
+	//Con_Printf("Particle effect!!\n");
+	//origin to spawn on
+	for (i=0 ; i<3 ; i++)
+		org[i] = MSG_ReadCoord ();
+
+	//number of particles to spawn
+	count = MSG_ReadByte ();
+
+	//name of effect to spawn
+	name = MSG_ReadString();
+
+	eff = ParticleEffectForName(name);
+	if (!eff) return;
+
+	for (i=0; i<count; i++) {
+		p = InitParticleFromEffect(eff,org);
+	}
 }
-#endif
+
+void R_ParseExtendedEmitter (void)
+{
+	vec3_t		org, vel;
+	int			i, count;
+	char		*name;
+	ParticleEffect_t *eff;
+	ParticleEmitter_t *emt;
+	float		lifetime, tick;
+
+	//Con_Printf("Particle effect22!!\n");
+	//origin to spawn on
+	for (i=0 ; i<3 ; i++)
+		org[i] = MSG_ReadCoord ();
+
+	//velocity to spawn on
+	for (i=0 ; i<3 ; i++)
+		vel[i] = MSG_ReadCoord ();
+
+	//number of particles to spawn
+	count = MSG_ReadByte ();
+
+	//duration to live
+	lifetime = MSG_ReadLong () / 100.0;
+
+	//animation time
+	tick = MSG_ReadLong () / 100.0;
+
+	//name of effect to spawn
+	name = MSG_ReadString();
+
+	eff = ParticleEffectForName(name);
+	if (!eff) return;
+
+	//allocate it
+	if (!free_emitters)
+		return;
+	emt = free_emitters;
+	free_emitters = emt->next;
+	emt->next = active_emitters;
+	active_emitters = emt;
+
+	emt->effect = eff;
+	VectorCopy(org,emt->origin);
+	VectorCopy(vel,emt->vel);
+	emt->die = cl.time+lifetime;
+	emt->tick = tick;
+	emt->count = count;
+	emt->nexttick = 0;
+}
+
+
+
+
+
+
 
 
 /*
@@ -132,6 +488,7 @@ void R_EntityParticles (entity_t *ent)
 	float		sr, sp, sy, cr, cp, cy;
 	vec3_t		forward;
 	float		dist;
+	ParticleEffect_t *eff;
 	
 	dist = 64;
 	count = 50;
@@ -142,6 +499,9 @@ for (i=0 ; i<NUMVERTEXNORMALS*3 ; i++)
 avelocities[0][i] = (rand()&255) * 0.01;
 }
 
+
+	eff = ParticleEffectForName("pt_entityparticles");
+	if (!eff) return;
 
 	for (i=0 ; i<NUMVERTEXNORMALS ; i++)
 	{
@@ -159,18 +519,8 @@ avelocities[0][i] = (rand()&255) * 0.01;
 		forward[1] = cp*sy;
 		forward[2] = -sp;
 
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 0.01;
-		p->color = 0x6f;
-		p->type = pt_explode;
-		p->texture = particletexture_glow;
-		p->numbounces = 1;
+		p = InitParticleFromEffect(eff,ent->origin);
+		if (!p) return;
 		
 		p->org[0] = ent->origin[0] + r_avertexnormals[i][0]*dist + forward[0]*beamlength;			
 		p->org[1] = ent->origin[1] + r_avertexnormals[i][1]*dist + forward[1]*beamlength;			
@@ -188,12 +538,21 @@ void R_ClearParticles (void)
 {
 	int		i;
 	
+	//remove all particles
 	free_particles = &particles[0];
 	active_particles = NULL;
 
 	for (i=0 ;i<r_numparticles ; i++)
 		particles[i].next = &particles[i+1];
 	particles[r_numparticles-1].next = NULL;
+
+	//remove all emitters
+	free_emitters = &emitters[0];
+	active_emitters = NULL;
+
+	for (i=0 ;i<MAX_EMITTERS ; i++)
+		emitters[i].next = &emitters[i+1];
+	emitters[MAX_EMITTERS-1].next = NULL;
 }
 
 
@@ -205,7 +564,8 @@ void R_ReadPointFile_f (void)
 	int		c;
 	particle_t	*p;
 	char	name[MAX_OSPATH];
-	
+	ParticleEffect_t *eff;
+
 	sprintf (name,"maps/%s.pts", sv.name);
 
 	COM_FOpenFile (name, &f);
@@ -214,6 +574,9 @@ void R_ReadPointFile_f (void)
 		Con_Printf ("couldn't open %s\n", name);
 		return;
 	}
+	
+	eff = ParticleEffectForName("pt_pointfile");
+	if (!eff) return;
 	
 	Con_Printf ("Reading %s...\n", name);
 	c = 0;
@@ -224,21 +587,9 @@ void R_ReadPointFile_f (void)
 			break;
 		c++;
 		
-		if (!free_particles)
-		{
-			Con_Printf ("Not enough free particles\n");
-			break;
-		}
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-		
-		p->die = 99999;
-		p->color = (-c)&15;
-		p->type = pt_static;
+		p = InitParticleFromEffect(eff,org);
+		if (!p) return;
 		VectorCopy (vec3_origin, p->vel);
-		VectorCopy (org, p->org);
 	}
 
 	fclose (f);
@@ -283,6 +634,7 @@ void R_ParticleGunHits (vec3_t org, int type)
 {
 	int			i, j;
 	particle_t	*p;
+	ParticleEffect_t *eff;
 /*
 #define	TE_SPIKE			0
 #define	TE_SUPERSPIKE		1
@@ -302,52 +654,15 @@ void R_ParticleGunHits (vec3_t org, int type)
 
 	//Shotgun hitting wall
 	case TE_GUNSHOT:
-		for (i=0 ; i<2 ; i++)
-		{
-			if (!free_particles)
-				return;
-			p = free_particles;
-			free_particles = p->next;
-			p->next = active_particles;
-			active_particles = p;
 
-			p->die = cl.time + 0.5;
-			p->color = ramp1[0];
-			p->ramp = rand()&3;
-			p->texture = particletexture_glow;
-			p->numbounces = 1;
-			p->type = pt_slowgrav;
-			p->rot = 0;
-			p->rspeed = 0;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j];// + ((rand()%32)-16);
-				p->vel[j] = (rand()%400)-200;
-			}
+		eff = ParticleEffectForName("pt_gunshot");
+		for (i=0; i<2; i++) {
+			InitParticleFromEffect(eff,org);
 		}
-		for (i=0 ; i<1 ; i++)
-		{
-			if (!free_particles)
-				return;
-			p = free_particles;
-			free_particles = p->next;
-			p->next = active_particles;
-			active_particles = p;
 
-			p->die = cl.time + 2;
-			p->color = 12;//ramp1[0];
-			p->ramp = 0;//rand()&3;
-			p->texture = particletexture_smoke;
-			p->numbounces = 1;
-			p->type = pt_static;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%16)-8;
-			}
-			p->vel[2] = (rand()%8);//smoke goes up
-			p->rot = rand()%360;
-			p->rspeed = 50;
+		eff = ParticleEffectForName("pt_gunshotsmoke");
+		for (i=0; i<1; i++) {
+			InitParticleFromEffect(eff,org);
 		}
 		break;
 	//Nails hitting wall
@@ -355,25 +670,10 @@ void R_ParticleGunHits (vec3_t org, int type)
 	case TE_SUPERSPIKE:
 		for (i=0 ; i<6 ; i++)
 		{
-			if (!free_particles)
-				return;
-			p = free_particles;
-			free_particles = p->next;
-			p->next = active_particles;
-			active_particles = p;
 
-			p->die = cl.time + 0.5;
-			p->color = ramp1[0];
-			p->ramp = rand()&3;
-			p->texture = particletexture_glow;
-			p->rot = 0;
-			p->rspeed = 0;
-			p->numbounces = 1;
-			p->type = pt_slowgrav;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j];// + ((rand()%32)-16);
-				p->vel[j] = (rand()%400)-200;
+			eff = ParticleEffectForName("pt_spike");
+			for (i=0; i<6; i++) {
+				InitParticleFromEffect(eff,org);
 			}
 		}
 		break;
@@ -381,53 +681,10 @@ void R_ParticleGunHits (vec3_t org, int type)
 	case TE_LIGHTNING1:
 	case TE_LIGHTNING2:
 	case TE_LIGHTNING3:
-		for (i=0 ; i<6 ; i++)
-		{
-			if (!free_particles)
-				return;
-			p = free_particles;
-			free_particles = p->next;
-			p->next = active_particles;
-			active_particles = p;
-
-			p->die = cl.time + 0.5;
-			p->color = 244 + (rand()%3);
-			p->ramp = 0;
-			p->texture = particletexture_glow;
-			p->rot = 0;
-			p->rspeed = 0;
-			p->numbounces = 1;
-			p->type = pt_slowgrav;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j];// + ((rand()%32)-16);
-				p->vel[j] = (rand()%400)-200;
+			eff = ParticleEffectForName("pt_lightning");
+			for (i=0; i<6; i++) {
+				InitParticleFromEffect(eff,org);
 			}
-		}
-		for (i=0 ; i<1 ; i++)
-		{
-			if (!free_particles)
-				return;
-			p = free_particles;
-			free_particles = p->next;
-			p->next = active_particles;
-			active_particles = p;
-
-			p->die = cl.time + 2;
-			p->color = 12;//ramp1[0];
-			p->ramp = 0;//rand()&3;
-			p->texture = particletexture_smoke;
-			p->numbounces = 1;
-			p->type = pt_static;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%16)-8;
-			}
-			p->vel[2] = (rand()%8);//smoke goes up
-			p->rot = rand()%360;
-			p->rspeed = 50;
-		}
 		break;
 	default:
 		break;
@@ -445,53 +702,21 @@ void R_ParticleHitBlood (vec3_t org, int color)
 {
 	int			i, j;
 	particle_t	*p;
+	ParticleEffect_t *eff;
 
+	//Con_Printf("blood\n");
+
+
+	eff = ParticleEffectForName("pt_hitblood1");
 	for (i=0 ; i<1 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 1;
-		p->color = color;
-		p->ramp = 0;
-		p->texture = particletexture_blood;
-		p->numbounces = 1;
-		p->type = pt_static;
-		p->rot = rand()%360;
-		p->rspeed = 50;
-		for (j=0 ; j<3 ; j++)
-		{
-			p->org[j] = org[j] + ((rand()%32)-16);
-			p->vel[j] = (rand()%16)-8;
-		}
-		p->vel[2] = rand()%8;
+		InitParticleFromEffect(eff,org);
 	}
+
+	eff = ParticleEffectForName("pt_hitblood2");
 	for (i=0 ; i<2 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 1;
-		p->color = color;
-		p->ramp = 0;
-		p->texture = particletexture_dirblood;
-		p->numbounces = 1;
-		p->type = pt_slowgrav;
-		p->rot = 0;
-		p->rspeed = 0;
-		for (j=0 ; j<3 ; j++)
-		{
-			p->org[j] = org[j];// + ((rand()%32)-16);
-			p->vel[j] = (rand()%200)-100;
-		}
+		InitParticleFromEffect(eff,org);
 	}
 }
 /*
@@ -505,67 +730,19 @@ void R_ParticleExplosion (vec3_t org)
 {
 	int			i, j;
 	particle_t	*p;
+	ParticleEffect_t *eff;
 	
-	for (i=0 ; i<96 ; i++)
+	eff = ParticleEffectForName("pt_explosion1");
+	for (i=0 ; i<256 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 5;
-		p->color = ramp1[0];
-		p->ramp = rand()&3;
-		p->texture = particletexture_glow;
-		p->numbounces = 2;
-		p->rot = 0;
-		p->rspeed = 0;
-		if (i & 1)
-		{
-			p->type = pt_slowgrav;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%128)-64;
-			}
-		}
-		else
-		{
-			p->type = pt_explode;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%128)-64;
-			}
-		}
+		InitParticleFromEffect(eff,org);
 	}
-/*
-	for (i=0 ; i<4 ; i++)
+
+	eff = ParticleEffectForName("pt_explosion2");
+	for (i=0 ; i<256 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 20;
-		p->color = 10;
-		p->ramp = rand()&3;
-		p->texture = particletexture_smoke;
-		p->numbounces = 2;
-		p->type = pt_static;
-		for (j=0 ; j<3 ; j++)
-		{
-			p->org[j] = org[j] + ((rand()%32)-16);
-			p->vel[j] = (rand()%16)-8;
-		}
-		p->rspeed = 360;
-		p->rot = rand()%360;
+		InitParticleFromEffect(eff,org);
 	}
-*/
 }
 
 /*
@@ -579,31 +756,14 @@ void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 	int			i, j;
 	particle_t	*p;
 	int			colorMod = 0;
+	ParticleEffect_t *eff;
 
-	for (i=0; i<512; i++)
+	eff = ParticleEffectForName("pt_explosion1");
+	for (i=0 ; i<512 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-
-		p->die = cl.time + 0.3;
-		p->color = colorStart + (colorMod % colorLength);
-		colorMod++;
-
-		p->type = pt_blob;
-		p->texture = particletexture_glow;
-		p->numbounces = 1;
-		p->rot = 0;
-		p->rspeed = 0;
-		for (j=0 ; j<3 ; j++)
-		{
-			p->org[j] = org[j] + ((rand()%32)-16);
-			p->vel[j] = (rand()%512)-256;
-		}
+		InitParticleFromEffect(eff,org);
 	}
+
 }
 
 /*
@@ -616,44 +776,18 @@ void R_BlobExplosion (vec3_t org)
 {
 	int			i, j;
 	particle_t	*p;
-	
-	for (i=0 ; i<1024 ; i++)
+	ParticleEffect_t *eff;	
+
+	eff = ParticleEffectForName("pt_voreexplosion1");
+	for (i=0 ; i<256 ; i++)
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		InitParticleFromEffect(eff,org);
+	}
 
-		p->die = cl.time + 1 + (rand()&8)*0.05;
-		p->rot = 0;
-		p->rspeed = 0;
-
-		if (i & 1)
-		{
-			p->type = pt_blob;
-			p->texture = particletexture_glow;
-			p->numbounces = 1;
-			p->color = 66 + rand()%6;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
-			}
-		}
-		else
-		{
-			p->type = pt_blob2;
-			p->texture = particletexture_glow;
-			p->numbounces = 1;
-			p->color = 150 + rand()%6;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
-			}
-		}
+	eff = ParticleEffectForName("pt_voreexplosion2");
+	for (i=0 ; i<256 ; i++)
+	{
+		InitParticleFromEffect(eff,org);
 	}
 }
 
@@ -667,79 +801,20 @@ void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 {
 	int			i, j;
 	particle_t	*p;
-/*
-	if (color == 0) {
-		R_ParticleGunHits(org);
-		return;
-	}
-*/	
+	ParticleEffect_t *eff;
+
 	if ((color == 225) || (color == 73)) {
 		R_ParticleHitBlood (org, color);
 		return;
 	}
 
-//	Con_Printf("Run particle effect color: %i, count %i\n",color,count);
-	for (i=0 ; i<count ; i++)
-	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+	if (count == 1024) {
+		R_ParticleExplosion(org);
+	}
 
-		p->rot = 0;
-		p->rspeed = 0;
-		if (count == 1024)
-		{	// rocket explosion
-			p->die = cl.time + 200;
-			p->color = ramp1[0];
-			p->ramp = rand()&3;
-			if (i & 1)
-			{
-				p->type = pt_explode;
-				for (j=0 ; j<3 ; j++)
-				{
-					p->org[j] = org[j] + ((rand()%32)-16);
-					p->vel[j] = (rand()%64)-32;
-				}
-			}
-			else
-			{
-				p->type = pt_explode2;
-				for (j=0 ; j<3 ; j++)
-				{
-					p->org[j] = org[j] + ((rand()%32)-16);
-					p->vel[j] = (rand()%512)-256;
-				}
-			}
-			p->texture = particletexture_glow;
-			p->numbounces = 1;
-		}
-		else
-		{
-			p->texture = particletexture;
-			p->numbounces = 1;
-			if (color == 225) {
-				p->texture = particletexture_blood;
-			} else 
-			if (color == 73){
-				p->texture = particletexture_blood;
-			} else {
-				p->texture = particletexture_smoke;
-			}
-
-			p->die = cl.time + 2*(rand()%5);
-			p->color = (color&~7) + (rand()&7);
-
-			p->type = pt_slowgrav;
-			for (j=0 ; j<3 ; j++)
-			{
-				p->org[j] = org[j] + ((rand()&15)-8);
-				p->vel[j] = dir[j]*15;// + (rand()%300)-150;
-			}
-
-		}
+	eff = ParticleEffectForName("pt_genericsmoke");
+	for (i=0; i<count; i++) {
+		InitParticleFromEffect(eff,org);
 	}
 }
 
@@ -756,26 +831,16 @@ void R_LavaSplash (vec3_t org)
 	particle_t	*p;
 	float		vel;
 	vec3_t		dir;
+	ParticleEffect_t *eff;
 
+	eff = ParticleEffectForName("pt_lavasplash");
 	for (i=-16 ; i<16 ; i++)
 		for (j=-16 ; j<16 ; j++)
 			for (k=0 ; k<1 ; k++)
 			{
-				if (!free_particles)
-					return;
-				p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
+				p = InitParticleFromEffect(eff,org);
+				if (!p) return;
 		
-				p->die = cl.time + 2 + (rand()&31) * 0.02;
-				p->color = 224 + (rand()&7);
-				p->type = pt_slowgrav;
-				p->numbounces = 1;
-				p->texture = particletexture_glow;
-				p->rot = 0;
-				p->rspeed = 0;
-				
 				dir[0] = j*8 + (rand()&7);
 				dir[1] = i*8 + (rand()&7);
 				dir[2] = 256;
@@ -802,26 +867,16 @@ void R_TeleportSplash (vec3_t org)
 	particle_t	*p;
 	float		vel;
 	vec3_t		dir;
+	ParticleEffect_t *eff;
 
+	eff = ParticleEffectForName("teleportsplash");
 	for (i=-16 ; i<16 ; i+=4)
 		for (j=-16 ; j<16 ; j+=4)
 			for (k=-24 ; k<32 ; k+=4)
 			{
-				if (!free_particles)
-					return;
-				p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
-		
-				p->die = cl.time + 2 + (rand()&7) * 0.02;
-				p->color = 7 + (rand()&7);
-				p->type = pt_slowgrav;
-				p->numbounces = 1;
-				p->texture = particletexture_tele;
-				p->rot = rand()%360;
-				p->rspeed = 50;
-			
+				p = InitParticleFromEffect(eff,org);
+				if (!p) return;
+
 				dir[0] = j*8;
 				dir[1] = i*8;
 				dir[2] = k*8;
@@ -844,6 +899,7 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 	particle_t	*p;
 	int			dec;
 	static int	tracercount;
+	ParticleEffect_t *eff;
 
 	VectorSubtract (end, start, vec);
 	len = VectorNormalize (vec);
@@ -860,118 +916,65 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 		type -= 128;
 	}
 
+
+	switch (type)
+	{
+		case 0:	// rocket trail
+			eff = ParticleEffectForName("pt_rockettrail");
+			break;
+		case 1:	// smoke smoke
+			eff = ParticleEffectForName("pt_smoke");
+			break;
+		case 2:	// blood
+			eff = ParticleEffectForName("pt_bloodtrail");
+			break;
+		case 4:	// slight blood
+			eff = ParticleEffectForName("pt_bloodtrail");
+			break;
+		case 3:
+			eff = ParticleEffectForName("pt_wizzardtrail");
+			break;
+		case 5:	// tracer
+			eff = ParticleEffectForName("pt_hknighttrail");
+			break;
+		case 6:	// voor trail
+			eff = ParticleEffectForName("pt_voretrail");
+			break;
+		default:
+			eff = ParticleEffectForName("pt_genericsmoke");
+			break;
+		}
+
+
 	while (len > 0)
 	{
 		len -= dec;
 
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
-		
-		VectorCopy (vec3_origin, p->vel);
-		p->die = cl.time + 2;
+		p = InitParticleFromEffect(eff,start);
+		if (!p) return;
 
 		switch (type)
 		{
 			case 0:	// rocket trail
-				p->ramp = (rand()&3);
-				p->color = ramp3[(int)p->ramp];
-				p->type = pt_fire;
-				p->numbounces = 1;
-				p->texture = particletexture_smoke;
-				p->rot = rand()%360;
-				p->rspeed = 80;
 				for (j=0 ; j<3 ; j++)
 					p->org[j] = start[j] + ((rand()%6)-3);
 				break;
-
 			case 1:	// smoke smoke
-				p->ramp = (rand()&3) + 2;
-				p->color = ramp3[(int)p->ramp];
-				p->type = pt_fire;
-				p->numbounces = 1;
-				p->texture = particletexture_smoke;
-				p->rot = rand()%360;
-				p->rspeed = 80;
 				for (j=0 ; j<3 ; j++)
 					p->org[j] = start[j] + ((rand()%6)-3);
 				break;
-
 			case 2:	// blood
 			case 4:	// slight blood
-				p->die = cl.time + 1;
-				p->type = pt_grav;
-				p->color = 65 + (rand()&3);
-				p->numbounces = 1;
-				p->texture = particletexture_dirblood;
-				p->rspeed = 80;
-				p->rot = rand()%360;
 				for (j=0 ; j<3 ; j++)
 					p->org[j] = start[j] + ((rand()%6)-3);
 				break;
-
-			case 3:
-			case 5:	// tracer
-				p->die = cl.time + 0.5;
-				p->type = pt_static;
-				p->numbounces = 1;
-				p->rot = 0;
-				p->rspeed = 0;
-				if (type == 3) {
-					p->texture = particletexture_dirblood;
-					p->color = 52 + ((tracercount&4)<<1);
-				} else {
-					p->texture = particletexture_glow2;
-					p->color = 230 + ((tracercount&4)<<1);
-				}
-			
-				tracercount++;
-
-				VectorCopy (start, p->org);
-				if (tracercount & 1)
-				{
-					p->vel[0] = 30*vec[1];
-					p->vel[1] = 30*-vec[0];
-				}
-				else
-				{
-					p->vel[0] = 30*-vec[1];
-					p->vel[1] = 30*vec[0];
-				}
-				break;
-			/*
-			case 4:	// slight blood
-				p->type = pt_grav;
-				p->color = 67 + (rand()&3);
-				p->texture = particletexture_blood;
-				p->numbounces = 1;
-				p->rot = rand()%360;
-				p->rspeed = 10;
-				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()%6)-3);
-				len -= 3;
-				break;
-			*/
 			case 6:	// voor trail
-				//Con_Printf("voor trail");
-				p->texture = particletexture_glow2;
-				p->numbounces = 1;
-				p->color = 9*16 + 8 +(rand()&3);
-				p->type = pt_static;
-				p->die = cl.time + 2;
-				p->rot = 0;
-				p->rspeed = 0;
 				for (j=0 ; j<3 ; j++) {
 					p->org[j] = start[j] + ((rand()%8)-4);
-					p->vel[j] = (rand()&6)-3;
 				}
 				break;
 		}
 		
-
 		VectorAdd (start, vec, start);
 	}
 }
@@ -981,7 +984,7 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 ===============
 R_DrawParticles
 ===============
-*/
+
 extern	cvar_t	sv_gravity;
 
 void R_DrawParticles (void)
@@ -1053,14 +1056,14 @@ void R_DrawParticles (void)
 
 #ifdef GLQUAKE
 		// hack a scale up to keep particles from disapearing
-		/*
-		scale = (p->org[0] - r_origin[0])*vpn[0] + (p->org[1] - r_origin[1])*vpn[1]
-			+ (p->org[2] - r_origin[2])*vpn[2];
-		if (scale < 20)
-			scale = 1;
-		else
-			scale = 1 + scale * 0.004;
-		*/
+		
+		//scale = (p->org[0] - r_origin[0])*vpn[0] + (p->org[1] - r_origin[1])*vpn[1]
+		//	+ (p->org[2] - r_origin[2])*vpn[2];
+		//if (scale < 20)
+		//	scale = 1;
+		//else
+		//	scale = 1 + scale * 0.004;
+		//
 		scale = 10;
 
 		if ((p->die - cl.time) < 0.5) {
@@ -1076,6 +1079,11 @@ void R_DrawParticles (void)
 		if ((p->texture ==  particletexture_smoke) ||
 		   (p->texture ==  particletexture_blood) ) scale = 50;
 
+		if (p->blendfunc == pb_add) {
+			glBlendFunc (GL_ONE, GL_ONE);
+		} else {
+			glBlendFunc (GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+		}
 		//XYZ
 		if ((p->texture ==  particletexture_glow) ||
 		    (p->texture ==  particletexture_dirblood)){
@@ -1126,6 +1134,7 @@ void R_DrawParticles (void)
 			SV_RecursiveHullCheck (cl.worldmodel->hulls, 0, 0, 1, p->org, neworg, &trace);
 
 			if (trace.fraction < 1) {
+				vec3_t tangent;
 				//calc reflection vector
 				d = DotProduct (p->vel, trace.plane.normal);
 				VectorMA (p->vel, -2*d, trace.plane.normal, p->vel);
@@ -1133,6 +1142,9 @@ void R_DrawParticles (void)
 				VectorCopy(trace.endpos,p->org);
 				//XYZ
 				p->numbounces--;
+
+				CrossProduct(trace.plane.normal,p->vel,tangent);
+				R_SpawnDecal(trace.endpos, trace.plane.normal, tangent, dt_blood);
 			} else {
 				VectorCopy(neworg,p->org);
 			}
@@ -1212,3 +1224,223 @@ void R_DrawParticles (void)
 #endif
 }
 
+*/
+extern	cvar_t	sv_gravity;
+
+void R_DrawParticles (void)
+{
+	particle_t		*p, *kill;
+	float			grav;
+	int				i;
+	float			time2, time3;
+	float			time1;
+	float			dvel, blend, blend1;
+	float			frametime;
+	vec3_t			up, right, neworg;
+	float			scale, sscale;
+	ParticleEmitter_t *ekill, *emt;
+
+	glFogfv(GL_FOG_COLOR, color_black); //Done in actual function now (stops "triangle effect") - Eradicator
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_ONE, GL_ONE);
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER,0.01);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glDepthMask(0);
+
+	VectorScale (vup, 1, up);
+	VectorScale (vright, 1, right);
+	glMatrixMode(GL_TEXTURE);
+
+	frametime = cl.time - cl.oldtime;
+	time3 = frametime * 15;
+	time2 = frametime * 10; // 15;
+	time1 = frametime * 5;
+	grav = frametime * sv_gravity.value * 0.05;
+	dvel = 4*frametime;
+
+	//remove expired emitters
+	for ( ;; ) 
+	{
+		ekill = active_emitters;
+		if (ekill && ekill->die < cl.time)
+		{
+			active_emitters = ekill->next;
+			ekill->next = free_emitters;
+			free_emitters = ekill;
+			continue;
+		}
+		break;
+	}
+
+	//Do the particle logic/drawing
+	for (emt=active_emitters ; emt ; emt=emt->next)
+	{
+		for ( ;; )
+		{
+			ekill = emt->next;
+			//XYZ
+			if (ekill && (ekill->die < cl.time))
+			{
+				emt->next = ekill->next;
+				ekill->next = free_emitters;
+				free_emitters = ekill;
+				continue;
+			}
+			break;
+		}
+
+		if (emt->nexttick < cl.time) {
+			vec3_t length;
+			VectorSubtract(emt->origin, r_refdef.vieworg, length);
+			//dont emit if we are to far away to see it
+			if (Length(length) < 600.0f) {
+				for (i=0; i<emt->count; i++) {
+					InitParticleFromEffect(emt->effect,emt->origin);
+				}
+			}
+			emt->nexttick = cl.time + emt->tick;
+		}
+	}
+
+	//remove expired particles
+	for ( ;; ) 
+	{
+		kill = active_particles;
+		if (kill && kill->die < cl.time)
+		{
+			active_particles = kill->next;
+			kill->next = free_particles;
+			free_particles = kill;
+			continue;
+		}
+		break;
+	}
+
+	//Do the particle logic/drawing
+	for (p=active_particles ; p ; p=p->next)
+	{
+		for ( ;; )
+		{
+			kill = p->next;
+			//XYZ
+			if (kill && ((kill->die < cl.time) || (kill->numbounces <= 0)))
+			{
+				p->next = kill->next;
+				kill->next = free_particles;
+				free_particles = kill;
+				continue;
+			}
+			break;
+		}
+
+		scale = p->size;
+		p->size += p->growspeed*frametime;
+
+		//calculate color based on life ...
+		blend = (p->die-cl.time)/p->lifetime;
+		blend1 = 1-blend;
+		for (i=0; i<3; i++) {
+			p->color[i] = p->startcolor[i] * blend + p->endcolor[i] * blend1;
+		}
+
+		if ((p->die - cl.time) < 0.5) {
+			float fade = 2*(p->die - cl.time);
+			glColor4f(p->color[0]*fade, p->color[1]*fade, p->color[2]*fade, fade);
+		} else {
+			glColor3fv(&p->color[0]);
+		}
+
+		GL_Bind(p->texture);
+		glBlendFunc (p->srcblend, p->dstblend);
+
+		//Align with velocity
+		if (p->velaligned){
+			float lscale;
+			VectorCopy (p->vel, up);
+			VectorNormalize(up);
+			CrossProduct(vpn,up,right);
+			VectorNormalize(right);
+			lscale = (Length(p->vel)*p->velscale);
+			VectorScale(up,lscale,up);
+		} else {
+			VectorCopy (vup, up);
+			VectorCopy (vright, right);
+		}
+
+		glLoadIdentity();
+		glTranslatef(0.5,0.5,0);
+		glRotatef(p->rot,0,0,1);
+		glTranslatef(-0.5,-0.5,0);
+
+		sscale = -scale/4;
+		VectorMA(p->org,sscale,up,neworg);
+		VectorMA(neworg,sscale,right,neworg);
+
+		//draw one triangle
+		glBegin(GL_TRIANGLES);
+		glTexCoord2f (0,0);
+		glVertex3fv (neworg);
+		glTexCoord2f (2,0);
+		glVertex3f (neworg[0] + up[0]*scale, neworg[1] + up[1]*scale, neworg[2] + up[2]*scale);
+		glTexCoord2f (0,2);
+		glVertex3f (neworg[0] + right[0]*scale, neworg[1] + right[1]*scale, neworg[2] + right[2]*scale);
+		glEnd();
+
+		//calculate new position/rotation
+		neworg[0] = p->org[0]+p->vel[0]*frametime;
+		neworg[1] = p->org[1]+p->vel[1]*frametime;
+		neworg[2] = p->org[2]+p->vel[2]*frametime;
+		p->rot = p->rot+p->rspeed*frametime;
+
+		//do collision detection
+		{
+			trace_t	trace;
+			float	d;
+
+			memset (&trace, 0, sizeof(trace));
+			trace.fraction = 1;
+			SV_RecursiveHullCheck (cl.worldmodel->hulls, 0, 0, 1, p->org, neworg, &trace);
+
+			if (trace.fraction < 1) {
+				vec3_t tangent;
+				//calc reflection vector
+				d = DotProduct (p->vel, trace.plane.normal);
+				VectorMA (p->vel, -2*d, trace.plane.normal, p->vel);
+				VectorScale(p->vel,0.33,p->vel);
+				VectorCopy(trace.endpos,p->org);
+				//XYZ
+				p->numbounces--;
+
+				if (p->spawn) {
+					CrossProduct(trace.plane.normal,p->vel,tangent);
+					if (p->spawn->align == align_surf) {
+						R_SpawnDecal(p->org, trace.plane.normal, tangent, p->spawn);
+					} else {
+						InitParticleFromEffect(p->spawn, p->org);
+					}
+				}
+			} else {
+				VectorCopy(neworg,p->org);
+			}
+		}
+
+		for (i=0; i<3; i++) {
+			p->vel[i] += p->gravity[i]*frametime;
+		}
+		
+		for (i=0; i<3; i++) {
+			p->vel[i] *= p->drag[i];
+		}
+	}
+
+	glDepthMask(1);
+	glDisable (GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER,0.666);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	//XYZ
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glFogfv(GL_FOG_COLOR, fog_color); //Done in actual function now (stops "triangle effect") - Eradicator
+}
