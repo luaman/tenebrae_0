@@ -532,8 +532,8 @@ void SCR_DrawFPS (void)
 	else
 	{
 		sprintf(st, "FPS: %d \n", lastfps);
-		x = 16;
-		y = 0 ;
+		x = vid.width - 65; //Draw at the right to avoid clustering view - Eradicator
+		y = 8;
 		Draw_String(x, y, st);
 	}
 
@@ -953,6 +953,7 @@ needs almost the entire 256k of stack space!
 */
 void SCR_UpdateScreen (void)
 {
+	int				cross;
 	int			i;
 
 	if (block_drawing)
@@ -1048,8 +1049,8 @@ void SCR_UpdateScreen (void)
 	else
 	{
 		if (crosshair.value)
-			Draw_Character (scr_vrect.x + scr_vrect.width/2, scr_vrect.y + scr_vrect.height/2, '+');
-		
+			Draw_Character (scr_vrect.x + scr_vrect.width/2, scr_vrect.y + scr_vrect.height/2, '+');	
+
 		SCR_DrawRam ();
 		SCR_DrawNet ();
 		SCR_DrawTurtle ();
