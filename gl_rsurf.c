@@ -1559,6 +1559,11 @@ void R_DrawCaustics(void) {
 			if (mirror_clipside == BoxOnPlaneSide(mins, maxs, mirror_plane)) {
 				continue;
 			}
+
+
+			if ( BoxOnPlaneSide(mins, maxs, &mirror_far_plane) == 1) {
+				return;
+			}
 		}
 
 		switch (currententity->model->type)
@@ -1956,6 +1961,10 @@ void R_RecursiveWorldNode (mnode_t *node)
 
 			int side = BoxOnPlaneSide(node->minmaxs, node->minmaxs+3, mirror_plane); 
 			if ((mirror_clipside == side)) {
+				return;
+			}
+
+			if ( BoxOnPlaneSide(node->minmaxs, node->minmaxs+3, &mirror_far_plane) == 1) {
 				return;
 			}
 		}

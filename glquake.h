@@ -380,6 +380,7 @@ extern	int			mirrortexturenum;	// quake texturenum, not gltexturenum
 extern	qboolean	mirror;
 extern	qboolean	glare;
 extern	mplane_t	*mirror_plane;
+extern  mplane_t	mirror_far_plane;
 extern	int			mirror_clipside;
 extern  float vid_gamma;
 

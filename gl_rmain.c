@@ -55,6 +55,7 @@ int			mirrortexturenum;	// quake texturenum, not gltexturenum
 qboolean	mirror;
 qboolean	glare;
 mplane_t	*mirror_plane;
+mplane_t	mirror_far_plane; //far plane of the view frustum for mirrors
 int			mirror_clipside;
 msurface_t	*causticschain;
 int			caustics_textures[8];
@@ -184,6 +185,9 @@ extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesfATI;
 
 #define GL_INCR_WRAP_EXT                                        0x8507
 #define GL_DECR_WRAP_EXT                                        0x8508
+
+
+#define MAX_UPDATE_MIRROR 400
 
 //extern	cvar_t	gl_ztrick; PENTA: Removed
 
@@ -1126,6 +1130,10 @@ void R_DrawAmbientEntities ()
 		if (mirror) {
 			if (mirror_clipside == BoxOnPlaneSide(mins, maxs, mirror_plane)) {
 				continue;
+			}
+
+			if ( BoxOnPlaneSide(mins, maxs, &mirror_far_plane) == 1) {
+				return;
 			}
 		}
 
@@ -2407,6 +2415,16 @@ void R_Mirror (mirrorplane_t *mir)
 	//setup mirrored view origin & direction
 	VectorCopy(r_refdef.vieworg, oorg);
 	d = DotProduct (r_refdef.vieworg, mir->plane.normal) - mir->plane.dist;
+
+	if (abs(d) > MAX_UPDATE_MIRROR) {
+		mirror = false;
+		return;
+	}
+
+	//calculate a far plane for the mirror
+	VectorCopy(mir->plane.normal,mirror_far_plane.normal);
+	mirror_far_plane.dist = mir->plane.dist + 500;
+
 	VectorMA (r_refdef.vieworg, -2*d, mir->plane.normal, r_refdef.vieworg);
 
 	if (d < 0) {

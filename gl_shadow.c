@@ -445,6 +445,10 @@ void MarkShadowEntities() {
 			if (mirror_clipside == BoxOnPlaneSide(mins, maxs, mirror_plane)) {
 				continue;
 			}
+
+			if ( BoxOnPlaneSide(mins, maxs, &mirror_far_plane) == 1) {
+				return;
+			}
 		}
 
 		//Dont cast shadows with the ent this light is attached to because
