@@ -250,7 +250,10 @@ void S_Init (void)
 		shm->buffer = Hunk_AllocName(1<<16, "shmbuf");
 	}
 
-	Con_Printf ("Sound sampling rate: %i\n", shm->speed);
+	if ( shm ) 
+	{
+		Con_Printf ("Sound sampling rate: %i\n", shm->speed);
+	}
 
 	// provides a tick sound until washed clean
 
@@ -878,6 +881,7 @@ void S_ExtraUpdate (void)
 
 void S_Update_(void)
 {
+#ifndef SDL
 	unsigned        endtime;
 	int				samps;
 	
@@ -922,6 +926,7 @@ void S_Update_(void)
 	S_PaintChannels (endtime);
 
 	SNDDMA_Submit ();
+#endif /* ! SDL */
 }
 
 /*
