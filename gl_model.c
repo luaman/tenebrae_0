@@ -316,7 +316,8 @@ void Mod_OverrideMd3 (char *name, char *target)
 //          strcpy (target,"model/player");
           strcpy (target,name);     
      else 
-          strcpy (target,name);     
+          strcpy (target,name); 
+	 
 }
 
 
@@ -365,7 +366,7 @@ void Mod_LoadTextures (lump_t *l)
 	texture_t	*anims[10];
 	texture_t	*altanims[10];
 	dmiptexlump_t *m;
-
+	
 	if (!l->filelen)
 	{
 		loadmodel->textures = NULL;
@@ -408,6 +409,11 @@ void Mod_LoadTextures (lump_t *l)
 			R_InitSky (tx);
 		else
 		{
+			if (cls.state == ca_connected) //Client has a netconnection?  We should keep it alive
+				CL_KeepaliveMessage ();
+			else if (cls.state == ca_dedicated)
+				continue; //Don't load textures on a dedicated server
+
 			texture_mode = GL_LINEAR_MIPMAP_NEAREST; //_LINEAR;
 			tx->gl_texturenum = GL_LoadTexture (mt->name, tx->width, tx->height, (byte *)(tx+1), true, false, true);
 			tx->gl_lumitex = GL_LoadLuma (mt->name, true);
@@ -507,6 +513,8 @@ void Mod_LoadTextures (lump_t *l)
 				tx2->alternate_anims = anims[0];
 		}
 	}
+
+
 }
 
 /*
