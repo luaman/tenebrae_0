@@ -476,6 +476,18 @@ void CheckTextureCompressionExtension(void)
      }
 }
 
+qboolean gl_depthbounds;
+
+void CheckDepthBoundsExtension(void) {
+	SAFE_GET_PROC (qglDepthBoundsNV,PFNGLDEPTHBOUNDSNV,"glDepthBoundsNV");
+	if (qglDepthBoundsNV != NULL) {
+		Con_Printf("Using depth bounds extension.\n");
+		gl_depthbounds = true;
+	} else {
+		gl_depthbounds = false;
+	}
+}
+
 /*
   ===============
   GL_Init
@@ -533,6 +545,8 @@ void GL_Init (void)
      CheckAnisotropicExtension ();
      Con_Printf ("Checking TC\n");
      CheckTextureCompressionExtension ();
+	 Con_Printf ("Checking DB\n");
+	 CheckDepthBoundsExtension ();
 
      switch (gl_cardtype)
      {
@@ -608,10 +622,14 @@ void VID_Init8bitPalette(void)
           return;
      
      
+
      SAFE_GET_PROC (qglColorTableEXT,GLCOLORTABLEEXTPFN,"glColorTableEXT");
 
+
      if (strstr (gl_extensions, "GL_EXT_shared_texture_palette") && qglColorTableEXT )
+
      {
+
           char thePalette[256*3];
           char *oldPalette, *newPalette;
           
@@ -627,6 +645,7 @@ void VID_Init8bitPalette(void)
           }
           qglColorTableEXT(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE, (void *) thePalette);
           is8bit = true;
+
      }
      /*
      // 3DFX stuff 
