@@ -1244,7 +1244,7 @@ void GL_MipMapNormal (byte *in, int width, int height)
     byte	*out;
     float	inv255	= 1.0f/255.0f;
     float	inv127	= 1.0f/127.0f;
-    float	x,y,z,l,mag00,mag01,mag10,mag11, g;
+    float	x,y,z,l,g;
 
 
     width <<=2;
@@ -1254,31 +1254,6 @@ void GL_MipMapNormal (byte *in, int width, int height)
     {
 	for (j=0 ; j<width ; j+=8, out+=4, in+=8)
 	{
-
-#if 0
-	    mag00 = inv255 * in[3];
-	    mag01 = inv255 * in[7];
-	    mag10 = inv255 * in[width+3];
-	    mag11 = inv255 * in[width+7];
-#else
-// We can't use alpha now, so recalc the length
-
-#endif
-
-#if 0
-	    x = mag00*(inv127*in[0]-1.0)+
-		mag01*(inv127*in[4]-1.0)+
-		mag10*(inv127*in[width+0]-1.0)+
-		mag11*(inv127*in[width+4]-1.0);
-	    y = mag00*(inv127*in[1]-1.0)+
-		mag01*(inv127*in[5]-1.0)+
-		mag10*(inv127*in[width+1]-1.0)+
-		mag11*(inv127*in[width+5]-1.0);
-	    z = mag00*(inv127*in[2]-1.0)+
-		mag01*(inv127*in[6]-1.0)+
-		mag10*(inv127*in[width+2]-1.0)+
-		mag11*(inv127*in[width+6]-1.0);
-#else
 	    x = (inv127*in[0]-1.0)+
 		(inv127*in[4]-1.0)+
 		(inv127*in[width+0]-1.0)+
@@ -1295,8 +1270,8 @@ void GL_MipMapNormal (byte *in, int width, int height)
 		(inv255*in[7])+
 		(inv255*in[width+3])+
 		(inv255*in[width+7]);
-#endif
-	    l = sqrt(x*x+y*y+z*z);
+
+            l = sqrt(x*x+y*y+z*z);
 	    if (l == 0.0) {
 		x = 0.0;
 		y = 0.0;
@@ -1311,16 +1286,45 @@ void GL_MipMapNormal (byte *in, int width, int height)
 	    out[0] = (unsigned char)128 + 127*x;
 	    out[1] = (unsigned char)128 + 127*y;
 	    out[2] = (unsigned char)128 + 127*z;
-#if 0
-	    l = l/4.0;
-	    if (l > 1.0) {
-		out[3] = 255;
+	    out[3] = (byte)(g * 255.0/4.0);
+	}
+    }
+
+}
+
+void GL_Normalize(byte *in, int width, int height)
+{
+    int		i, j;
+    byte	*out;
+    float	inv255	= 1.0f/255.0f;
+    float	inv127	= 1.0f/127.0f;
+    float	x,y,z,l;
+
+    width <<=2;
+    out = in;
+    for (i=0 ; i<height ; i++)
+    {
+	for (j=0 ; j<width ; j+=4, out+=4, in+=4)
+	{
+	    x = (inv127*in[0]-1.0);
+	    y = (inv127*in[1]-1.0);
+            z = (inv127*in[2]-1.0);
+
+            l = sqrt(x*x+y*y+z*z);
+	    if (l == 0.0) {
+		x = 0.0;
+		y = 0.0;
+		z = 1.0;
 	    } else {
-		out[3] = (byte)(255.0*l);
+		//normalize it.
+		l=1/l;
+		x *=l;
+		y *=l;
+		z *=l;
 	    }
-#else
-	    out[3] = (byte)(g * 64.0);
-#endif
+	    out[0] = (unsigned char)128 + 127*x;
+	    out[1] = (unsigned char)128 + 127*y;
+	    out[2] = (unsigned char)128 + 127*z;
 	}
     }
 
@@ -1389,6 +1393,11 @@ void GL_Upload32 (unsigned *data, int width, int height,  qboolean mipmap, qbool
 	//XYZ
 static	unsigned	scaled[1024*1024];	// [512*256];
 	int			scaled_width, scaled_height;
+
+        if ( willi_gray_colormaps.value )
+        {
+            memset(data, 0x7f, width*height*4);
+        }
 
 	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
 		;
@@ -1764,6 +1773,7 @@ void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
 		GL_ResampleTexture ((unsigned*)data, width, height, scaled, scaled_width, scaled_height);
     }
 
+    GL_Normalize((byte*)scaled, scaled_width, scaled_height);
     glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
 		  GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 
@@ -2071,13 +2081,10 @@ int GL_LoadLuma(char *identifier, qboolean mipmap)
 
 	//try to load an overrided texture
 	GL_GetOverrideName(identifier,"_luma",filename);	
-//	COM_FOpenFile (filename, &f);
-//	if (f)
 	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
 	{
 
 		Con_DPrintf("Using luma map for %s\n",identifier);
-//		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
