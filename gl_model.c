@@ -866,6 +866,14 @@ void Mod_LoadFaces (lump_t *l)
 				out->flags |= SURF_GLASS;
 				if (strstr (out->texinfo->texture->name, "mirror"))
 					out->flags |= SURF_MIRROR;
+				//Fix caustics in glass
+				out->flags &= ~SURF_UNDERWATER;
+			}
+
+			//Fix caustics in teleports
+			if (strstr (out->texinfo->texture->name, "teleport"))
+			{
+				out->flags &= ~SURF_UNDERWATER;
 			}
 		}
 
@@ -992,8 +1000,20 @@ void Mod_LoadLeafs (lump_t *l)
 		// gl underwater warp
 		if (out->contents == CONTENTS_WATER)
 		{
-			for (j=0 ; j<out->nummarksurfaces ; j++)
+			qboolean iswater = true;
+
+			for (j=0 ; j<out->nummarksurfaces ; j++) {
+				//no caustics in glass & teleports
+				if ((strstr(out->firstmarksurface[j]->texinfo->texture->name,"teleport")) ||
+					(strstr(out->firstmarksurface[j]->texinfo->texture->name,"glass")))
+				{
+					iswater = false;	
+				}
+			}
+
+			if (iswater) for (j=0 ; j<out->nummarksurfaces ; j++) {
 				out->firstmarksurface[j]->flags |= SURF_UNDERWATER;
+			}
 		}
 
 		//XYZ
