@@ -166,7 +166,8 @@ void R_AddEfrags (entity_t *ent)
 	int			i;
 	
 	if (!ent->model) {
-		Con_Printf("Ent with NULL model\n");
+		Sys_Error("Ent with NULL model\n");
+
 	} else {
 		//Con_Printf("Kept ent. %s\n",ent->model->name);
 	}
