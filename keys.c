@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif /* __APPLE__ || MACOSX */
 
 #include "quakedef.h"
+#if defined(_WIN32)
+#include <windows.h> //Console Paste - Eradicator
+#endif
 
 /*
 
@@ -203,6 +206,14 @@ Interactive line editing and console scrollback
 void Key_Console (int key)
 {
 	char	*cmd;
+#if defined(_WIN32)
+	//START - Console Paste - Eradicator
+	char	*s;
+	int		i;
+	HANDLE	th;
+	char	*clipText, *textCopied;
+	//END - Console Paste
+#endif
 
 #if defined (__APPLE__) || defined (MACOSX)
 
@@ -391,6 +402,34 @@ void Key_Console (int key)
 		con_backscroll = 0;
 		return;
 	}
+
+	#if defined(_WIN32)
+	if ((key=='V' || key=='v') && GetKeyState(VK_CONTROL)<0) { //Console Paste - Eradicator
+		if (OpenClipboard(NULL)) {
+			th = GetClipboardData(CF_TEXT);
+			if (th) {
+				clipText = GlobalLock(th);
+				if (clipText) {
+					textCopied = malloc(GlobalSize(th)+1);
+					strcpy(textCopied, clipText);
+					strtok(textCopied, "\n\r\b");
+					i = strlen(textCopied);
+					if (i+key_linepos>=MAXCMDLINE)
+						i=MAXCMDLINE-key_linepos;
+					if (i>0) {
+						textCopied[i]=0;
+						strcat(key_lines[edit_line], textCopied);
+						key_linepos+=i;;
+					}
+					free(textCopied);
+				}
+				GlobalUnlock(th);
+			}
+			CloseClipboard();
+		return;
+		}
+	}
+	#endif
 	
 	if (key < 32 || key > 127)
 		return;	// non printable
