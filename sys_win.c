@@ -95,7 +95,7 @@ FILE IO
 ===============================================================================
 */
 
-#define	MAX_HANDLES		10
+#define	MAX_HANDLES		256 //Changed max pak files to 256 from 10 - Eradicator
 FILE	*sys_handles[MAX_HANDLES];
 
 int		findhandle (void)
