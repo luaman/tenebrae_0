@@ -20,10 +20,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				OptimizeForProcessor="2"
+				OptimizeForProcessor="3"
 				AdditionalIncludeDirectories="..\dxsdk\sdk\inc,..\extlibs-w32"
 				PreprocessorDefinitions="WIN32,_DEBUG,_WINDOWS,GLQUAKE"
 				RuntimeLibrary="5"
+				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderFile=".\debug_gl/WinQuake.pch"
 				AssemblerListingLocation=".\debug_gl/"
@@ -43,7 +44,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\extlibs-w32"
-				IgnoreDefaultLibraryNames="libc"
+				IgnoreDefaultLibraryNames="libc libcd"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\debug_gl/glquake.pdb"
 				SubSystem="2"/>
@@ -92,7 +93,7 @@
 				ImproveFloatingPointConsistency="FALSE"
 				FavorSizeOrSpeed="2"
 				OmitFramePointers="TRUE"
-				OptimizeForProcessor="3"
+				OptimizeForProcessor="2"
 				OptimizeForWindowsApplication="TRUE"
 				AdditionalIncludeDirectories="..\dxsdk\sdk\inc,..\extlibs-w32"
 				PreprocessorDefinitions="WIN32,NDEBUG,_WINDOWS,GLQUAKE"
@@ -100,7 +101,6 @@
 				ExceptionHandling="FALSE"
 				RuntimeLibrary="4"
 				BufferSecurityCheck="FALSE"
-				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\release_gl/WinQuake.pch"
 				AssemblerListingLocation=".\release_gl/"
@@ -109,7 +109,6 @@
 				BrowseInformation="1"
 				WarningLevel="4"
 				SuppressStartupBanner="TRUE"
-				Detect64BitPortabilityProblems="TRUE"
 				DebugInformationFormat="0"
 				CompileAs="0"/>
 			<Tool
@@ -212,6 +211,9 @@
 			</File>
 			<File
 				RelativePath="..\gl_bumpgf.c">
+			</File>
+			<File
+				RelativePath="..\gl_bumpgl2.c">
 			</File>
 			<File
 				RelativePath="..\gl_bumpmap.c">
@@ -481,21 +483,6 @@ del $(OUTDIR)\$(InputName).spp
 				RelativePath="..\te_scripts.c">
 			</File>
 			<File
-				RelativePath="..\vid_win.c">
-				<FileConfiguration
-					Name="GL Debug|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="GL Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\view.c">
 			</File>
 			<File
@@ -585,12 +572,6 @@ del $(OUTDIR)\$(InputName).spp
 			</File>
 			<File
 				RelativePath="..\cvar.h">
-			</File>
-			<File
-				RelativePath="..\d_iface.h">
-			</File>
-			<File
-				RelativePath="..\dosisms.h">
 			</File>
 			<File
 				RelativePath="..\draw.h">
