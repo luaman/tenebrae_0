@@ -11,6 +11,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <time.h>
 #ifndef __WIN32__
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -285,6 +286,19 @@ void Sys_mkdir (char *path)
 #else
     mkdir (path, 0777);
 #endif
+}
+
+
+void Sys_Strtime(char *buf)
+{
+  struct tm *tm_;
+  static time_t t_;
+  
+  time(&t_);
+  tm_=gmtime(&t_);
+  
+  sprintf(buf,"%02d:%02d:%02d",tm_->tm_hour,tm_->tm_min,tm_->tm_sec);
+  
 }
 
 void Sys_DebugLog(char *file, char *fmt, ...)

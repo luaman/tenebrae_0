@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "errno.h"
 #include "resource.h"
 #include "conproc.h"
+#include <time.h>
 
 #define MINIMUM_WIN_MEMORY		0x0880000
 #define MAXIMUM_WIN_MEMORY		0x2000000 //PENTA: Allow quake to allocate more memory by default
@@ -245,6 +246,12 @@ int	Sys_FileTime (char *path)
 void Sys_mkdir (char *path)
 {
 	_mkdir (path);
+}
+
+
+void Sys_Strtime(char *buf)
+{
+  _strtime(buf);
 }
 
 

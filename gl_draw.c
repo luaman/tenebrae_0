@@ -757,7 +757,7 @@ void Draw_ConsoleBackground (int lines)
 
 	char tl[80]; //Console Clock - Eradicator
 	char timebuf[20];
-	_strtime( timebuf );
+	Sys_Strtime( timebuf );
 
 	if (lines > y)
 		Draw_Pic(0, lines - vid.height, conback);
@@ -779,7 +779,7 @@ void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
    
    char tl[80]; //Console Clock - Eradicator
    char timebuf[20];
-   _strtime( timebuf );
+   Sys_Strtime( timebuf );
 
 
    glPushMatrix(); 
