@@ -36,8 +36,7 @@ If a light has a cubemap filter it requires 2 passes
 
 #include "quakedef.h"
 
-
-#include "glati.h"
+#include "glATI.h"
 
 PFNGLGENFRAGMENTSHADERSATIPROC		qglGenFragmentShadersATI = NULL;
 PFNGLBINDFRAGMENTSHADERATIPROC		qglBindFragmentShaderATI = NULL;
@@ -102,8 +101,13 @@ unsigned int shaders;
 //<AWE> "diffuse_program_object" has to be defined static. Otherwise nameclash with gl_bumpgf.c
 static unsigned int diffuse_program_object;
 
+#if defined(SDL)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) SDL_GL_GetProcAddress (name);
+#else
 #define SAFE_GET_PROC( func, type, name)     \
    func = (type) wglGetProcAddress( name);
+#endif
 
 //#define RADEONDEBUG
 
