@@ -1898,7 +1898,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		COM_FOpenFile (filename, &f);
 		if (f)
 		{
-			Con_DPrintf("Using gloss map for %s\n",identifier);
+			//Con_Printf("Using gloss map for %s\n",identifier);
 			LoadGrayTGA(f,&glosspix[0],&gloss_width,&gloss_height);
 		} else {
 			//set some gloss by default
