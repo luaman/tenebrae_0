@@ -1426,6 +1426,7 @@ void		R_ParticleGunHits (vec3_t org, int type);
 void		R_RenderGlow (shadowlight_t *light);
 void		R_RenderScene (void);
 void		R_RotateForEntity (entity_t *e);
+void		R_UnlerpedRotateForEntity (entity_t *e);
 void		R_SetTotalRect (void);
 void		R_SetupBrushInstantForLight(entity_t *e);
 void		R_SetupInstantForLight(entity_t *e);
