@@ -895,6 +895,7 @@ void LoadTGA (FILE *fin)
     int				columns, rows, numPixels;
     byte			*pixbuf;
     int				row, column;
+	int				row_inc;
 
     targa_header.id_length = fgetc(fin);
     targa_header.colormap_type = fgetc(fin);
@@ -927,9 +928,20 @@ void LoadTGA (FILE *fin)
     if (targa_header.id_length != 0)
 	fseek(fin, targa_header.id_length, SEEK_CUR);  // skip TARGA image comment
 	
+	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
+	if ((targa_header.attributes & 0x20) == 0)
+	{
+		pixbuf = targa_rgba + (rows - 1)*columns*4;
+		row_inc = -columns*4*2;
+	}
+	else
+	{
+		pixbuf = targa_rgba;
+		row_inc = 0;
+	}
+
     if (targa_header.image_type==2) {  // Uncompressed, RGB images
-	for(row=rows-1; row>=0; row--) {
-	    pixbuf = targa_rgba + row*columns*4;
+	for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	    for(column=0; column<columns; column++) {
 		unsigned char red,green,blue,alphabyte;
 		switch (targa_header.pixel_size) {
@@ -959,8 +971,7 @@ void LoadTGA (FILE *fin)
     }
     else if (targa_header.image_type==10) {   // Runlength encoded RGB images
 	unsigned char red = 0x00,green = 0x00,blue = 0x00,alphabyte = 0x00,packetHeader,packetSize,j;
-	for(row=rows-1; row>=0; row--) {
-	    pixbuf = targa_rgba + row*columns*4;
+	for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	    for(column=0; column<columns; ) {
 		packetHeader=getc(fin);
 		packetSize = 1 + (packetHeader & 0x7f);
@@ -988,11 +999,12 @@ void LoadTGA (FILE *fin)
 			column++;
 			if (column==columns) { // run spans across rows
 			    column=0;
-			    if (row>0)
+			    if (row>0) {
 				row--;
+				pixbuf += row_inc;
+				}
 			    else
 				goto breakOut;
-			    pixbuf = targa_rgba + row*columns*4;
 			}
 		    }
 		}
@@ -1022,11 +1034,12 @@ void LoadTGA (FILE *fin)
 			column++;
 			if (column==columns) { // pixel packet run spans across rows
 			    column=0;
-			    if (row>0)
+			    if (row>0) {
 				row--;
+				pixbuf += row_inc;
+				}
 			    else
 				goto breakOut;
-			    pixbuf = targa_rgba + row*columns*4;
 			}						
 		    }
 		}
@@ -1050,6 +1063,7 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
     int				columns, rows, numPixels;
     byte			*pixbuf;
     int				row, column;
+	int				row_inc;
 
     targa_header.id_length = fgetc(fin);
     targa_header.colormap_type = fgetc(fin);
@@ -1087,10 +1101,21 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
     if (targa_header.id_length != 0)
 	fseek(fin, targa_header.id_length, SEEK_CUR);  // skip TARGA image comment
 	
+	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
+	if ((targa_header.attributes & 0x20) == 0)
+	{
+		pixbuf = targa_rgba + (rows - 1)*columns*4;
+		row_inc = -columns*4*2;
+	}
+	else
+	{
+		pixbuf = targa_rgba;
+		row_inc = 0;
+	}
+
     if (targa_header.image_type==1) {  // Color mapped
 	fseek(fin, 768, SEEK_CUR);  // skip palette
-	for(row=rows-1; row>=0; row--) {
-	    pixbuf = targa_rgba + row*columns*4;
+	for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	    for(column=0; column<columns; column++) {
 		unsigned char index;
 		index = getc(fin);
@@ -1099,8 +1124,7 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
 	    }
 	}
     } else if (targa_header.image_type==2) {  // Uncompressed, RGB images
-	for(row=rows-1; row>=0; row--) {
-	    pixbuf = targa_rgba + row*columns*4;
+	for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	    for(column=0; column<columns; column++) {
 		unsigned char red,green,blue,alphabyte;
 		switch (targa_header.pixel_size) {
@@ -1130,8 +1154,7 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
     }
     else if (targa_header.image_type==10) {   // Runlength encoded RGB images
 	unsigned char red = 0x00,green = 0x00,blue = 0x00,alphabyte = 0x00,packetHeader,packetSize,j;
-	for(row=rows-1; row>=0; row--) {
-	    pixbuf = targa_rgba + row*columns*4;
+	for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	    for(column=0; column<columns; ) {
 		packetHeader=getc(fin);
 		packetSize = 1 + (packetHeader & 0x7f);
@@ -1159,11 +1182,12 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname
 			column++;
 			if (column==columns) { // run spans across rows
 			    column=0;
-			    if (row>0)
+			    if (row>0) {
 				row--;
+				pixbuf += row_inc;
+				}
 			    else
 				goto breakOut;
-			    pixbuf = targa_rgba + row*columns*4;
 			}
 		    }
 		}
@@ -1241,6 +1265,7 @@ void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height, char *fname)
     int				columns, rows, numPixels;
     int				row, column;
     byte			*pixbuf;
+	int				row_inc;
 
     targa_header.id_length = fgetc(fin);
     targa_header.colormap_type = fgetc(fin);
@@ -1268,6 +1293,17 @@ void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height, char *fname)
     rows = targa_header.height;
     numPixels = columns * rows;
 
+	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
+	if ((targa_header.attributes & 0x20) == 0)
+	{
+		pixbuf = pixels + (rows - 1)*columns;
+		row_inc = -columns*2;
+	}
+	else
+	{
+		pixbuf = pixels;
+		row_inc = 0;
+	}
 	
     if (targa_header.id_length != 0)
 	fseek(fin, targa_header.id_length, SEEK_CUR);  // skip TARGA image comment
@@ -1277,8 +1313,7 @@ void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height, char *fname)
     }
 
     //fread(pixbuf,1,numPixels,fin);	
-    for(row=rows-1; row>=0; row--) {
-	pixbuf = pixels + row*columns;
+    for(row=rows-1; row>=0; row--, pixbuf += row_inc) {
 	for(column=0; column<columns; column++) {
 	    *pixbuf++= getc(fin);
 	}
