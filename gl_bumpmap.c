@@ -45,16 +45,16 @@ void GL_EnableDiffuseShader () {
 	glEnable(GL_TEXTURE_CUBE_MAP_ARB);
 	glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
 	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-	glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE);
-	glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-	glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
+    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE);
+    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
 	
 	GL_EnableMultitexture();
 	GL_Bind(bump_texture_object);
 	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-	glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
-	glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-	glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_DOT3_RGBA_ARB);
+    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
+    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_DOT3_RGBA_ARB);
 }
 
 void GL_DisableDiffuseShader () {
@@ -387,12 +387,11 @@ void R_DrawWorldLLV(lightcmd_t *lightCmds) {
 	
 			glTexCoord3fv(&tsLightDir[0]);
 			*/
-			glTexCoord3f(lightCmds[lightPos++].asFloat,
-				     lightCmds[lightPos++].asFloat,
-				     lightCmds[lightPos++].asFloat);
+			glTexCoord3fv(&lightCmds[lightPos].asFloat);
+			lightPos+=3;
 
 			qglMultiTexCoord2fARB(GL_TEXTURE1_ARB, v[3], v[4]);
-			glVertex3fv(v);
+			glVertex3fv(&v[0]);
 		}
 		glEnd();
 	}
@@ -414,7 +413,7 @@ void R_DrawWorldHAV(lightcmd_t *lightCmds) {
 	int lightPos = 0;
 	vec3_t lightOr,tsH,H;
 	msurface_t *surf;
-	float		*v;
+	float		*v,*lightP;
 	vec3_t		lightDir;
 	texture_t	*t;//XYZ
 
@@ -444,10 +443,10 @@ void R_DrawWorldHAV(lightcmd_t *lightCmds) {
 		v = surf->polys->verts[0];
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
-			lightDir[0] = lightCmds[lightPos++].asVec;
-			lightDir[1] = lightCmds[lightPos++].asVec;
-			lightDir[2] = lightCmds[lightPos++].asVec;			
+			lightP = &lightCmds[lightPos].asFloat;
+			VectorCopy(lightP,lightDir);
 			VectorNormalize(lightDir);
+			lightPos+=3;//skip local light vector
 
 			//r_origin = camera position
 			VectorSubtract(r_refdef.vieworg,v,H);
@@ -511,17 +510,20 @@ void R_DrawWorldATT(lightcmd_t *lightCmds) {
 		v = surf->polys->verts[0];
 
 		
-		glColor4f( lightCmds[lightPos++].asFloat *b,
-			   lightCmds[lightPos++].asFloat *b,
-			   lightCmds[lightPos++].asFloat *b,
-			   lightCmds[lightPos++].asFloat *b );
+		glColor4f( (&lightCmds[lightPos].asFloat)[0] *b,
+				   (&lightCmds[lightPos].asFloat)[1] *b,
+				   (&lightCmds[lightPos].asFloat)[2] *b,
+				   (&lightCmds[lightPos].asFloat)[3] *b );
 		
+		lightPos+=4;
+
 		glBegin(command);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			
-			glTexCoord2f(lightCmds[lightPos++].asFloat,lightCmds[lightPos++].asFloat);			
+			glTexCoord2fv(&lightCmds[lightPos].asFloat);			
+			lightPos+=2;
 			lightPos+=3;
-			glVertex3fv(v);
+			glVertex3fv(&v[0]);
 		}
 		glEnd();
 	}
