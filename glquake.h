@@ -197,9 +197,9 @@ typedef struct particle_s
 // drivers never touch the following fields
 	struct particle_s	*next;
 	vec3_t		vel;
-	//float		ramp;
+        //float		ramp;
 	float		die, lifetime;
-	//ptype_t		type;
+        //ptype_t		type;
 //PENTA: Nicer particles (tm)
 	int			texture; //texture object of particle
 	int			numbounces; //number of bounces left before deletion set to zero for no bounce
@@ -454,6 +454,18 @@ void GL_Bind (int texnum);
 
 // ARB_texture_compression defines
 #define GL_COMPRESSED_RGBA_ARB                0x84EE
+
+#define GL_STENCIL_BACK_FUNC_ATI                    0x8800
+#define GL_STENCIL_BACK_FAIL_ATI                    0x8801
+#define GL_STENCIL_BACK_PASS_DEPTH_FAIL_ATI         0x8802
+#define GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI         0x8803
+
+typedef void (APIENTRY *PFNGLSTENCILOPSEPARATEATIPROC)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
+typedef void (APIENTRY *PFNGLSTENCILFUNCSEPARATEATIPROC)(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
+
+extern PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
+extern PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
+
 #endif /* !__APPLE__ && !MACOSX */
 
 
@@ -1131,9 +1143,21 @@ typedef void (APIENTRY *lpSelTexFUNC) (GLenum);
 extern qboolean gl_mtexable;
 extern qboolean gl_palettedtex; // <AWE>: true if EXT_paletted_texture present [for GL_Upload8_EXT ()].
 extern qboolean gl_texturefilteranisotropic; // <AWE> true if anisotropic texture filtering available.
-extern qboolean gl_nvcombiner; //PENTA: true if nvdida texture shaders are present
-extern qboolean gl_geforce3;
-extern qboolean gl_radeon;//PA:
+
+typedef enum
+{
+	GENERIC = 0,
+	GEFORCE,
+	GEFORCE3,
+	RADEON,
+	PARHELIA,
+	ARB
+} qcardtype;
+extern qcardtype gl_cardtype;
+
+//extern qboolean gl_nvcombiner; //PENTA: true if nvdida texture shaders are present
+//extern qboolean gl_geforce3;
+//extern qboolean gl_radeon;//PA:
 extern qboolean gl_var;
 extern qboolean gl_texcomp;
 
@@ -1212,6 +1236,9 @@ typedef struct aliaslightinstant_s {
 } aliaslightinstant_t;
 
 typedef struct aliasframeinstant_s {
+	
+     // chain of frameinstant for multiple surfaces
+        struct aliasframeinstant_s *_next;
 	
 	int lockframe;	//number of the frame when it was last locked.
 	int	updateframe; //number of the fame when it was last recalculated
@@ -1341,7 +1368,7 @@ qboolean	R_CheckRectList (screenrect_t *rec);
 void		R_ClearBrushInstantCaches (void);
 void		R_ClearInstantCaches (void);
 void		R_ClearParticles (void);
-void		R_ClearDecails(void);
+void		R_ClearDecals(void);
 void		R_ClearRectList (void);
 void		R_ConstructShadowVolume (shadowlight_t *light);
 qboolean	R_ContributeFrame (shadowlight_t *light);
@@ -1351,16 +1378,23 @@ void		R_DrawAliasBumped (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
 void		R_DrawAliasBumpedGF3 (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
 void		R_DrawAliasBumpedRadeon(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
 void		R_DrawBrushBumpedRadeon(entity_t *e);//PA:
-void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
+void		R_DrawAliasBumpedParhelia(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedParhelia(entity_t *e);//PA:
+void		R_DrawAliasBumpedARB(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedARB(entity_t *e);//PA:
+void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant, qboolean specular);
 void		R_DrawAliasObjectLight (entity_t *e, void (*AliasGeoSender) (aliashdr_t *paliashdr,
                                                                              aliasframeinstant_t* instant));
 void		R_DrawBrushATT (entity_t *ent);
 void		R_DrawBrushBumped (entity_t *e);
 void		R_DrawBrushBumpedGF3 (entity_t *e);
+void		R_DrawBrushBumpedRadeon (entity_t *e);
+void		R_DrawBrushBumpedParhelia (entity_t *e);
+void		R_DrawBrushBumpedARB (entity_t *e);
 void		R_DrawBrushModel (entity_t *e);
 void		R_DrawBrushModelVolumes(entity_t *e);
 void		R_DrawBrushObjectLight (entity_t *e,void (*BrushGeoSender) (entity_t *e));
-void		R_DrawBrushWV (entity_t *e);
+void		R_DrawBrushWV (entity_t *e, qboolean specular);
 void		R_DrawGlare (void);
 void		R_DrawLightEntities (shadowlight_t *l);
 void		R_DrawParticles (void);
@@ -1374,7 +1408,9 @@ void		R_DrawWorldBumpedGEN (void);
 void 		R_DrawWorldBumpedGF (void);
 void		R_DrawWorldBumpedGF3 (void);
 void		R_DrawWorldBumpedRadeon (void);
-void		R_DrawWorldWV (lightcmd_t *lightCmds);
+void		R_DrawWorldBumpedParhelia (void);
+void		R_DrawWorldBumpedARB (void);
+void		R_DrawWorldWV (lightcmd_t *lightCmds, qboolean specular);
 qboolean	R_FillShadowChain (shadowlight_t *light);
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity);
 void		R_Glare (void);
@@ -1394,6 +1430,7 @@ void		R_RotateForEntity (entity_t *e);
 void		R_SetTotalRect (void);
 void		R_SetupBrushInstantForLight(entity_t *e);
 void		R_SetupInstantForLight(entity_t *e);
+void		R_SetupInstantForFrame(entity_t *e, qboolean forcevis);
 void		R_SetupInstants (void);
 qboolean	R_ShouldDrawViewModel (void);
 void		R_StoreEfrags (efrag_t **ppefrag);
@@ -1410,6 +1447,8 @@ void		EmitWaterPolys (msurface_t *fa);
 void		InitShaderTex (void);
 void 		LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height);
 void		LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height);
+int             LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* height);
+void            LoadTGA (FILE *fin);
 qboolean	OverrideFluidTex (char *name);
 void		ProjectPlane (const vec3_t src,const vec3_t v1,const vec3_t v2,vec3_t dst);
 void		TraceLine (vec3_t start, vec3_t end, vec3_t impact);
@@ -1422,7 +1461,7 @@ void		GL_EnableColorShader (qboolean specular);
 void		GL_GetOverrideName (char *identifier, char *tail, char *dest);
 int		GL_LoadCubeMap (int identifier);
 void		GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr);
-void		R_DrawAliasModel (entity_t *e, float bright);
+void		R_DrawAliasModel ( float bright);
 void		GL_ModulateAlphaDrawColor (void);
 void		GL_SelectTexture (GLenum target);
 void		GL_Set2D (void);
@@ -1465,3 +1504,5 @@ extern qboolean	busy_caustics;
 extern char	skybox_name[64];
 extern float skybox_cloudspeed;
 extern qboolean skybox_hasclouds;
+
+#include "gl_md3.h"
