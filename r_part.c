@@ -1242,6 +1242,9 @@ void R_DrawParticles (void)
 	float			scale, sscale;
 	ParticleEmitter_t *ekill, *emt;
 
+	if (gl_wireframe.value)
+		return;
+
 	glFogfv(GL_FOG_COLOR, color_black); //Done in actual function now (stops "triangle effect") - Eradicator
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_ONE, GL_ONE);
