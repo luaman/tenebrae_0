@@ -204,8 +204,101 @@ qboolean R_CullBox (vec3_t mins, vec3_t maxs)
 	return false;
 }
 
+/*
+=============
+R_RotateForEntity
 
+New transform interpolated - Eradicator
+=============
+*/
 void R_RotateForEntity (entity_t *e)
+{
+	float timepassed;
+	float blend;
+    vec3_t d;
+    int i;
+
+	//Hack to stop t lerping view models - Eradicator
+	if ((!strcmp (e->model->name, "progs/v_shot.mdl")) || (!strcmp (e->model->name, "progs/v_shot2.mdl"))
+		|| (!strcmp (e->model->name, "progs/v_nail.mdl")) || (!strcmp (e->model->name, "progs/v_nail2.mdl"))
+		|| (!strcmp (e->model->name, "progs/v_rock.mdl")) || (!strcmp (e->model->name, "progs/v_rock2.mdl"))
+		|| (!strcmp (e->model->name, "progs/v_axe.mdl")) || (!strcmp (e->model->name, "progs/v_light.mdl")))
+	{
+		R_UnlerpedRotateForEntity (e);
+		return;
+	}
+
+    timepassed = realtime - e->translate_start_time; 
+
+    if (e->translate_start_time == 0 || timepassed > 1)
+    {
+	    e->translate_start_time = realtime;
+        VectorCopy (e->origin, e->origin1);
+        VectorCopy (e->origin, e->origin2);
+    }
+
+    if (!VectorCompare (e->origin, e->origin2))
+    {
+		e->translate_start_time = realtime;
+        VectorCopy (e->origin2, e->origin1);
+        VectorCopy (e->origin,  e->origin2);
+        blend = 0;
+    }
+    else
+    {
+		blend =  timepassed / 0.1;
+
+	    if (cl.paused || blend > 1) blend = 1;
+        }
+			VectorSubtract (e->origin2, e->origin1, d);
+
+			glTranslatef (
+            e->origin1[0] + (blend * d[0]),
+            e->origin1[1] + (blend * d[1]),
+            e->origin1[2] + (blend * d[2]));
+
+            timepassed = realtime - e->rotate_start_time; 
+
+            if (e->rotate_start_time == 0 || timepassed > 1)
+            {
+				e->rotate_start_time = realtime;
+                VectorCopy (e->angles, e->angles1);
+                VectorCopy (e->angles, e->angles2);
+            }
+
+            if (!VectorCompare (e->angles, e->angles2))
+            {
+				e->rotate_start_time = realtime;
+                VectorCopy (e->angles2, e->angles1);
+                VectorCopy (e->angles,  e->angles2);
+                blend = 0;
+            }
+            else
+            {
+                blend = timepassed / 0.1;
+ 
+                if (cl.paused || blend > 1) 
+					blend = 1;
+			}
+			VectorSubtract (e->angles2, e->angles1, d);
+
+			for (i = 0; i < 3; i++) 
+			{
+                if (d[i] > 180)
+                {
+					d[i] -= 360;
+                }
+                else if (d[i] < -180)
+                {
+					d[i] += 360;
+				}
+			}
+	glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
+	glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
+	glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
+}
+
+void R_UnlerpedRotateForEntity (entity_t *e)
 {
     glTranslatef (e->origin[0],  e->origin[1],  e->origin[2]);
 
@@ -2111,7 +2204,6 @@ void R_RenderScene (void)
 		//but i'm convinced you can't save more clears than those that you
 		//save with this.
 		if ((!sh_nocleversave.value) && (!sh_noscissor.value)) {
-			qboolean foundone = false;
 			for (j=0; j<numUsedShadowLights; j++) {
 
 				if (!usedshadowlights[j]->visible) continue;
@@ -2119,22 +2211,9 @@ void R_RenderScene (void)
 				l = usedshadowlights[j];
 				currentshadowlight = l;
 				if (R_CheckRectList(&l->scizz)) {
-					foundone = true;
 					break;
 				}
 			}
-			
-			if (!foundone) {
-				R_SetTotalRect(); //Only clear dirty part
-				glClear(GL_STENCIL_BUFFER_BIT);
-				R_ClearRectList();
-				for (j=0; j<numUsedShadowLights; j++) {
-					l = usedshadowlights[j];
-					currentshadowlight = l;
-					if (usedshadowlights[j]->visible) break;
-				}
-			}
-
 		} else {
 			l = usedshadowlights[i];
 			currentshadowlight = l;
