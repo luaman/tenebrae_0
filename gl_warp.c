@@ -1475,7 +1475,8 @@ void R_DrawSkyBox (void)
 
 	glDepthMask(0);
 
-	if (fog_enabled.value) glDisable(GL_FOG);
+	if (fog_enabled.value && !gl_wireframe.value) 
+		glDisable(GL_FOG);
 
 	for (i=0 ; i<6 ; i++)
 	{
@@ -1499,7 +1500,8 @@ void R_DrawSkyBox (void)
 		glEnd ();
 	}
 
-	if (fog_enabled.value) glEnable(GL_FOG);
+	if (fog_enabled.value && !gl_wireframe.value) 
+		glEnable(GL_FOG);
 
 	if (!skybox_hasclouds) {
 		glDepthMask(1);		
