@@ -669,7 +669,7 @@ int LoadTexture(char* filename, int size)
 
     // Check for *.png first, then *.jpg, fall back to *.tga if not found...
     // first replace the last three letters with png (yeah, hack)
-    strcpy(argh, filename);
+    strncpy(argh, filename,sizeof(argh));
     tmp = argh + strlen(filename) - 3;
 #ifndef NO_PNG
     tmp[0] = 'p';
@@ -778,7 +778,7 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 
     // Check for *.png first, then *.jpg, fall back to *.tga if not found...
     // first replace the last three letters with png (yeah, hack)
-    strcpy(argh, filename);
+    strncpy(argh, filename,sizeof(argh));
     tmp = argh + strlen(filename) - 3;
 #ifndef NO_PNG
     tmp[0] = 'p';
@@ -1309,7 +1309,7 @@ int EasyTgaLoad(char *filename)
     GL_Bind (texture_extension_number);
     // Check for *.png first, then *.jpg, fall back to *.tga if not found...
     // first replace the last three letters with png (yeah, hack)
-    strcpy(argh, filename);
+    strncpy(argh, filename,sizeof(argh));
     tmp = argh + strlen(filename) - 3;
 #ifndef NO_PNG
     tmp[0] = 'p';

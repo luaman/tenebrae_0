@@ -323,7 +323,7 @@ dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
   glob(dirfilter,0,NULL,&uxdata.globbuf);
   if (uxdata.globbuf.gl_pathc){
     dirdata->internal=&uxdata;
-    strcpy(dirdata->entry,uxdata.globbuf.gl_pathv[0]);
+    strncpy(dirdata->entry,uxdata.globbuf.gl_pathv[0],sizeof(dirdata->entry));
     uxdata.count=0;
     return dirdata;
   }
@@ -338,7 +338,7 @@ dirdata_t *Sys_Findnext (dirdata_t *dirdata)
     uxdata->count++;
     // next entry ?
     if (uxdata->count<uxdata->globbuf.gl_pathc){
-      strcpy(dirdata->entry,uxdata->globbuf.gl_pathv[uxdata->count]);
+      strncpy(dirdata->entry,uxdata->globbuf.gl_pathv[uxdata->count],sizeof(dirdata->entry));
       return dirdata;
     }
     // no -> close

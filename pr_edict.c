@@ -258,7 +258,7 @@ eval_t *GetEdictFieldValue(edict_t *ed, char *field)
 	if (strlen(field) < MAX_FIELD_LEN)
 	{
 		gefvCache[rep].pcache = def;
-		strcpy (gefvCache[rep].field, field);
+		strncpy (gefvCache[rep].field, field, sizeof(gefvCache[rep].field));
 		rep ^= 1;
 	}
 
@@ -660,7 +660,7 @@ void ED_ParseGlobals (char *data)
 		if (!data)
 			Sys_Error ("ED_ParseEntity: EOF without closing brace");
 
-		strcpy (keyname, com_token);
+		strncpy (keyname, com_token, sizeof(keyname));
 
 	// parse value	
 		data = COM_Parse (data);
@@ -747,7 +747,7 @@ qboolean	ED_ParseEpair (void *base, ddef_t *key, char *s)
 		break;
 		
 	case ev_vector:
-		strcpy (string, s);
+		strncpy (string, s, sizeof(string));
 		v = string;
 		w = string;
 		for (i=0 ; i<3 ; i++)

@@ -272,7 +272,7 @@ qpic_t	*Draw_CachePic (char *path)
 	if (menu_numcachepics == MAX_CACHED_PICS)
 		Sys_Error ("menu_numcachepics == MAX_CACHED_PICS");
 	menu_numcachepics++;
-	strcpy (pic->name, path);
+	strncpy (pic->name, path,sizeof(pic->name));
 
 //
 // load the pic from disk
@@ -2047,7 +2047,7 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 
 	//Con_Printf("Load texture: %s %i %i\n",identifier,width,height);
 
-	strcpy (glt->identifier, identifier);
+	strncpy (glt->identifier, identifier, sizeof(glt->identifier));
 	glt->texnum = texture_extension_number;
 	glt->width = width;
 	glt->height = height;
@@ -2146,7 +2146,7 @@ int GL_LoadCubeMap (int identifier)
 	//else {
 		glt = &gltextures[numgltextures];
 		numgltextures++;
-	strcpy (glt->identifier, filename);
+	strncpy (glt->identifier, filename,sizeof(glt->identifier));
 
 		//Con_Printf("Texnum2 %i\n",numgltextures);
 	//}

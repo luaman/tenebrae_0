@@ -2126,7 +2126,7 @@ void ParseVector (char *s, float *d)
 	char	string[128];
 	char	*v, *w;
 		
-	strcpy (string, s);
+	strncpy (string, s,sizeof(string));
 	v = string;
 	w = string;
 	for (i=0 ; i<3 ; i++)
@@ -2158,7 +2158,7 @@ char *ParseEnt (char *data, qboolean *isLight, vec3_t origin)
 		if (!data)
 			Sys_Error ("ParseEnt: EOF without closing brace");
 
-		strcpy (keyname, com_token);
+		strncpy (keyname, com_token,sizeof(keyname));
 
 	// parse value	
 		data = COM_Parse (data);
@@ -2183,7 +2183,7 @@ char *ParseEnt (char *data, qboolean *isLight, vec3_t origin)
 			Con_Printf("Automatic light gen disabled\n");//XYW \n
 			foundworld = true;
 		} else if (!strcmp(keyname, "_skybox")) {
-			strcpy(skybox_name,com_token);
+			strncpy(skybox_name,com_token,sizeof(skybox_name));
 		} else if (!strcmp(keyname, "_cloudspeed")) {
 			skybox_cloudspeed = atof(com_token);
 		} else if (!strcmp(keyname, "_lightmapbright")) {

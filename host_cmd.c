@@ -280,7 +280,7 @@ void Host_Map_f (void)
 	strcat (cls.mapstring, "\n");
 
 	svs.serverflags = 0;			// haven't completed an episode yet
-	strcpy (name, Cmd_Argv(1));
+	strncpy (name, Cmd_Argv(1),sizeof(name));
 #ifdef QUAKE2
 	SV_SpawnServer (name, NULL);
 #else
@@ -328,12 +328,12 @@ void Host_Changelevel_f (void)
 		return;
 	}
 
-	strcpy (level, Cmd_Argv(1));
+	strncpy (level, Cmd_Argv(1),sizeof(level));
 	if (Cmd_Argc() == 2)
 		startspot = NULL;
 	else
 	{
-		strcpy (_startspot, Cmd_Argv(2));
+		strncpy (_startspot, Cmd_Argv(2),sizeof(_startspot));
 		startspot = _startspot;
 	}
 
@@ -353,7 +353,7 @@ void Host_Changelevel_f (void)
 		return;
 	}
 	SV_SaveSpawnparms ();
-	strcpy (level, Cmd_Argv(1));
+	strncpy (level, Cmd_Argv(1),sizeof(level));
 	SV_SpawnServer (level);
 #endif
 }
@@ -418,7 +418,7 @@ void Host_Connect_f (void)
 		CL_StopPlayback ();
 		CL_Disconnect ();
 	}
-	strcpy (name, Cmd_Argv(1));
+	strncpy (name, Cmd_Argv(1),sizeof(name));
 	CL_EstablishConnection (name);
 	Host_Reconnect_f ();
 }
@@ -881,12 +881,12 @@ void Host_Changelevel2_f (void)
 		return;
 	}
 
-	strcpy (level, Cmd_Argv(1));
+	strncpy (level, Cmd_Argv(1),sizeof(level));
 	if (Cmd_Argc() == 2)
 		startspot = NULL;
 	else
 	{
-		strcpy (_startspot, Cmd_Argv(2));
+		strncpy (_startspot, Cmd_Argv(2),sizeof(_startspot));
 		startspot = _startspot;
 	}
 

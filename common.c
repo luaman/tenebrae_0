@@ -267,6 +267,15 @@ void Q_strcat (char *dest, char *src)
 	Q_strcpy (dest, src);
 }
 
+void Q_strncat (char *dest, char *src,int size)
+{
+        int tmpsize;
+        tmpsize = Q_strlen(dest);
+        size -= tmpsize;
+        dest += tmpsize;
+        Q_strncpy (dest, src, tmpsize);
+}
+
 
 int Q_strcmp (char *s1, char *s2)
 {
@@ -1670,7 +1679,7 @@ int COM_FindFile (const char *filename, int *handle, FILE **file)
 				sprintf (netpath, "%s/%s",search->filename, filename);
 			else { 
 				//already absolute just copy it
-				strcpy(netpath,filename);
+				strncpy (netpath,filename,sizeof(netpath));
 			}
 
 			findtime = Sys_FileTime (netpath);
@@ -1679,7 +1688,7 @@ int COM_FindFile (const char *filename, int *handle, FILE **file)
 				
 		// see if the file needs to be updated in the cache
 			if (!com_cachedir[0])
-				strcpy (cachepath, netpath);
+				strncpy (cachepath, netpath,sizeof(cachepath));
 			else
 			{	
 #if defined(_WIN32)
@@ -1696,7 +1705,7 @@ int COM_FindFile (const char *filename, int *handle, FILE **file)
 			
 				if (cachetime < findtime)
 					COM_CopyFile (netpath, cachepath);
-				strcpy (netpath, cachepath);
+				strncpy (netpath, cachepath,sizeof(netpath));
 			}	
 
 
@@ -2006,14 +2015,14 @@ pack_t *COM_LoadPackFile (char *packfile)
 // parse the directory
 	for (i=0 ; i<numpackfiles ; i++)
 	{
-		strcpy (newfiles[i].name, info[i].name);
+		strncpy (newfiles[i].name, info[i].name,sizeof(newfiles[i].name));
 		newfiles[i].filepos = LittleLong(info[i].filepos);
 		newfiles[i].filelen = LittleLong(info[i].filelen);
 	}
 
 
 	pack = Hunk_Alloc (sizeof (pack_t));
-	strcpy (pack->filename, packfile);
+	strncpy (pack->filename, packfile,sizeof(pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
 	pack->files = newfiles;
@@ -2044,7 +2053,7 @@ void COM_AddGameDirectory (char *dir)
 	dirdata_t dirdata;
 
 // update current gamedir
-	strcpy (com_gamedir, dir);
+	strncpy (com_gamedir, dir, sizeof(com_gamedir));
 //
 // add any pak files , pak*.pak first 
 //
@@ -2083,7 +2092,7 @@ void COM_AddGameDirectory (char *dir)
 // add the directory to the search path last so it overrides paks
 //
 	search = Hunk_Alloc (sizeof(searchpath_t));
-	strcpy (search->filename, dir);
+	strncpy (search->filename, dir, sizeof(search->filename));
 	search->next = com_searchpaths;
 	com_searchpaths = search;
 //
@@ -2162,9 +2171,9 @@ void COM_InitFilesystem (void)
 //
 	i = COM_CheckParm ("-basedir");
 	if (i && i < com_argc-1)
-		strcpy (basedir, com_argv[i+1]);
+		strncpy ( basedir, com_argv[i+1], sizeof(basedir));
 	else
-		strcpy (basedir, host_parms.basedir);
+		strncpy ( basedir, host_parms.basedir, sizeof(basedir));
 
 
 	j = strlen (basedir);
@@ -2188,10 +2197,10 @@ void COM_InitFilesystem (void)
 		if (com_argv[i+1][0] == '-')
 			com_cachedir[0] = 0;
 		else
-			strcpy (com_cachedir, com_argv[i+1]);
+			strncpy ( com_cachedir, com_argv[i+1], sizeof(com_cachedir));
 	}
 	else if (host_parms.cachedir)
-		strcpy (com_cachedir, host_parms.cachedir);
+		strncpy ( com_cachedir, host_parms.cachedir, sizeof(com_cachedir));
 	else
 		com_cachedir[0] = 0;
 
@@ -2204,7 +2213,7 @@ void COM_InitFilesystem (void)
 
 
 #if defined (USERPREF_DIR) /* - DC - user dir */
-	strcpy (userdir, host_parms.userdir);
+	strncpy ( userdir, host_parms.userdir, sizeof(userdir));
 
 
 	j = strlen (userdir);
@@ -2239,7 +2248,7 @@ void COM_InitFilesystem (void)
 					Sys_Error ("Couldn't load packfile: %s", com_argv[i]);
 			}
 			else
-				strcpy (search->filename, com_argv[i]);
+				strncpy (search->filename, com_argv[i], sizeof(search->filename));
 			search->next = com_searchpaths;
 			com_searchpaths = search;
 		}

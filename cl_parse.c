@@ -263,7 +263,7 @@ void CL_ParseServerInfo (void)
 			Con_Printf ("Server sent too many model precaches\n");
 			return;
 		}
-		strcpy (model_precache[nummodels], str);
+		strncpy (model_precache[nummodels], str, sizeof(model_precache[nummodels]));
 		Mod_TouchModel (str);
 	}
 
@@ -279,7 +279,7 @@ void CL_ParseServerInfo (void)
 			Con_Printf ("Server sent too many sound precaches\n");
 			return;
 		}
-		strcpy (sound_precache[numsounds], str);
+		strncpy (sound_precache[numsounds], str, sizeof(sound_precache[numsounds]));
 		S_TouchSound (str);
 	}
 
@@ -885,7 +885,7 @@ void CL_ParseServerMessage (void)
 			i = MSG_ReadByte ();
 			if (i >= MAX_LIGHTSTYLES)
 				Sys_Error ("svc_lightstyle > MAX_LIGHTSTYLES");
-			Q_strcpy (cl_lightstyle[i].map,  MSG_ReadString());
+			Q_strncpy (cl_lightstyle[i].map, MSG_ReadString(), sizeof(cl_lightstyle[i].map));
 			cl_lightstyle[i].length = Q_strlen(cl_lightstyle[i].map);
 			break;
 			
@@ -903,7 +903,7 @@ void CL_ParseServerMessage (void)
 			i = MSG_ReadByte ();
 			if (i >= cl.maxclients)
 				Host_Error ("CL_ParseServerMessage: svc_updatename > MAX_SCOREBOARD");
-			strcpy (cl.scores[i].name, MSG_ReadString ());
+			strncpy (cl.scores[i].name, MSG_ReadString (), sizeof(cl.scores[i].name));
 			break;
 			
 		case svc_updatefrags:
