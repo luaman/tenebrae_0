@@ -38,7 +38,7 @@ byte	mod_novis[MAX_MAP_LEAFS/8];
 model_t	mod_known[MAX_MOD_KNOWN];
 int		mod_numknown;
 
-cvar_t gl_subdivide_size = {"gl_subdivide_size", "16", true};
+cvar_t gl_subdivide_size = {"gl_subdivide_size", "64", true};
 
 /*
 ===============
@@ -263,7 +263,13 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 //
 // load the file
 //
-	buf = (unsigned *)COM_LoadStackFile (mod->name, stackbuf, sizeof(stackbuf));
+	//PENTA: Some teamfortress maps refer to names starting with / this is not the correct
+	//quake convention but somehow they got away with it...
+	if (mod->name[0] != '/')
+		buf = (unsigned *)COM_LoadStackFile (mod->name, stackbuf, sizeof(stackbuf));
+	else
+		buf = (unsigned *)COM_LoadStackFile ((mod->name+1), stackbuf, sizeof(stackbuf));
+
 	if (!buf)
 	{
 		if (crash)
@@ -567,6 +573,7 @@ void Mod_LoadEntities (lump_t *l)
 	flength = COM_FOpenFile(filename,&f);
 
 	if (f) {
+		Con_Printf("Loading entities from edo file\n");
 		loadmodel->entities = Hunk_AllocName (flength, loadname);	
 		fread(loadmodel->entities, 1, flength, f);
 		fclose(f);
@@ -849,10 +856,11 @@ void Mod_LoadFaces (lump_t *l)
 		if (!Q_strncmp(out->texinfo->texture->name,"sky",3))	// sky
 		{
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
-#ifndef QUAKE2
+/*#ifndef QUAKE2
 			GL_SubdivideSurface (out);	// cut up polygon for warps
-#endif
+#endif*/
 			continue;
+
 		}
 		
 		if (!Q_strncmp(out->texinfo->texture->name,"*",1))		// turbulent
@@ -1281,20 +1289,35 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 
 // load into heap
 	
+	Con_DPrintf("Vertexes\n");
 	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
+	Con_DPrintf("Edges\n");
 	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
+	Con_DPrintf("SurfEdges\n");
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
+	Con_DPrintf("Textures\n");
 	Mod_LoadTextures (&header->lumps[LUMP_TEXTURES]);
+	Con_DPrintf("Lighting\n");
 	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
+	Con_DPrintf("Planes\n");
 	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
+	Con_DPrintf("Texinfo\n");
 	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
+	Con_DPrintf("Faces\n");
 	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
+	Con_DPrintf("MarkSurfaces\n");
 	Mod_LoadMarksurfaces (&header->lumps[LUMP_MARKSURFACES]);
+	Con_DPrintf("Visibility\n");
 	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);
+	Con_DPrintf("Leafs\n");
 	Mod_LoadLeafs (&header->lumps[LUMP_LEAFS]);
+	Con_DPrintf("Nodes\n");
 	Mod_LoadNodes (&header->lumps[LUMP_NODES]);
+	Con_DPrintf("ClipNodes\n");
 	Mod_LoadClipnodes (&header->lumps[LUMP_CLIPNODES]);
+	Con_DPrintf("Entities\n");
 	Mod_LoadEntities (&header->lumps[LUMP_ENTITIES]);
+	Con_DPrintf("Submodels\n");
 	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
 
 	Mod_MakeHull0 ();
@@ -1682,6 +1705,9 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 
 	if (pheader->numtris <= 0)
 		Sys_Error ("model %s has no triangles", mod->name);
+
+	if (pheader->numtris > MAXALIASTRIS)
+		Sys_Error ("model %s has too many triangles", mod->name);
 
 	pheader->numframes = LittleLong (pinmodel->numframes);
 	numframes = pheader->numframes;
