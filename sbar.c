@@ -918,6 +918,7 @@ void Sbar_DrawFace (void)
 	Sbar_DrawPic (112, 0, sb_faces[f][anim]);
 }
 
+extern cvar_t sbar_updateperframe;
 /*
 ===============
 Sbar_Draw
@@ -928,7 +929,8 @@ void Sbar_Draw (void)
 	if (scr_con_current == vid.height)
 		return;		// console is full screen
 
-	if (sb_updates >= vid.numpages)
+	//Made cvar to toggle this. Defautly HUD now updates every frame to stop 2D bugs. - Eradicator
+	if (sb_updates >= vid.numpages && sbar_updateperframe.value == 0)
 		return;
 
 	scr_copyeverything = 1;
