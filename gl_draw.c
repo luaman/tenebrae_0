@@ -950,8 +950,11 @@ void GL_Set2D (void)
 
 	glDisable (GL_DEPTH_TEST);
 	glDisable (GL_CULL_FACE);
-	glDisable (GL_BLEND);
+//	glDisable (GL_BLEND);
 	glEnable (GL_ALPHA_TEST);
+
+	glEnable(GL_BLEND);
+	glAlphaFunc(GL_GREATER,0.01);
 //	glDisable (GL_ALPHA_TEST);
 
 	glColor4f (1,1,1,1);
@@ -1264,10 +1267,15 @@ void GL_MipMapNormal (byte *in, int width, int height)
 		(inv127*in[6]-1.0)+
 		(inv127*in[width+2]-1.0)+
 		(inv127*in[width+6]-1.0);
+
 	    g = (inv255*in[3])+
+
 		(inv255*in[7])+
+
 		(inv255*in[width+3])+
+
 		(inv255*in[width+7]);
+
 
             l = sqrt(x*x+y*y+z*z);
 	    if (l == 0.0) {
@@ -1374,6 +1382,7 @@ void	GL_PackGloss(byte *gloss,unsigned *dest,int length)
     int i;
 
     for (i=0; i<length; i++, gloss++, dest++) 
+
     {
         *dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
         *dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
@@ -2009,6 +2018,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
                 else
                 {
                     Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+
                 }
 		GL_UploadBump (bumppix, width, height, mipmap, &glosspix[0]);
 	    }

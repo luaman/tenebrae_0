@@ -383,6 +383,8 @@ void M_Main_Draw (void)
 	int		f;
 	qpic_t	*p;
 
+	glEnable(GL_BLEND);
+
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/ttl_main.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
