@@ -960,7 +960,7 @@ void Mod_LoadLeafs (lump_t *l)
 			out->ambient_sound_level[j] = in->ambient_level[j];
 
 		// gl underwater warp
-		if (out->contents != CONTENTS_EMPTY)
+		if (out->contents == CONTENTS_WATER)
 		{
 			for (j=0 ; j<out->nummarksurfaces ; j++)
 				out->firstmarksurface[j]->flags |= SURF_UNDERWATER;
@@ -1701,6 +1701,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		mod->mins[i] = aliasbboxmins[i] * pheader->scale[i] + pheader->scale_origin[i];
 		mod->maxs[i] = aliasbboxmaxs[i] * pheader->scale[i] + pheader->scale_origin[i];
 	}
+	mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
 
 	//
 	// build the draw lists

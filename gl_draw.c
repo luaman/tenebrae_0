@@ -527,6 +527,13 @@ void Draw_Init (void)
 	R_LoadVertexProgram();
 
 	halo_texture_object = EasyTgaLoad("penta/utflare5.tga");
+
+	for (i=0; i<8; i++) {
+		char name[32];
+		sprintf(name,"penta/caust%i.tga",i*4);
+		caustics_textures[i] = EasyTgaLoad(name);
+	}
+
 	//Load water shader textures
 	InitShaderTex();
 	//load mirror dummys
