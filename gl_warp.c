@@ -1067,6 +1067,16 @@ in gl texture object.
 int EasyTgaLoad(char *filename) {
 
 	FILE	*f;
+        int			texturemode;
+
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 1 )
+        {
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;
+        }
 
 	COM_FOpenFile (filename, &f);
 	if (!f)
@@ -1079,8 +1089,8 @@ int EasyTgaLoad(char *filename) {
 
 
 	LoadTGA (f);
-	
-	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
+        
+        glTexImage2D (GL_TEXTURE_2D, 0, texturemode, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
 	free (targa_rgba);
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

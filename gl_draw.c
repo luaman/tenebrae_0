@@ -32,6 +32,9 @@ cvar_t		gl_nobind = {"gl_nobind", "0"};
 cvar_t		gl_max_size = {"gl_max_size", "1024"};
 cvar_t		gl_picmip = {"gl_picmip", "0"};
 cvar_t          gl_gloss = {"gl_gloss", "0.5"};
+cvar_t          gl_compress_textures = {"gl_compress_textures", "0"};
+cvar_t          willi_gray_colormaps = {"willi_gray_colormaps", "0"};
+
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
 qpic_t		*draw_backtile;
@@ -412,6 +415,8 @@ void Draw_Init (void)
 	Cvar_RegisterVariable (&gl_max_size);
 	Cvar_RegisterVariable (&gl_picmip);
 	Cvar_RegisterVariable (&gl_gloss);
+	Cvar_RegisterVariable (&gl_compress_textures);
+	Cvar_RegisterVariable (&willi_gray_colormaps);
 
 	// 3dfx can only handle 256 wide textures
 	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
@@ -531,7 +536,7 @@ void Draw_Init (void)
 
 	for (i=0; i<8; i++) {
 		char name[32];
-		sprintf(name,"penta/caust%i.tga",i*4);
+		sprintf(name,"penta/caust%02.2i.tga",i*4);
 		caustics_textures[i] = EasyTgaLoad(name);
 	}
 
@@ -1193,7 +1198,7 @@ GL_Upload32
 */
 void GL_Upload32 (unsigned *data, int width, int height,  qboolean mipmap, qboolean alpha)
 {
-	int			samples;
+	int			texturemode;
 	//XYZ
 static	unsigned	scaled[1024*1024];	// [512*256];
 	int			scaled_width, scaled_height;
@@ -1214,19 +1219,25 @@ static	unsigned	scaled[1024*1024];	// [512*256];
 	if (scaled_width * scaled_height > sizeof(scaled)/4)
 		Sys_Error ("GL_LoadTexture: too big");
 
-	samples = 4;//PENTA: Always upload rgb it doesn't make any difference for nvidia cards (& others)
-	//samples = alpha ? gl_alpha_format : gl_solid_format;
-
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 1 )
+        {
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;//PENTA: Always upload rgb it doesn't make any difference for nvidia cards (& others)
+	    //texturemode = alpha ? gl_alpha_format : gl_solid_format;
+        }
 #if 0
 	if (mipmap)
-		gluBuild2DMipmaps (GL_TEXTURE_2D, samples, width, height, GL_RGBA, GL_UNSIGNED_BYTE, trans);
+		gluBuild2DMipmaps (GL_TEXTURE_2D, texturemode, width, height, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	else if (scaled_width == width && scaled_height == height)
-		glTexImage2D (GL_TEXTURE_2D, 0, samples, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
+		glTexImage2D (GL_TEXTURE_2D, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	else
 	{
 		gluScaleImage (GL_RGBA, width, height, GL_UNSIGNED_BYTE, trans,
 			scaled_width, scaled_height, GL_UNSIGNED_BYTE, scaled);
-		glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+		glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	}
 #else
 texels += scaled_width * scaled_height;
@@ -1235,7 +1246,7 @@ texels += scaled_width * scaled_height;
 	{
 		if (!mipmap)
 		{
-			glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			goto done;
 		}
 		memcpy (scaled, data, width*height*4);
@@ -1243,7 +1254,7 @@ texels += scaled_width * scaled_height;
 	else
 		GL_ResampleTexture (data, width, height, scaled, scaled_width, scaled_height);
 
-	glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+	glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	if (mipmap)
 	{
 		int		miplevel;
@@ -1259,8 +1270,8 @@ texels += scaled_width * scaled_height;
 			if (scaled_height < 1)
 				scaled_height = 1;
 			miplevel++;
-			glTexImage2D (GL_TEXTURE_2D, miplevel, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
-		}
+			glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+                }
 	}
 done: ;
 #endif
@@ -1290,7 +1301,8 @@ void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboole
 	int			scaled_width, scaled_height;
 
 	s = width*height;
-	// if there are no transparent pixels, make it a 3 component
+
+        // if there are no transparent pixels, make it a 3 component
 	// texture even if it was specified as otherwise
 	if (alpha)
 	{
@@ -1429,8 +1441,18 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
         static unsigned char	scaled[1024*512];	// [512*256];
 	int			scaled_width, scaled_height;
 	byte			*nmap;
+	int			texturemode;
 
-	//Resize to power of 2 and maximum texture size
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
+        {
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;
+        }
+
+        //Resize to power of 2 and maximum texture size
 	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
 		;
 	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
@@ -1464,7 +1486,7 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
 	else
 		nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
 
-	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0,
+	glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
 					GL_RGBA, GL_UNSIGNED_BYTE, nmap);
 
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1486,10 +1508,8 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
 				scaled_height = 1;
 			miplevel++;
 
-			glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
+			glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
 						GL_UNSIGNED_BYTE, nmap);
-			//glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
-			//			GL_UNSIGNED_BYTE, genNormalMap(scaled,scaled_width,scaled_height,4.0f));
 		}
 	}
 
@@ -1516,6 +1536,16 @@ void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
 {
     static unsigned int	scaled[1024*512];	// [512*256];
     int			scaled_width, scaled_height;
+    int			texturemode;
+
+    if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
+    {
+        texturemode = GL_COMPRESSED_RGBA_ARB;
+    }
+    else
+    {
+        texturemode = GL_RGBA;
+    }
 
     //Resize to power of 2 and maximum texture size
     for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
@@ -1545,7 +1575,7 @@ void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
 	GL_ResampleTexture ((unsigned*)data, width, height, scaled, scaled_width, scaled_height);
     }
 
-    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0,
+    glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
 		  GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 
     //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1566,7 +1596,7 @@ void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
 		scaled_height = 1;
 	    miplevel++;
 
-	    glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
+	    glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
 			  GL_UNSIGNED_BYTE, scaled);
 	}
     }
@@ -1615,10 +1645,19 @@ Packs the byte values in gloss in the alpha channel of dest
 void	GL_PackGloss(byte *gloss,unsigned *dest,int length) {
 	int i;
 
-	for (i=0; i<length; i++, gloss++, dest++) {
+        if ( willi_gray_colormaps.value )
+        {
+            for (i=0; i<length; i++, gloss++, dest++) {
+		*dest = LittleLong (0x007F7F7F) | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
+	    }
+        }
+        else
+        {
+            for (i=0; i<length; i++, gloss++, dest++) {
 		*dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
-		*dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
-	}
+                *dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
+	    }
+        }
 }
 
 
@@ -1856,6 +1895,9 @@ int GL_LoadLuma(char *identifier, qboolean mipmap)
 	char filename[128];
 	int			width, height;
 
+        if ( willi_gray_colormaps.value )
+            return 0;
+
 	//try to load an overrided texture
 	GL_GetOverrideName(identifier,"_luma",filename);	
 	COM_FOpenFile (filename, &f);
@@ -1898,6 +1940,16 @@ int GL_LoadCubeMap (int identifier)
 	gltexture_t	*glt;
 	FILE		*f;
 	char filename[128];
+        int			texturemode;
+
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 4 )
+        {   
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;
+        }
 
 	width = 0;
 	height = 0;
@@ -1939,7 +1991,7 @@ int GL_LoadCubeMap (int identifier)
 		if (f) {
 			LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 		}
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
 	}
 	
 	//glEnable(GL_TEXTURE_2D);

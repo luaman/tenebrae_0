@@ -280,6 +280,7 @@ extern	cvar_t	fog_waterfog;
 extern	cvar_t	gl_caustics;
 extern	cvar_t	gl_truform;
 extern	cvar_t	gl_truform_tesselation;
+extern	cvar_t	gl_compress_textures;
 extern  cvar_t	scr_fov;	// 10 - 170
 extern	cvar_t	mir_detail; //PENTA: mirror detail level
 							//0: no mirrors
@@ -371,6 +372,8 @@ void GL_Bind (int texnum);
 #define GL_TEXTURE30_ARB                    0x84DE
 #define GL_TEXTURE31_ARB                    0x84DF
 
+// ARB_texture_compression defines
+#define GL_COMPRESSED_RGBA_ARB                0x84EE
 #endif /* !__APPLE__ && !MACOSX */
 
 
@@ -1052,6 +1055,7 @@ extern qboolean gl_nvcombiner; //PENTA: true if nvdida texture shaders are prese
 extern qboolean gl_geforce3;
 extern qboolean gl_radeon;//PA:
 extern qboolean gl_var;
+extern qboolean gl_texcomp;
 
 extern GLfloat	gl_textureanisotropylevel; // <AWE> required for anisotropic textures.
 
