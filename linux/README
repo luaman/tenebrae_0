@@ -1,0 +1,18 @@
+
+This part of the tenebrae source tree deals with linux build. This file poorly
+documents the build procedure. Have look in tenebrae forum for tips and work around
+on this topic.
+
+This is a quite simple build procedure :
+
+ln -s Makefile.i386linux Makefile
+make 
+
+By default, the program will consider /usr/local/share/games/quake
+as the directory where the id1 and tenebrae directories are to be found. 
+You can change this by adding MASTER_DIR=<quake_dir> to the make command.
+
+If everything goes right, you can launch debugi386.glibc/bin/tenebrae.run 
+which has just been generated. Otherwise, please have a look at bug reports, 
+forums, and if you don't find an answer, report the bug on the website. 
+
