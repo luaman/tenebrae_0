@@ -1878,6 +1878,7 @@ void Host_Stopdemo_f (void)
 Host_InitCommands
 ==================
 */
+extern cvar_t pausedemo; //Pause Demo - Eradicator
 void Host_InitCommands (void)
 {
 	Cmd_AddCommand ("status", Host_Status_f);
@@ -1917,6 +1918,7 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("startdemos", Host_Startdemos_f);
 	Cmd_AddCommand ("demos", Host_Demos_f);
 	Cmd_AddCommand ("stopdemo", Host_Stopdemo_f);
+	Cvar_RegisterVariable (&pausedemo);//Pause Demo - Eradicator
 
 	Cmd_AddCommand ("viewmodel", Host_Viewmodel_f);
 	Cmd_AddCommand ("viewframe", Host_Viewframe_f);

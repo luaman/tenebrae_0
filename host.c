@@ -78,6 +78,7 @@ cvar_t	deathmatch = {"deathmatch","0"};			// 0, 1, or 2
 cvar_t	coop = {"coop","0"};			// 0 or 1
 
 cvar_t	pausable = {"pausable","1"};
+cvar_t	pausedemo = {"pausedemo","0"};//Pause Demo - Eradicator
 
 cvar_t	temp1 = {"temp1","0"};
 
