@@ -19,7 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // gl_warp.c -- sky and water polygons
 
+//#define NO_PNG
+#ifndef NO_PNG
 #include <png.h>
+#endif
 
 #include "quakedef.h"
 
@@ -669,6 +672,7 @@ int LoadTexture(char* filename, int size)
     // first replace the last three letters with png (yeah, hack)
     strcpy(argh, filename);
     tmp = argh + strlen(filename) - 3;
+#ifndef NO_PNG
     tmp[0] = 'p';
     tmp[1] = 'n';
     tmp[2] = 'g';
@@ -706,13 +710,6 @@ int LoadTexture(char* filename, int size)
         if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
             png_set_gray_1_2_4_to_8(png_ptr);
 
-        if (png_get_bKGD(png_ptr, info_ptr, &image_background))
-            png_set_background(png_ptr, image_background,
-            PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
-        else
-            png_set_background(png_ptr, &background,
-            PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-
         if ( size == 4 )
 	{
             if (color_type == PNG_COLOR_TYPE_PALETTE)
@@ -729,8 +726,6 @@ int LoadTexture(char* filename, int size)
             if (color_type == PNG_COLOR_TYPE_RGB ||
                 color_type == PNG_COLOR_TYPE_GRAY )
                 png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-
-            png_set_swap_alpha(png_ptr);
 	}
 	else
 	{          
@@ -753,8 +748,10 @@ int LoadTexture(char* filename, int size)
 	targa_header.width = width;
 	targa_header.height = height;
         targa_rgba = mem;
+        fclose(f);
 	return 1;
     }
+#endif
 
     tmp[0] = 't';
     tmp[1] = 'g';
@@ -762,7 +759,6 @@ int LoadTexture(char* filename, int size)
     COM_FOpenFile (argh, &f);
     if (!f)
     {
-//	Con_SafePrintf ("Couldn't load %s\n", argh);
 	return 0;
     }
     LoadTGA(f);
@@ -779,6 +775,7 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
     // first replace the last three letters with png (yeah, hack)
     strcpy(argh, filename);
     tmp = argh + strlen(filename) - 3;
+#ifndef NO_PNG
     tmp[0] = 'p';
     tmp[1] = 'n';
     tmp[2] = 'g';
@@ -815,13 +812,6 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
         if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
             png_set_gray_1_2_4_to_8(png_ptr);
 
-        if (png_get_bKGD(png_ptr, info_ptr, &image_background))
-            png_set_background(png_ptr, image_background,
-            PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
-        else
-            png_set_background(png_ptr, &background,
-            PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-
         if ( size == 4 )
 	{
             if (color_type == PNG_COLOR_TYPE_PALETTE)
@@ -838,8 +828,6 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
             if (color_type == PNG_COLOR_TYPE_RGB ||
                 color_type == PNG_COLOR_TYPE_GRAY )
                 png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-
-            png_set_swap_alpha(png_ptr);
 	}
 	else
 	{          
@@ -859,9 +847,10 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 	
 	png_destroy_read_struct(&png_ptr, &info_ptr, 0);
 	free(rows);        
+        fclose(f);
 	return 1;
     }
-
+#endif
     tmp[0] = 't';
     tmp[1] = 'g';
     tmp[2] = 'a';
@@ -1305,26 +1294,28 @@ int EasyTgaLoad(char *filename)
 	texturemode = GL_RGBA8;
     }
 
+    GL_Bind (texture_extension_number);
     // Check for *.png first, then *.jpg, fall back to *.tga if not found...
     // first replace the last three letters with png (yeah, hack)
     strcpy(argh, filename);
     tmp = argh + strlen(filename) - 3;
+#ifndef NO_PNG
     tmp[0] = 'p';
     tmp[1] = 'n';
     tmp[2] = 'g';
     COM_FOpenFile (argh, &f);
     if ( f )
     {
-	png_infop info_ptr;
-	png_structp png_ptr;
-	int bit_depth;
-	int color_type;
-	unsigned char** rows;
+        png_infop info_ptr;
+        png_structp png_ptr;
+        int bit_depth;
+        int color_type;
+        unsigned char** rows;
         int i;
         png_color_16 background = {0, 0, 0};
         png_color_16p image_background;
-	
-	Con_DPrintf("Loading %s\n", argh);
+
+        Con_DPrintf("Loading %s\n", argh);
 	
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
 	info_ptr = png_create_info_struct(png_ptr);
@@ -1346,13 +1337,6 @@ int EasyTgaLoad(char *filename)
         if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
             png_set_gray_1_2_4_to_8(png_ptr);
 
-        if (png_get_bKGD(png_ptr, info_ptr, &image_background))
-            png_set_background(png_ptr, image_background,
-            PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
-        else
-            png_set_background(png_ptr, &background,
-            PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-
         if (color_type == PNG_COLOR_TYPE_PALETTE)
             png_set_palette_to_rgb(png_ptr);
 
@@ -1367,8 +1351,6 @@ int EasyTgaLoad(char *filename)
             color_type == PNG_COLOR_TYPE_GRAY )
             png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 
-        png_set_swap_alpha(png_ptr);
-	
 	for ( i = 0; i < height; i++ )
 	{
 	    rows[i] = mem + 4 * width * i;
@@ -1377,8 +1359,10 @@ int EasyTgaLoad(char *filename)
 	
 	png_destroy_read_struct(&png_ptr, &info_ptr, 0);
 	free(rows);        
+        fclose(f);
     }
     else
+#endif
     {
         tmp[0] = 't';
         tmp[1] = 'g';
@@ -1394,7 +1378,6 @@ int EasyTgaLoad(char *filename)
         height = targa_header.height;
         mem = targa_rgba;
     } 
-    GL_Bind (texture_extension_number);
     glTexImage2D (GL_TEXTURE_2D, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, mem);
     free (mem);
 
@@ -1432,9 +1415,6 @@ void R_LoadSkys (void)
 	sprintf (name, "env/%s%s.tga", skybox_name, suf[i]);
 //		Con_Printf("Loading file: %s\n",name);
 
-//		COM_FOpenFile (name, &f);
-//		if (!f)
-
 	if (!LoadTexture(name, 4))
 	{
 	    if (i == 6) {
@@ -1446,8 +1426,6 @@ void R_LoadSkys (void)
 	}
 	else
 	{
-//		LoadTGA (f);
-
 	    GL_Bind (SKY_TEX + i);
 	    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
 
