@@ -762,7 +762,7 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
     vec3_t lightOr;
     msurface_t *surf;
     float               *v;
-    float lightP[3];
+    float* lightP;
     vec3_t lightDir;
     vec3_t tsH,H;
 
@@ -799,12 +799,12 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
         for (i=0; i<num; i++, v+= VERTEXSIZE)
         {
             //skip attent texture coord.
-            lightPos+=2;
+            lightPos += 2;
 
-            lightP[0] = lightCmds[lightPos++].asFloat;
-            lightP[1] = lightCmds[lightPos++].asFloat;
-            lightP[2] = lightCmds[lightPos++].asFloat;
+            lightP = &lightCmds[lightPos].asFloat;
+            lightPos += 3;
 
+            VectorCopy(lightP, lightDir);
             VectorNormalize(lightDir);
 
             //calculate local H vector and put it into tangent space
@@ -831,15 +831,12 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
             // diffuse
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
 	    
-            qglMultiTexCoord3fARB(GL_TEXTURE1_ARB,
-				  lightCmds[lightPos++].asFloat,
-				  lightCmds[lightPos++].asFloat,
-				  lightCmds[lightPos++].asFloat);
+            qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB, lightP);
+
             // half vector for specular
             qglMultiTexCoord3fvARB(GL_TEXTURE2_ARB,&tsH[0]);
 
             glVertex3fv(&v[0]);
-            lightPos+=3;
         }
         glEnd();
     }
