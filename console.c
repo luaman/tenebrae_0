@@ -643,8 +643,6 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 	else
 		Draw_ConsoleBackground (lines);
 
-	glEnable(GL_BLEND);
-
 // draw the text
     con_vislines = lines;
 
