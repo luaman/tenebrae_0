@@ -705,27 +705,24 @@ int LoadTexture(char* filename, int size)
 	mem = malloc(size*height*width);
 	rows = malloc(height*sizeof(char*));
 
-        if (bit_depth == 16)
+        if ( bit_depth == 16)
             png_set_strip_16(png_ptr);
         
-        if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+        if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
         if ( size == 4 )
 	{
-            if (color_type == PNG_COLOR_TYPE_PALETTE)
+            if ( color_type & PNG_COLOR_MASK_PALETTE )
                 png_set_palette_to_rgb(png_ptr);
 
-            if (png_get_valid(png_ptr, info_ptr,
-                PNG_INFO_tRNS))
+            if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
                 png_set_tRNS_to_alpha(png_ptr);
 
-            if (color_type == PNG_COLOR_TYPE_GRAY ||
-                color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+            if ( (color_type & PNG_COLOR_MASK_COLOR == 0) )
                 png_set_gray_to_rgb(png_ptr);
 
-            if (color_type == PNG_COLOR_TYPE_RGB ||
-                color_type == PNG_COLOR_TYPE_GRAY )
+            if ( (color_type & PNG_COLOR_MASK_ALPHA == 0) )
                 png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 	}
 	else
@@ -811,32 +808,29 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 	// Allocate memory and get data there
 	rows = malloc(*height*sizeof(char*));
 
-        if (bit_depth == 16)
+        if ( bit_depth == 16)
             png_set_strip_16(png_ptr);
         
-        if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+        if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
         if ( size == 4 )
 	{
-            if (color_type == PNG_COLOR_TYPE_PALETTE)
+            if ( color_type & PNG_COLOR_MASK_PALETTE )
                 png_set_palette_to_rgb(png_ptr);
 
-            if (png_get_valid(png_ptr, info_ptr,
-                PNG_INFO_tRNS))
+            if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
                 png_set_tRNS_to_alpha(png_ptr);
 
-            if (color_type == PNG_COLOR_TYPE_GRAY ||
-                color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+            if ( (color_type & PNG_COLOR_MASK_COLOR) == 0 )
                 png_set_gray_to_rgb(png_ptr);
 
-            if (color_type == PNG_COLOR_TYPE_RGB ||
-                color_type == PNG_COLOR_TYPE_GRAY )
+            if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
                 png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 	}
 	else
 	{          
-            if ( color_type & PNG_COLOR_MASK_ALPHA)
+            if ( color_type & PNG_COLOR_MASK_ALPHA )
                 png_set_strip_alpha(png_ptr);
 
             if (( color_type & PNG_COLOR_MASK_COLOR ) &&
@@ -1336,25 +1330,23 @@ int EasyTgaLoad(char *filename)
 	mem = malloc(4*height*width);
 	rows = malloc(height*sizeof(char*));
 
-        if (bit_depth == 16)
+        if ( bit_depth == 16)
             png_set_strip_16(png_ptr);
         
-        if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+        if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
-        if (color_type == PNG_COLOR_TYPE_PALETTE)
-            png_set_palette_to_rgb(png_ptr);
+	if ( color_type & PNG_COLOR_MASK_PALETTE )
+	    png_set_palette_to_rgb(png_ptr);
 
-        if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
-            png_set_tRNS_to_alpha(png_ptr);
+	if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
+	    png_set_tRNS_to_alpha(png_ptr);
 
-        if (color_type == PNG_COLOR_TYPE_GRAY ||
-            color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-            png_set_gray_to_rgb(png_ptr);
+	if ( (color_type & PNG_COLOR_MASK_COLOR) == 0 )
+	    png_set_gray_to_rgb(png_ptr);
 
-        if (color_type == PNG_COLOR_TYPE_RGB ||
-            color_type == PNG_COLOR_TYPE_GRAY )
-            png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+	if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
+	    png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 
 	for ( i = 0; i < height; i++ )
 	{
