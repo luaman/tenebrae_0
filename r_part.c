@@ -390,9 +390,11 @@ void R_InitParticles (void)
 	emitters = (ParticleEmitter_t *)
 			Hunk_AllocName (MAX_EMITTERS * sizeof(ParticleEmitter_t), "emitters");
 
-
-	ppSpriteVp = GL_LoadShader( GL_VERTEX_PROGRAM_ARB, "glprogs/ppsprite_vp.txt" );
-	ppSpriteFp = GL_LoadShader( GL_FRAGMENT_PROGRAM_ARB, "glprogs/ppsprite_fp.txt" );
+        if ( gl_cardtype == ARB )
+        {
+	    ppSpriteVp = GL_LoadShader( GL_VERTEX_PROGRAM_ARB, "glprogs/ppsprite_vp.txt" );
+	    ppSpriteFp = GL_LoadShader( GL_FRAGMENT_PROGRAM_ARB, "glprogs/ppsprite_fp.txt" );
+        }
 }
 
 /*
