@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef OPENAL
 #include <alut.h>
+
+#  ifdef _WIN32
 void checkerror()
 {
     int err = alGetError();
@@ -35,6 +37,12 @@ void checkerror()
         _asm { int 3 };
     }
 }
+#  else
+void checkerror()
+{
+}
+#  endif
+
 #endif
 
 
