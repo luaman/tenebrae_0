@@ -196,6 +196,15 @@ void R_SpawnDecal(vec3_t center, vec3_t normal, vec3_t tangent,  ParticleEffect_
 	//Clip decal to bsp
 	DecalWalkBsp_R(dec, cl.worldmodel->nodes);
 
+	//This happens when a decal is to far from any surface or the surface is to steeply sloped
+	if (dec->triangleCount == 0) {
+		//deallocate decal
+		active_decals = dec->next;
+		dec->next = free_decals;
+		free_decals = dec;	
+		return;
+	}
+
 	//Assign texture mapping coordinates
 	one_over_w  = 1.0F / width;
 	one_over_h = 1.0F / height;
