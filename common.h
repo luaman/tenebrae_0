@@ -153,8 +153,10 @@ void COM_InitArgv (int argc, char **argv);
 
 char *COM_SkipPath (char *pathname);
 void COM_StripExtension (char *in, char *out);
-void COM_FileBase (char *in, char *out);
+void COM_FileBase (const char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
+void COM_FindAllExt (char *filedir, char *fileext, void (*callback)(const char *));
+
 
 char	*va(char *format, ...);
 // does a varargs printf into a temp buffer
@@ -168,15 +170,15 @@ struct cache_user_s;
 extern	char	com_gamedir[MAX_OSPATH];
 
 void COM_WriteFile (char *filename, void *data, int len);
-int COM_OpenFile (char *filename, int *hndl);
-int COM_FOpenFile (char *filename, FILE **file);
+int COM_OpenFile (const char *filename, int *hndl);
+int COM_FOpenFile (const char *filename, FILE **file);
 void COM_CloseFile (int h);
 
-byte *COM_LoadStackFile (char *path, void *buffer, int bufsize);
-byte *COM_LoadTempFile (char *path);
-byte *COM_LoadHunkFile (char *path);
-void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
-int COM_FindFile (char *filename, int *handle, FILE **file);	// <AWE> added prototype.
+byte *COM_LoadStackFile (const char *path, void *buffer, int bufsize);
+byte *COM_LoadTempFile (const char *path);
+byte *COM_LoadHunkFile (const char *path);
+void COM_LoadCacheFile (const char *path, struct cache_user_s *cu);
+int COM_FindFile (const char *filename, int *handle, FILE **file);	// <AWE> added prototype.
 
 extern	struct cvar_s	registered;
 

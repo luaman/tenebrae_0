@@ -244,5 +244,137 @@ void R_StoreEfrags (efrag_t **ppefrag)
 		}
 	}
 }
+/*
+void R_SplitEntityOnNodePenta (mnode_t *node)
+{
+	efrag_t		*ef;
+	mplane_t	*splitplane;
+	mleaf_t		*leaf;
+	int			sides;
+	
+	if (node->contents == CONTENTS_SOLID)
+	{
+		return;
+	}
+	
+// add an efrag if the node is a leaf
+
+	if ( node->contents < 0)
+	{
+		leaf = (mleaf_t *)node;
+		
+		//Store leaf index for vis lookup
+		if (r_addent->numleafs < MAX_CLIENT_ENT_LEAFS) {
+			r_addent->leafnums[r_addent->numleafs] = leaf->index;
+			r_addent->numleafs++;
+		} else {
+			Con_Printf("Entity is in more than MAX_CLIENT_ENT_LEAFS leafs\n");
+		}
+
+		return;
+	}
+	
+// NODE_MIXED
+
+	splitplane = node->plane;
+	sides = BOX_ON_PLANE_SIDE(r_emins, r_emaxs, splitplane);
+	
+	if (sides == 3)
+	{
+	// split on this plane
+	// if this is the first splitter of this bmodel, remember it
+		if (!r_pefragtopnode)
+			r_pefragtopnode = node;
+	}
+	
+// recurse down the contacted sides
+	if (sides & 1)
+		R_SplitEntityOnNodePenta (node->children[0]);
+		
+	if (sides & 2)
+		R_SplitEntityOnNodePenta (node->children[1]);
+}
+
+*/
+void R_SplitEntityOnNodePenta (entity_t *ent, mnode_t *node)
+{
+	mplane_t	*splitplane;
+	mleaf_t		*leaf;
+	int			sides;
+	int			leafnum;
+
+	if (node->contents == CONTENTS_SOLID)
+		return;
+	
+// add an efrag if the node is a leaf
+
+	if ( node->contents < 0)
+	{
+		if (ent->numleafs == MAX_CLIENT_ENT_LEAFS) {
+			//Con_Printf("Max ent leafs reached\n");
+			return;
+		}
+
+		leaf = (mleaf_t *)node;
+		leafnum = leaf - cl.worldmodel->leafs - 1;
+
+		ent->leafnums[ent->numleafs] = leafnum;
+		ent->numleafs++;			
+		return;
+	}
+	
+// NODE_MIXED
+
+	splitplane = node->plane;
+	sides = BOX_ON_PLANE_SIDE(r_emins, r_emaxs, splitplane);
+	
+// recurse down the contacted sides
+	if (sides & 1)
+		R_SplitEntityOnNodePenta (ent, node->children[0]);
+		
+	if (sides & 2)
+		R_SplitEntityOnNodePenta (ent, node->children[1]);
+}
+
+
+/*
+===================
+R_FillEntityLeafs
+===================
+*/
+void R_FillEntityLeafs (entity_t *ent)
+{
+	model_t		*entmodel;
+	int			i;
+		
+	if (!ent->model)
+		return;
+
+	if (ent == cl_entities)
+		return;		// never add the world
+
+	r_addent = ent;		
+	
+	entmodel = ent->model;
+	
+	for (i=0 ; i<3 ; i++)
+	{
+		r_emins[i] = ent->origin[i] + entmodel->mins[i];
+		r_emaxs[i] = ent->origin[i] + entmodel->maxs[i];
+	}
+
+	//fiddle a bit with precision 
+	r_emins[0] -= 5;
+	r_emins[1] -= 5;
+	r_emins[2] -= 5;
+	r_emaxs[0] += 5;
+	r_emaxs[1] += 5;
+	r_emaxs[2] += 5;
+
+	ent->numleafs = 0;
+	R_SplitEntityOnNodePenta (ent, cl.worldmodel->nodes);
+
+	ent->topnode = r_pefragtopnode;
+}
 
 

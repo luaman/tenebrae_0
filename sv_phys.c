@@ -90,6 +90,7 @@ SV_CheckVelocity
 void SV_CheckVelocity (edict_t *ent)
 {
 	int		i;
+	float	wishspeed;	//sv_maxvelocity fix - Eradicator
 
 //
 // bound velocity
@@ -106,11 +107,19 @@ void SV_CheckVelocity (edict_t *ent)
 			Con_Printf ("Got a NaN origin on %s\n", pr_strings + ent->v.classname);
 			ent->v.origin[i] = 0;
 		}
-		if (ent->v.velocity[i] > sv_maxvelocity.value)
+		/*if (ent->v.velocity[i] > sv_maxvelocity.value) //Old
 			ent->v.velocity[i] = sv_maxvelocity.value;
 		else if (ent->v.velocity[i] < -sv_maxvelocity.value)
-			ent->v.velocity[i] = -sv_maxvelocity.value;
+			ent->v.velocity[i] = -sv_maxvelocity.value;*/
 	}
+	//START - sv_maxvelocity fix - Eradicator
+	wishspeed = Length(ent->v.velocity);
+	if (wishspeed > sv_maxvelocity.value)
+	{
+		VectorScale (ent->v.velocity, sv_maxvelocity.value/wishspeed, ent->v.velocity);
+		wishspeed = sv_maxvelocity.value;
+	}
+	//END - sv_maxvelocity fix - Eradicator
 }
 
 /*
@@ -445,6 +454,7 @@ void SV_PushMove (edict_t *pusher, float movetime)
 	int			num_moved;
 	edict_t		*moved_edict[MAX_EDICTS];
 	vec3_t		moved_from[MAX_EDICTS];
+	float		solid_backup; //movetype_push error fix - Eradicator
 
 	if (!pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2])
 	{
@@ -509,13 +519,26 @@ void SV_PushMove (edict_t *pusher, float movetime)
 		moved_edict[num_moved] = check;
 		num_moved++;
 
+		//START - movetype_push error fix - Eradicator
+		solid_backup = pusher->v.solid;
+		if ( solid_backup == SOLID_BSP
+		  || solid_backup == SOLID_BBOX
+		  || solid_backup == SOLID_SLIDEBOX )
+		{
+		//END - movetype_push error fix - Eradicator
+
 		// try moving the contacted entity 
 		pusher->v.solid = SOLID_NOT;
 		SV_PushEntity (check, move);
-		pusher->v.solid = SOLID_BSP;
+		//pusher->v.solid = SOLID_BSP; //Old
+		pusher->v.solid = solid_backup; //movetype_push error fix - Eradicator
 
 	// if it is still inside the pusher, block
 		block = SV_TestEntityPosition (check);
+		} //movetype_push error fix - Eradicator
+		else
+			block = NULL;
+
 		if (block)
 		{	// fail the move
 			if (check->v.mins[0] == check->v.maxs[0])
@@ -594,7 +617,7 @@ void SV_FakePushMove (edict_t *pusher, float movetime)
 	SV_LinkEdict (pusher, false);
 }
 
-#ifdef QUAKE2
+//#ifdef QUAKE2 //Commented out for rotate code - Eradicator
 /*
 ============
 SV_PushRotate
@@ -643,7 +666,9 @@ void SV_PushRotate (edict_t *pusher, float movetime)
 			continue;
 		if (check->v.movetype == MOVETYPE_PUSH
 		|| check->v.movetype == MOVETYPE_NONE
+#ifdef QUAKE2
 		|| check->v.movetype == MOVETYPE_FOLLOW
+#endif
 		|| check->v.movetype == MOVETYPE_NOCLIP)
 			continue;
 
@@ -731,7 +756,7 @@ void SV_PushRotate (edict_t *pusher, float movetime)
 
 	
 }
-#endif
+//#endif
 
 /*
 ================
@@ -757,15 +782,13 @@ void SV_Physics_Pusher (edict_t *ent)
 	else
 		movetime = host_frametime;
 
+
+	if (ent->v.avelocity[0] || ent->v.avelocity[1] || ent->v.avelocity[2])
+		SV_PushRotate (ent, host_frametime);
+
 	if (movetime)
-	{
-#ifdef QUAKE2
-		if (ent->v.avelocity[0] || ent->v.avelocity[1] || ent->v.avelocity[2])
-			SV_PushRotate (ent, movetime);
-		else
-#endif
-			SV_PushMove (ent, movetime);	// advances ent->v.ltime if not blocked
-	}
+		SV_PushMove (ent, movetime);	// advances ent->v.ltime if not blocked
+
 		
 	if (thinktime > oldltime && thinktime <= ent->v.ltime)
 	{
@@ -1307,7 +1330,8 @@ void SV_CheckWaterTransition (edict_t *ent)
 	}
 	else
 	{
-		if (ent->v.watertype != CONTENTS_EMPTY)
+		if ((ent->v.watertype != CONTENTS_EMPTY)&&(ent->v.watertype != CONTENTS_SOLID)) 
+		//Added extra check to stop splashing bug (thx to DrLabMan for tip) - Eradicator
 		{	// just crossed into water
 			SV_StartSound (ent, 0, "misc/h2ohit1.wav", 255, 1);
 		}		

@@ -31,6 +31,10 @@ extern unsigned char d_15to8table[65536];
 cvar_t		gl_nobind = {"gl_nobind", "0"};
 cvar_t		gl_max_size = {"gl_max_size", "1024"};
 cvar_t		gl_picmip = {"gl_picmip", "0"};
+cvar_t          gl_gloss = {"gl_gloss", "0.3"};
+cvar_t          gl_compress_textures = {"gl_compress_textures", "0"};
+cvar_t          willi_gray_colormaps = {"willi_gray_colormaps", "0"};
+cvar_t          con_clock = {"con_clock", "1", true};
 
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
@@ -39,7 +43,6 @@ qpic_t		*draw_backtile;
 int			translate_texture;
 int			char_texture;
 int			glow_texture_object;	//PENTA: gl texture object of the glow texture
-int			bump_texture_object;	//PENTA: default bump map
 int			normcube_texture_object; //PENTA: normalization cubemap
 int			atten1d_texture_object;
 int			atten2d_texture_object;
@@ -105,7 +108,7 @@ void GL_Bind (int texnum)
 
         if (gl_texturefilteranisotropic)	// <AWE> anisotropic texture filtering
         {
-            glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+            glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
         }
 */
 }
@@ -411,6 +414,10 @@ void Draw_Init (void)
 	Cvar_RegisterVariable (&gl_nobind);
 	Cvar_RegisterVariable (&gl_max_size);
 	Cvar_RegisterVariable (&gl_picmip);
+	Cvar_RegisterVariable (&gl_gloss);
+	Cvar_RegisterVariable (&gl_compress_textures);
+	Cvar_RegisterVariable (&willi_gray_colormaps);
+	Cvar_RegisterVariable (&con_clock);
 
 	// 3dfx can only handle 256 wide textures
 	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
@@ -443,7 +450,6 @@ void Draw_Init (void)
 	sprintf (ver, "(Linux %2.2f, gl %4.2f) %4.2f", (float)LINUX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);
 #elif defined (__APPLE__) || defined (MACOSX)
 	sprintf (ver, "(MACOS X %2.2f, gl %4.2f) %4.2f", (float)MACOSX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);
-
 #else
 	sprintf (ver, "(st %4.2f) %4.2f", (float)STQUAKE_VERSION, (float)VERSION);
 #endif
@@ -518,8 +524,7 @@ void Draw_Init (void)
 	//PENTA: load fallof glow
 	glow_texture_object = GL_Load2DAttenTexture();
 	atten3d_texture_object = GL_Load3DAttenTexture();
-	//Load a default bump map
-	bump_texture_object = GL_LoadBumpTexture();
+
 	//Load nomalization cube map
 	normcube_texture_object = GL_LoadNormalizationCubemap();
 
@@ -527,6 +532,13 @@ void Draw_Init (void)
 	R_LoadVertexProgram();
 
 	halo_texture_object = EasyTgaLoad("penta/utflare5.tga");
+
+	for (i=0; i<8; i++) {
+		char name[32];
+		sprintf(name,"penta/caust%02.2i.tga",i*4);
+		caustics_textures[i] = EasyTgaLoad(name);
+	}
+
 	//Load water shader textures
 	InitShaderTex();
 	//load mirror dummys
@@ -746,11 +758,65 @@ Draw_ConsoleBackground
 void Draw_ConsoleBackground (int lines)
 {
 	int y = (vid.height * 3) >> 2;
+	int x, i; 
+
+	char tl[80]; //Console Clock - Eradicator
+	char timebuf[20];
 
 	if (lines > y)
 		Draw_Pic(0, lines - vid.height, conback);
 	else
 		Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y);
+
+	if ( con_clock.value )
+	{
+                Sys_Strtime( timebuf );
+		y = lines-14; 
+		sprintf (tl, "Time: %s",timebuf); //Console Clock - Eradicator
+		x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+		for (i=0 ; i < strlen(tl) ; i++) 
+		   Draw_Character (x + i * 8, y, tl[i] | 0x80);
+	}
+}
+
+void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
+{ 
+   int x, i; 
+   int y; 
+   static float xangle = 0, xfactor = .3f, xstep = .01f; 
+   
+   char tl[80]; //Console Clock - Eradicator
+   char timebuf[20];
+   Sys_Strtime( timebuf );
+
+
+   glPushMatrix(); 
+   glMatrixMode(GL_TEXTURE); 
+   glPushMatrix(); 
+   glLoadIdentity(); 
+   xangle += 1.0f; 
+   xfactor += xstep; 
+   if (xfactor > 8 || xfactor < .3f) 
+      xstep = -xstep; 
+   glRotatef(xangle, 0, 0, 1); 
+   glScalef(xfactor, xfactor, xfactor); 
+   y = (vid.height * 3) >> 2;  
+   if (lines > y) 
+      Draw_Pic(0, lines-vid.height, conback); 
+   else 
+      Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y); 
+   glPopMatrix(); 
+   glMatrixMode(GL_MODELVIEW); 
+   glPopMatrix(); 
+
+   	if ( con_clock.value )
+	{
+		y = lines-14; 
+		sprintf (tl, "Time: %s",timebuf); //Console Clock - Eradicator
+		x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+		for (i=0 ; i < strlen(tl) ; i++) 
+			Draw_Character (x + i * 8, y, tl[i] | 0x80);
+	}
 }
 
 
@@ -914,12 +980,147 @@ int GL_FindTexture (char *identifier)
 
 /*
 ================
+GL_ResampleTextureLerpLine
+
+Interpolates between pixels on line - Eradicator
+================
+*/
+void GL_ResampleTextureLerpLine (byte *in, byte *out, int inwidth, int outwidth)
+{
+	int		j, xi, oldx = 0, f, fstep, endx;
+	fstep = (int) (inwidth*65536.0f/outwidth);
+	endx = (inwidth-1);
+	for (j = 0,f = 0;j < outwidth;j++, f += fstep)
+	{
+		xi = (int) f >> 16;
+		if (xi != oldx)
+		{
+			in += (xi - oldx) * 4;
+			oldx = xi;
+		}
+		if (xi < endx)
+		{
+			int lerp = f & 0xFFFF;
+			*out++ = (byte) ((((in[4] - in[0]) * lerp) >> 16) + in[0]);
+			*out++ = (byte) ((((in[5] - in[1]) * lerp) >> 16) + in[1]);
+			*out++ = (byte) ((((in[6] - in[2]) * lerp) >> 16) + in[2]);
+			*out++ = (byte) ((((in[7] - in[3]) * lerp) >> 16) + in[3]);
+		}
+		else
+		{
+			*out++ = in[0];
+			*out++ = in[1];
+			*out++ = in[2];
+			*out++ = in[3];
+		}
+	}
+}
+
+/*
+================
 GL_ResampleTexture
 ================
 */
-void GL_ResampleTexture (unsigned *in, int inwidth, int inheight, unsigned *out,  int outwidth, int outheight)
+void GL_ResampleTexture (void *indata, int inwidth, int inheight, void *outdata,  int outwidth, int outheight)
 {
-	int		i, j;
+	//New Interpolated Texture Code - Eradicator
+	int		i, j, yi, oldy, f, fstep, endy = (inheight-1);
+	byte	*inrow, *out, *row1, *row2;
+	out = outdata;
+	fstep = (int) (inheight*65536.0f/outheight);
+
+	row1 = malloc(outwidth*4);
+	row2 = malloc(outwidth*4);
+	inrow = indata;
+	oldy = 0;
+	GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+	GL_ResampleTextureLerpLine (inrow + inwidth*4, row2, inwidth, outwidth);
+	for (i = 0, f = 0;i < outheight;i++,f += fstep)
+	{
+		yi = f >> 16;
+		if (yi < endy)
+		{
+			int lerp = f & 0xFFFF;
+			if (yi != oldy)
+			{
+				inrow = (byte *)indata + inwidth*4*yi;
+				if (yi == oldy+1)
+					memcpy(row1, row2, outwidth*4);
+				else
+					GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+				GL_ResampleTextureLerpLine (inrow + inwidth*4, row2, inwidth, outwidth);
+				oldy = yi;
+			}
+			j = outwidth - 4;
+			while(j >= 0)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out[ 4] = (byte) ((((row2[ 4] - row1[ 4]) * lerp) >> 16) + row1[ 4]);
+				out[ 5] = (byte) ((((row2[ 5] - row1[ 5]) * lerp) >> 16) + row1[ 5]);
+				out[ 6] = (byte) ((((row2[ 6] - row1[ 6]) * lerp) >> 16) + row1[ 6]);
+				out[ 7] = (byte) ((((row2[ 7] - row1[ 7]) * lerp) >> 16) + row1[ 7]);
+				out[ 8] = (byte) ((((row2[ 8] - row1[ 8]) * lerp) >> 16) + row1[ 8]);
+				out[ 9] = (byte) ((((row2[ 9] - row1[ 9]) * lerp) >> 16) + row1[ 9]);
+				out[10] = (byte) ((((row2[10] - row1[10]) * lerp) >> 16) + row1[10]);
+				out[11] = (byte) ((((row2[11] - row1[11]) * lerp) >> 16) + row1[11]);
+				out[12] = (byte) ((((row2[12] - row1[12]) * lerp) >> 16) + row1[12]);
+				out[13] = (byte) ((((row2[13] - row1[13]) * lerp) >> 16) + row1[13]);
+				out[14] = (byte) ((((row2[14] - row1[14]) * lerp) >> 16) + row1[14]);
+				out[15] = (byte) ((((row2[15] - row1[15]) * lerp) >> 16) + row1[15]);
+				out += 16;
+				row1 += 16;
+				row2 += 16;
+				j -= 4;
+			}
+			if (j & 2)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out[ 4] = (byte) ((((row2[ 4] - row1[ 4]) * lerp) >> 16) + row1[ 4]);
+				out[ 5] = (byte) ((((row2[ 5] - row1[ 5]) * lerp) >> 16) + row1[ 5]);
+				out[ 6] = (byte) ((((row2[ 6] - row1[ 6]) * lerp) >> 16) + row1[ 6]);
+				out[ 7] = (byte) ((((row2[ 7] - row1[ 7]) * lerp) >> 16) + row1[ 7]);
+				out += 8;
+				row1 += 8;
+				row2 += 8;
+			}
+			if (j & 1)
+			{
+				out[ 0] = (byte) ((((row2[ 0] - row1[ 0]) * lerp) >> 16) + row1[ 0]);
+				out[ 1] = (byte) ((((row2[ 1] - row1[ 1]) * lerp) >> 16) + row1[ 1]);
+				out[ 2] = (byte) ((((row2[ 2] - row1[ 2]) * lerp) >> 16) + row1[ 2]);
+				out[ 3] = (byte) ((((row2[ 3] - row1[ 3]) * lerp) >> 16) + row1[ 3]);
+				out += 4;
+				row1 += 4;
+				row2 += 4;
+			}
+			row1 -= outwidth*4;
+			row2 -= outwidth*4;
+		}
+		else
+		{
+			if (yi != oldy)
+			{
+				inrow = (byte *)indata + inwidth*4*yi;
+				if (yi == oldy+1)
+					memcpy(row1, row2, outwidth*4);
+				else
+					GL_ResampleTextureLerpLine (inrow, row1, inwidth, outwidth);
+				oldy = yi;
+			}
+			memcpy(out, row1, outwidth * 4);
+		}
+	}
+	free(row1);
+	free(row2);
+
+	//Old Code - Eradicator
+	/*int		i, j;
 	unsigned	*inrow;
 	unsigned	frac, fracstep;
 
@@ -939,7 +1140,7 @@ void GL_ResampleTexture (unsigned *in, int inwidth, int inheight, unsigned *out,
 			out[j+3] = inrow[frac>>16];
 			frac += fracstep;
 		}
-	}
+	}*/
 }
 
 
@@ -1037,63 +1238,94 @@ Works on normal maps instead of rgb
 */
 void GL_MipMapNormal (byte *in, int width, int height)
 {
-	int		i, j;
-	byte	*out;
-	float	inv255	= 1.0f/255.0f;
-	float	inv127	= 1.0f/127.0f;
-	float	x,y,z,l,mag00,mag01,mag10,mag11;
+    int		i, j;
+    byte	*out;
+    float	inv255	= 1.0f/255.0f;
+    float	inv127	= 1.0f/127.0f;
+    float	x,y,z,l,g;
 
 
-	width <<=2;
-	height >>= 1;
-	out = in;
-	for (i=0 ; i<height ; i++, in+=width)
+    width <<=2;
+    height >>= 1;
+    out = in;
+    for (i=0 ; i<height ; i++, in+=width)
+    {
+	for (j=0 ; j<width ; j+=8, out+=4, in+=8)
 	{
-		for (j=0 ; j<width ; j+=8, out+=4, in+=8)
-		{
+	    x = (inv127*in[0]-1.0)+
+		(inv127*in[4]-1.0)+
+		(inv127*in[width+0]-1.0)+
+		(inv127*in[width+4]-1.0);
+	    y = (inv127*in[1]-1.0)+
+		(inv127*in[5]-1.0)+
+		(inv127*in[width+1]-1.0)+
+		(inv127*in[width+5]-1.0);
+	    z = (inv127*in[2]-1.0)+
+		(inv127*in[6]-1.0)+
+		(inv127*in[width+2]-1.0)+
+		(inv127*in[width+6]-1.0);
+	    g = (inv255*in[3])+
+		(inv255*in[7])+
+		(inv255*in[width+3])+
+		(inv255*in[width+7]);
 
-			mag00 = inv255 * in[3];
-			mag01 = inv255 * in[7];
-			mag10 = inv255 * in[width+3];
-			mag11 = inv255 * in[width+7];
-
-			x = mag00*(inv127*in[0]-1.0)+
-				mag01*(inv127*in[4]-1.0)+
-				mag10*(inv127*in[width+0]-1.0)+
-				mag11*(inv127*in[width+4]-1.0);
-			y = mag00*(inv127*in[1]-1.0)+
-				mag01*(inv127*in[5]-1.0)+
-				mag10*(inv127*in[width+1]-1.0)+
-				mag11*(inv127*in[width+5]-1.0);
-			z = mag00*(inv127*in[2]-1.0)+
-				mag01*(inv127*in[6]-1.0)+
-				mag10*(inv127*in[width+2]-1.0)+
-				mag11*(inv127*in[width+6]-1.0);
-
-			l = sqrt(x*x+y*y+z*z);
-			if (l == 0.0) {
-				x = 0.0;
-				y = 0.0;
-				z = 1.0;
-			} else {
-				//normalize it.
-				l=1/l;
-				x *=l;
-				y *=l;
-				z *=l;
-			}
-			out[0] = (unsigned char)128 + 127*x;
-			out[1] = (unsigned char)128 + 127*y;
-			out[2] = (unsigned char)128 + 127*z;
-
-			l = l/4.0;
-			if (l > 1.0) {
-				out[3] = 255;
-			} else {
-				out[3] = (byte)(255.0*l);
-			}
-		}
+            l = sqrt(x*x+y*y+z*z);
+	    if (l == 0.0) {
+		x = 0.0;
+		y = 0.0;
+		z = 1.0;
+	    } else {
+		//normalize it.
+		l=1/l;
+		x *=l;
+		y *=l;
+		z *=l;
+	    }
+	    out[0] = (unsigned char)128 + 127*x;
+	    out[1] = (unsigned char)128 + 127*y;
+	    out[2] = (unsigned char)128 + 127*z;
+	    out[3] = (byte)(g * 255.0/4.0);
 	}
+    }
+
+}
+
+void GL_Normalize(byte *in, int width, int height)
+{
+    int		i, j;
+    byte	*out;
+    float	inv255	= 1.0f/255.0f;
+    float	inv127	= 1.0f/127.0f;
+    float	x,y,z,l;
+
+    width <<=2;
+    out = in;
+    for (i=0 ; i<height ; i++)
+    {
+	for (j=0 ; j<width ; j+=4, out+=4, in+=4)
+	{
+	    x = (inv127*in[0]-1.0);
+	    y = (inv127*in[1]-1.0);
+            z = (inv127*in[2]-1.0);
+
+            l = sqrt(x*x+y*y+z*z);
+	    if (l == 0.0) {
+		x = 0.0;
+		y = 0.0;
+		z = 1.0;
+	    } else {
+		//normalize it.
+		l=1/l;
+		x *=l;
+		y *=l;
+		z *=l;
+	    }
+	    out[0] = (unsigned char)128 + 127*x;
+	    out[1] = (unsigned char)128 + 127*y;
+	    out[2] = (unsigned char)128 + 127*z;
+	}
+    }
+
 }
 
 /*
@@ -1132,15 +1364,38 @@ void GL_MipMap8Bit (byte *in, int width, int height)
 
 /*
 ===============
+PENTA:
+Packs the byte values in gloss in the alpha channel of dest
+<AWE> : added "void" as return type.
+===============
+*/
+void	GL_PackGloss(byte *gloss,unsigned *dest,int length)
+{
+    int i;
+
+    for (i=0; i<length; i++, gloss++, dest++) 
+    {
+        *dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
+        *dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
+    }
+}
+
+/*
+===============
 GL_Upload32
 ===============
 */
 void GL_Upload32 (unsigned *data, int width, int height,  qboolean mipmap, qboolean alpha)
 {
-	int			samples;
+	int			texturemode;
 	//XYZ
 static	unsigned	scaled[1024*1024];	// [512*256];
 	int			scaled_width, scaled_height;
+
+        if ( willi_gray_colormaps.value )
+        {
+	    Q_memset(data, 0x7f, width*height*4);
+        }
 
 	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
 		;
@@ -1158,19 +1413,25 @@ static	unsigned	scaled[1024*1024];	// [512*256];
 	if (scaled_width * scaled_height > sizeof(scaled)/4)
 		Sys_Error ("GL_LoadTexture: too big");
 
-	samples = 4;//PENTA: Always upload rgb it doesn't make any difference for nvidia cards (& others)
-	//samples = alpha ? gl_alpha_format : gl_solid_format;
-
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 1 )
+        {
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;//PENTA: Always upload rgb it doesn't make any difference for nvidia cards (& others)
+	    //texturemode = alpha ? gl_alpha_format : gl_solid_format;
+        }
 #if 0
 	if (mipmap)
-		gluBuild2DMipmaps (GL_TEXTURE_2D, samples, width, height, GL_RGBA, GL_UNSIGNED_BYTE, trans);
+		gluBuild2DMipmaps (GL_TEXTURE_2D, texturemode, width, height, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	else if (scaled_width == width && scaled_height == height)
-		glTexImage2D (GL_TEXTURE_2D, 0, samples, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
+		glTexImage2D (GL_TEXTURE_2D, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	else
 	{
 		gluScaleImage (GL_RGBA, width, height, GL_UNSIGNED_BYTE, trans,
 			scaled_width, scaled_height, GL_UNSIGNED_BYTE, scaled);
-		glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+		glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	}
 #else
 texels += scaled_width * scaled_height;
@@ -1179,7 +1440,7 @@ texels += scaled_width * scaled_height;
 	{
 		if (!mipmap)
 		{
-			glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			goto done;
 		}
 		memcpy (scaled, data, width*height*4);
@@ -1187,7 +1448,7 @@ texels += scaled_width * scaled_height;
 	else
 		GL_ResampleTexture (data, width, height, scaled, scaled_width, scaled_height);
 
-	glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+	glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	if (mipmap)
 	{
 		int		miplevel;
@@ -1203,8 +1464,8 @@ texels += scaled_width * scaled_height;
 			if (scaled_height < 1)
 				scaled_height = 1;
 			miplevel++;
-			glTexImage2D (GL_TEXTURE_2D, miplevel, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
-		}
+			glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+                }
 	}
 done: ;
 #endif
@@ -1222,7 +1483,7 @@ done: ;
 	}
 
 	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 }
 
 void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha) 
@@ -1234,7 +1495,8 @@ void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboole
 	int			scaled_width, scaled_height;
 
 	s = width*height;
-	// if there are no transparent pixels, make it a 3 component
+
+        // if there are no transparent pixels, make it a 3 component
 	// texture even if it was specified as otherwise
 	if (alpha)
 	{
@@ -1314,7 +1576,7 @@ done: ;
 	}
 
 	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 
 }
 
@@ -1368,91 +1630,191 @@ unsigned int * genNormalMap(byte *pixels, int w, int h, float scale)
 }
 
 //PENTA
-void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
-	
-	int			s;
-        static unsigned char	scaled[1024*512];	// [512*256];
-	int			scaled_width, scaled_height;
-	byte			*nmap;
+void GL_UploadBump(byte *data, int width, int height, qboolean mipmap, byte* gloss)
+{
+    static unsigned char	scaled[1024*1024];	// [512*256];
+    static unsigned char	scaledgloss[1024*1024];	// [512*256];
+    int			scaled_width, scaled_height;
+    byte			*nmap;
+    int			texturemode;
 
-	s = width*height;
+    if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
+    {
+	texturemode = GL_COMPRESSED_RGBA_ARB;
+    }
+    else
+    {
+	texturemode = GL_RGBA;
+    }
 
-	//Resize to power of 2 and maximum texture size
-	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
-		;
-	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
-		;
+    //Resize to power of 2 and maximum texture size
+    for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+	;
+    for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+	;
 
-	scaled_width >>= (int)gl_picmip.value;
-	scaled_height >>= (int)gl_picmip.value;
+    scaled_width >>= (int)gl_picmip.value;
+    scaled_height >>= (int)gl_picmip.value;
 
-	if (scaled_width > gl_max_size.value)
+    if (scaled_width > gl_max_size.value)
+	scaled_width = gl_max_size.value;
+    if (scaled_height > gl_max_size.value)
+	scaled_height = gl_max_size.value;
+
+    if (scaled_width * scaled_height > sizeof(scaled))
+	Sys_Error ("GL_LoadTexture: too big");
+
+    //To resize or not to resize
+    if (scaled_width == width && scaled_height == height)
+    {
+	memcpy (scaled, data, width*height);
+	memcpy (scaledgloss, gloss, width*height);
+	scaled_width = width;
+	scaled_height = height;
+    }
+    else
+    {
+	//Just picks pixels so grayscale is equivalent with 8 bit.
+	GL_Resample8BitTexture (data, width, height, scaled, scaled_width, scaled_height);
+	GL_Resample8BitTexture (gloss, width, height, scaledgloss, scaled_width, scaled_height);
+    }
+
+    if (is_overriden)
+	nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,10.0f); 
+    else
+	nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
+
+    GL_PackGloss(scaledgloss, (unsigned int*)nmap, scaled_width*scaled_height);
+
+    glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
+		  GL_RGBA, GL_UNSIGNED_BYTE, nmap);
+
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (mipmap)
+    {
+	int		miplevel;
+
+	miplevel = 0;
+	while (scaled_width > 1 || scaled_height > 1)
+	{
+	    GL_MipMapNormal(nmap,scaled_width,scaled_height);
+	    //GL_MipMapGray((byte *)scaled, scaled_width, scaled_height);
+	    scaled_width >>= 1;
+	    scaled_height >>= 1;
+	    if (scaled_width < 1)
+		scaled_width = 1;
+	    if (scaled_height < 1)
+		scaled_height = 1;
+	    miplevel++;
+
+	    glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
+			  GL_UNSIGNED_BYTE, nmap);
+	}
+    }
+
+    if (mipmap)
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
+    else
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
+
+        
+    if (gl_texturefilteranisotropic)
+	glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
+
+}
+
+
+//PENTA
+void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
+{
+    static unsigned int	scaled[1024*1024];	// [512*256];
+    int			scaled_width, scaled_height;
+    int			texturemode;
+
+    if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
+    {
+        texturemode = GL_COMPRESSED_RGBA_ARB;
+    }
+    else
+    {
+        texturemode = GL_RGBA;
+    }
+
+    //Resize to power of 2 and maximum texture size
+    for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+	;
+    for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+	;
+
+    scaled_width >>= (int)gl_picmip.value;
+    scaled_height >>= (int)gl_picmip.value;
+
+    if (scaled_width > gl_max_size.value)
 		scaled_width = gl_max_size.value;
-	if (scaled_height > gl_max_size.value)
+    if (scaled_height > gl_max_size.value)
 		scaled_height = gl_max_size.value;
 
-	if (scaled_width * scaled_height > sizeof(scaled))
+    if (scaled_width * scaled_height > sizeof(scaled))
 		Sys_Error ("GL_LoadTexture: too big");
 
-	//To resize or not to resize
-	if (scaled_width == width && scaled_height == height)
-	{
-		memcpy (scaled, data, width*height);
+    //To resize or not to resize
+    if (scaled_width == width && scaled_height == height)
+    {
+		memcpy (scaled, data, width*height*4);
 		scaled_width = width;
 		scaled_height = height;
-	}
-	else {
-		//Just picks pixels so grayscale is equivalent with 8 bit.
-		GL_Resample8BitTexture (data, width, height, scaled, scaled_width, scaled_height);
-	}
+    }
+    else {
+		GL_ResampleTexture ((unsigned*)data, width, height, scaled, scaled_width, scaled_height);
+    }
 
-	if (is_overriden)
-		nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,10.0f); 
-	else
-		nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
+    GL_Normalize((byte*)scaled, scaled_width, scaled_height);
+    glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
+		  GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 
-	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0,
-					GL_RGBA, GL_UNSIGNED_BYTE, nmap);
-
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	if (mipmap)
-	{
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (mipmap)
+    {
 		int		miplevel;
 
 		miplevel = 0;
 		while (scaled_width > 1 || scaled_height > 1)
 		{
-			GL_MipMapNormal(nmap,scaled_width,scaled_height);
-			//GL_MipMapGray((byte *)scaled, scaled_width, scaled_height);
+			GL_MipMapNormal((byte*)scaled,scaled_width,scaled_height);
 			scaled_width >>= 1;
 			scaled_height >>= 1;
 			if (scaled_width < 1)
-				scaled_width = 1;
+			scaled_width = 1;
 			if (scaled_height < 1)
-				scaled_height = 1;
+			scaled_height = 1;
 			miplevel++;
 
-			glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
-						GL_UNSIGNED_BYTE, nmap);
-			//glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
-			//			GL_UNSIGNED_BYTE, genNormalMap(scaled,scaled_width,scaled_height,4.0f));
+			glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
+				  GL_UNSIGNED_BYTE, scaled);
 		}
-	}
+    }
 
-	if (mipmap)
-	{
+    if (mipmap)
+    {
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
-	else
-	{
+    }
+    else
+    {
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
+    }
 
-	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+    if (gl_texturefilteranisotropic)
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 
 }
 
@@ -1474,21 +1836,6 @@ void	GL_GetOverrideName(char *identifier,char *tail, char *dest) {
 
 }
 
-/*
-===============
-PENTA:
-Packs the byte values in gloss in the alpha channel of dest
-<AWE> : added "void" as return type.
-===============
-*/
-void	GL_PackGloss(byte *gloss,unsigned *dest,int length) {
-	int i;
-
-	for (i=0; i<length; i++, gloss++, dest++) {
-		*dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
-		*dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
-	}
-}
 
 
 /*
@@ -1520,10 +1867,9 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	//try to load an overrided texture
 
 	GL_GetOverrideName(identifier,"",filename);	
-	COM_FOpenFile (filename, &f);
-	if (f) {
+	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	{
 		Con_DPrintf("Overriding colormap for %s\n",identifier);
-		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
@@ -1576,32 +1922,6 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		}
 	}
 
-
-	if (bump) {
-		//Try to load a gloss map & pack it in the alpha channel of
-		//our color map
-		char filename[128];
-		int gloss_width, gloss_height;
-		GL_GetOverrideName(identifier,"_gloss",filename);	
-		COM_FOpenFile (filename, &f);
-		if (f)
-		{
-			Con_DPrintf("Using gloss map for %s\n",identifier);
-			LoadGrayTGA(f,&glosspix[0],&gloss_width,&gloss_height);
-		} else {
-			//set some gloss by default
-			gloss_width = width;
-			gloss_height = height;
-			Q_memset(&glosspix[0], 127, width*height);
-		}
-
-		if ((gloss_width == width) && (gloss_height == height)) {
-			GL_PackGloss(glosspix, trans, width*height);
-		} else {
-			Con_Printf("Error loading gloss map: Gloss map bust be the same size as texture map\n");
-		}
-	}
-
 	if (!strcmp("scrap",identifier)) {
 		GL_Upload32 (trans, width, height, mipmap, alpha);
 		return;
@@ -1610,48 +1930,89 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	//upload color map
 	GL_Bind(texture_extension_number);
 
- 	/*if (VID_Is8bit() && !alpha && (data!=scrap_texels[0])) {
- 		GL_Upload8_EXT (data, width, height, mipmap, alpha);
- 		//return;
-	} else {*/
-		GL_Upload32 (trans, width, height, mipmap, alpha);
-	//}
+	GL_Upload32 (trans, width, height, mipmap, alpha);
 
 	texture_extension_number++;
 
-	//upload bump map (if any)
-	if (bump) {
+	//Disable Bumpmapping parameter and now bumpmap cvar slightly
+	//works. this only prevents textures from loading, but if it
+	//has already loaded bumpmaps will not turn off) - Eradicator
+	if (!COM_CheckParm("-nobumpmaps") && ( sh_bumpmaps.value ) && bump )
+	{
+	    //upload bump map (if any)
+	    char filename[128];
+
+	    GL_Bind(texture_extension_number);
+	    // first check for normal map
+	    GL_GetOverrideName(identifier,"_norm",filename);
+	    if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	    {
 		char filename[128];
-		//sprintf(filename,"override/%s_bump.tga", identifier);
+		int gloss_width, gloss_height;
+		Con_DPrintf("Overriding normal map for %s\n",identifier);
+
+		GL_GetOverrideName(identifier,"_gloss",filename);
+		if ( LoadTextureInPlace(filename, 1, &glosspix[0], &gloss_width, &gloss_height) )
+		{
+		    Con_DPrintf("Using gloss map for %s\n",identifier);
+		}
+		else
+		{
+		    //set some gloss by default
+		    gloss_width = width;
+		    gloss_height = height;
+		    Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		}
+		
+		if ((gloss_width == width) && (gloss_height == height))
+		{
+		    GL_PackGloss(glosspix, trans, width*height);
+		}
+		else
+		{
+		    Con_SafePrintf("Error loading gloss map %s: Gloss map bust be the same size as normal map\n", identifier);
+		}
+		GL_UploadNormal (trans, width, height, mipmap);
+	    }
+	    else
+	    {
+		//See if we can override the bump map
 		GL_GetOverrideName(identifier,"_bump",filename);
 		//See if we can override the bump map
-		COM_FOpenFile (filename, &f);
-		if (f)
+		if ( LoadTextureInPlace(filename, 1, &bumppix[0], &width, &height) )
 		{
-			Con_DPrintf("Overriding bumpmap for %s\n",identifier);
-			LoadGrayTGA(f,&bumppix[0],&width,&height);
+		    char filename[128];
+		    int gloss_width, gloss_height;
+		    Con_DPrintf("Overriding bumpmap for %s\n",identifier);
+		    GL_GetOverrideName(identifier,"_gloss",filename);
+		    if ( LoadTextureInPlace(filename, 1, &glosspix[0], &gloss_width, &gloss_height) )
+		    {
+			Con_DPrintf("Using gloss map for %s\n",identifier);
+		    }
+		    else
+		    {
+			//set some gloss by default
+			gloss_width = width;
+			gloss_height = height;
+			Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		    }
+		
+		    if ((gloss_width == width) && (gloss_height == height))
+		    {
+		    }
+		    else
+		    {
+			Con_SafePrintf("Error loading gloss map %s: Gloss map bust be the same size as bump map\n", identifier);
+                        Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		    }
 		}
-		GL_Bind(texture_extension_number);
-		GL_UploadBump (bumppix, width, height, mipmap);
+                else
+                {
+                    Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+                }
+		GL_UploadBump (bumppix, width, height, mipmap, &glosspix[0]);
+	    }
 	}
-
-	/*
-	if (bump) {
-		char filename[128];
-		//sprintf(filename,"override/%s_bump.tga", identifier);
-		GL_GetOverrideName(identifier,"_bump",filename);
-		//See if we can override the bump map
-		COM_FOpenFile (filename, &f);
-		if (f)
-		{
-			Con_DPrintf("Overriding bumpmap for %s\n",identifier);
-			LoadGrayTGA(f,&bumppix[0],&width,&height);
-		}
-		GL_Bind(texture_extension_number);
-		GL_UploadBump (bumppix, width, height, mipmap);
-	}
-	*/
-
 	texture_extension_number++;
 }
 
@@ -1709,12 +2070,15 @@ int GL_LoadLuma(char *identifier, qboolean mipmap)
 	char filename[128];
 	int			width, height;
 
+        if ( willi_gray_colormaps.value )
+            return 0;
+
 	//try to load an overrided texture
 	GL_GetOverrideName(identifier,"_luma",filename);	
-	COM_FOpenFile (filename, &f);
-	if (f) {
+	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	{
+
 		Con_DPrintf("Using luma map for %s\n",identifier);
-		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
@@ -1751,6 +2115,16 @@ int GL_LoadCubeMap (int identifier)
 	gltexture_t	*glt;
 	FILE		*f;
 	char filename[128];
+        int			texturemode;
+
+        if ( gl_texcomp && ((int)gl_compress_textures.value) & 4 )
+        {   
+            texturemode = GL_COMPRESSED_RGBA_ARB;
+        }
+        else
+        {
+            texturemode = GL_RGBA;
+        }
 
 	width = 0;
 	height = 0;
@@ -1788,11 +2162,8 @@ int GL_LoadCubeMap (int identifier)
 	for (i = 0; i < 6; i++) 
 	{
 		sprintf(filename,"cubemaps/%i%s.tga", identifier, face_names[i]);	
-		COM_FOpenFile (filename, &f);
-		if (f) {
-			LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
-		}
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
+		LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
 	}
 	
 	//glEnable(GL_TEXTURE_2D);
@@ -1913,7 +2284,7 @@ int GL_Load3DAttenTexture(void)
 	int s,t,r, err;
 	byte *data;
 
-	if (!gl_geforce3 && !gl_radeon) return 0;//PA:
+	if (gl_cardtype == GENERIC || gl_cardtype == GEFORCE) return 0;//PA:
 
 	data = malloc(ATTEN_VOLUME_SIZE*ATTEN_VOLUME_SIZE*ATTEN_VOLUME_SIZE*4);
         if (!data) return 0;							// <AWE> check memory here!
@@ -1969,34 +2340,6 @@ int GL_Load3DAttenTexture(void)
 		Con_Printf("%s",gluErrorString(err));
 	}
 
-	return texture_extension_number-1;
-}
-
-int GL_LoadBumpTexture(void)
-{
-
-	byte *data;
-
-	data = (byte *)COM_LoadTempFile ("penta/bumpmap.raw");	
-
-	if (!data) {
-		//return the default gl texture
-		Con_Printf("Glow texture not found");
-		return 0;
-	}
-
-	//this is only an alpha map since we write it to the destination alpha for multing afterwards
-	GL_Bind(texture_extension_number);
-	//if (sh_bump.value) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	//} else {
-	//	glTexImage2D(GL_TEXTURE_2D, 0, 1, 128, 128, 0, GL_LUMINANCE,GL_UNSIGNED_BYTE, data);
-	//}
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	
-	texture_extension_number++;
 	return texture_extension_number-1;
 }
 

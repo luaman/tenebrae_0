@@ -442,6 +442,14 @@ void	Sys_mkdir (char *thePath)
     if (errno != EEXIST)
         Sys_Error ("\"mkdir %s\" failed, reason: \"%s\".", thePath, strerror(errno));
 }
+//___________________________________________________________________________________________________Sys_Strtime()
+
+void	Sys_Strtime (char *theTime)
+{
+	// FIX-ME : get system time as int Hour,int Min, int Sec
+	//sprintf(theTime,"%02d:%02d:%02d",0,0,0);
+	theTime[0]='\0';
+}
 
 //_______________________________________________________________________________________Sys_MakeCodeWriteable()
 

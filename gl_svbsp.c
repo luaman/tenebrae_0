@@ -30,8 +30,11 @@ int svBsp_NumMissedPlanes;
 int svBsp_NumMissedNodes;
 
 //FIXME: Decent allocation
-#define MAX_PLANE_POOL 10000
-#define MAX_NODE_POOL 10000
+
+//1Meg plane pool :)
+#define MAX_PLANE_POOL 65536/2
+
+#define MAX_NODE_POOL 65536
 
 plane_t PlanePool[MAX_PLANE_POOL];
 int planesusedpool;
@@ -39,9 +42,24 @@ int planesusedpool;
 svnode_t NodePool[MAX_NODE_POOL];
 int nodesusedpool;
 
-plane_t *AllocPlane(void) {
+//Returns an plane, tries to find the same one as tryplane, if a match if found it return the found one.
+plane_t *AllocPlane(plane_t *tryplane) {
+
+	if (tryplane) {
+		int i;
+		//try to fit one that fits
+		for (i=0; i<planesusedpool; i++) {
+			if ((PlanePool[i].normal[0] == tryplane->normal[0]) &&
+				(PlanePool[i].normal[1] == tryplane->normal[1]) &&
+				(PlanePool[i].normal[2] == tryplane->normal[2]) &&
+				(PlanePool[i].dist == tryplane->dist)) {
+				return &PlanePool[i];
+			}
+		}
+	}
+
 	if (planesusedpool >= MAX_PLANE_POOL) {
-		Con_Printf("To many planes...");
+		Con_Printf("Too many planes...");
 		svBsp_NumMissedPlanes++;
 		return NULL;
 	}
@@ -51,7 +69,7 @@ plane_t *AllocPlane(void) {
 
 svnode_t *AllocNode(void) {
 	if (nodesusedpool >= MAX_NODE_POOL) {
-		Con_Printf("To many nodes...");
+		Con_Printf("Too many nodes...");
 		svBsp_NumMissedNodes++;
 		return NULL;
 	}
@@ -94,8 +112,8 @@ svnode_t *R_CreateEmptyTree(void) {
 	svBsp_NumMissedPlanes = 0;
 	svBsp_NumMissedNodes = 0;
 
-	plane1 = AllocPlane ();
-	plane2 = AllocPlane ();
+	plane1 = AllocPlane (NULL);
+	plane2 = AllocPlane (NULL);
 	node1 = AllocNode ();
 	node2 = AllocNode ();
 
@@ -354,7 +372,7 @@ svnode_t *NodeFromEdge(vec3_t *v, int vnum, int edgeindex) {
 	vec3_t		*v1,*v2;
 	vec3_t		vert1,vert2,normal;
 	vec_t		dist;
-	plane_t		*plane;
+	plane_t		*plane, tryplane;
 	svnode_t	*res;
 
 	//Extract one vertex so we can calultate the normal of this shadow plane
@@ -371,7 +389,10 @@ svnode_t *NodeFromEdge(vec3_t *v, int vnum, int edgeindex) {
 	dist = DotProduct(normal, currentshadowlight->origin);
 
 	//make a node with it
-	plane = AllocPlane ();
+	VectorCopy (normal, tryplane.normal);
+	tryplane.dist = dist;
+
+	plane = AllocPlane (&tryplane);
 	if (!plane) return NULL;
 
 	VectorCopy (normal, plane->normal);

@@ -35,7 +35,7 @@ shadowlight_t *currentshadowlight;
 
 int volumeCmdsBuff[MAX_VOLUME_COMMANDS+128]; //Hack protect against slight overflows
 float volumeVertsBuff[MAX_VOLUME_VERTS+128];
-int	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
+lightcmd_t	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
 int numVolumeCmds;
 int numLightCmds;
 int numVolumeVerts;
@@ -44,16 +44,18 @@ msurface_t *shadowchain; //linked list of polygons that are shadowed
 byte *lightvis;
 byte worldvis[MAX_MAP_LEAFS/8];
 
+/* -DC- isn't that volumeVertsBuff ?
 vec3_t volumevertices[MAX_VOLUME_VERTICES];//buffer for the vertices of the shadow volume
 int usedvolumevertices;
+*/
 
-void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts);
-void DrawAttentFromCmds(int *lightCmds);
-void DrawBumpFromCmds(int *lightCmds);
-void DrawSpecularBumpFromCmds(int *lightCmds);
+void DrawVolumeFromCmds(int *volumeCmds, lightcmd_t *lightCmds, float *volumeVerts);
+void DrawAttentFromCmds(lightcmd_t *lightCmds);
+void DrawBumpFromCmds(lightcmd_t *lightCmds);
+void DrawSpecularBumpFromCmds(lightcmd_t *lightCmds);
 void PrecalcVolumesForLight(model_t *model);
 int getVertexIndexFromSurf(msurface_t *surf, int index, model_t *model);
-
+qboolean R_ContributeFrame(shadowlight_t *light);
 
 /*
 =============
@@ -373,7 +375,7 @@ extern vec3_t		r_emins, r_emaxs;	// <AWE> added "extern".
 /*
 =============
 
-R_VisibleEntity
+InShadowEntity
 
 Some efrag based sceme may cut even more ents!
 =============
@@ -381,6 +383,8 @@ Some efrag based sceme may cut even more ents!
 
 qboolean InShadowEntity(entity_t *ent) {
 	
+	int i, leafindex;
+
 	model_t	*entmodel = ent->model;
 	vec3_t dst;
 	float radius, d;
@@ -390,7 +394,22 @@ qboolean InShadowEntity(entity_t *ent) {
 	d = Length (dst);
 
 	if (d < (currentshadowlight->radius + radius)) {
-		return true;
+		
+		if (sh_noefrags.value) return true;
+		
+		for (i=0; i<ent->numleafs;i++) {
+			leafindex = ent->leafnums[i];
+			//leaf ent is in is visible from light
+			if (currentshadowlight->entvis[leafindex>>3] & (1<<(leafindex&7)))
+			{
+				return true;
+			}
+		}
+		if (ent->numleafs == 0) {
+			Con_Printf("Ent with no leafs");
+			return true;
+		}
+		return false;
 	}
 	return false;
 }
@@ -562,7 +581,6 @@ void R_MarkShadowCasting (shadowlight_t *light, mnode_t *node)
 	int			c,leafindex;
 
 	if (node->contents < 0) {
-
 		//we are in a leaf
 		leaf = (mleaf_t *)node;
 		leafindex = leaf->index-1;
@@ -647,7 +665,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		//whole sphere is out ouf frustum so cut it.
 		return false;
 	}
-	
+
 	//fully/partially in frustum
 	
 	if (!sh_noscissor.value) {
@@ -671,7 +689,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		}
 	}
 
-	r_lightTimestamp++;
+	//r_lightTimestamp++;
 
 	shadowchain = NULL;
 	if (light->isStatic) {
@@ -680,6 +698,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		lightleaf = Mod_PointInLeaf (light->origin, cl.worldmodel);
 		lightvis = Mod_LeafPVS (lightleaf, cl.worldmodel);
 		Q_memcpy(&light->vis,lightvis,MAX_MAP_LEAFS/8);
+		Q_memcpy(&light->entvis, lightvis, MAX_MAP_LEAFS/8);
 	}
 
 	if (HasSharedLeafs(lightvis,&worldvis[0])) {
@@ -721,19 +740,19 @@ qboolean R_FillShadowChain (shadowlight_t *light)
 	shadowchain = NULL;
 
 	lightvis = &light->vis[0];
-		//numUsedShadowLights++;
-
-		//mark shadow casting ents
-		MarkShadowEntities();
-
-		//mark shadow casting polygons
-		if (!light->isStatic) {
-			R_MarkShadowCasting ( light, cl.worldmodel->nodes);
-		} else {
-			return true;
-		}
-
-		return (shadowchain) ? true : false;
+	//numUsedShadowLights++;
+	
+	//mark shadow casting ents
+	MarkShadowEntities();
+	
+	//mark shadow casting polygons
+	if (!light->isStatic) {
+	       R_MarkShadowCasting ( light, cl.worldmodel->nodes);
+	} else {
+	       return true;
+	}
+	
+	return (shadowchain) ? true : false;
 }
 
 void *VolumeVertsPointer;
@@ -1070,24 +1089,27 @@ void R_DrawBrushModelVolumes(entity_t *e) {
 		{
 			if (ins->neighbourVis[count+j]) {
 				glBegin(GL_QUAD_STRIP);
-					glVertex3fv(&poly->verts[j][0]);
+					//glVertex3fv(&poly->verts[j][0]);
+					glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+j]));
 					glVertex3fv(&ins->extvertices[count+j][0]);
-					glVertex3fv(&poly->verts[((j+1)% poly->numverts)][0]);
+					//glVertex3fv(&poly->verts[((j+1)% poly->numverts)][0]);
+					glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+((j+1)% poly->numverts)]));
 					glVertex3fv(&ins->extvertices[count+((j+1)% poly->numverts) ][0]);
 				glEnd();			
 			}
 		}
 
 		//Draw near light cap
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		for (j=0; j<surf->numedges ; j++)
 		{
-			glVertex3fv(&poly->verts[j][0]);
+			//glVertex3fv(&poly->verts[j][0]);
+			glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+j]));
 		}
 		glEnd();
 
 		//Draw extruded cap
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		for (j=surf->numedges-1; j>=0 ; j--)
 		{
 			glVertex3fv(&ins->extvertices[count+j][0]);
@@ -1147,6 +1169,7 @@ Non calculated vertices are not saved in the list but the index in the vertex ar
 of the model is saved.
 
 We store them in volumeCmdsBuff and lightCmdsBuff
+
 =============
 */
 void PrecalcVolumesForLight(model_t *model) {
@@ -1154,7 +1177,7 @@ void PrecalcVolumesForLight(model_t *model) {
 	msurface_t *surf;
 
 	int *volumeCmds = &volumeCmdsBuff[0];
-	int *lightCmds = &lightCmdsBuff[0];
+	lightcmd_t *lightCmds = &lightCmdsBuff[0];
 	float *volumeVerts = &volumeVertsBuff[0];
 	int volumePos = 0;
 	int lightPos = 0;
@@ -1189,13 +1212,15 @@ void PrecalcVolumesForLight(model_t *model) {
 	
 		
 		//a. far cap
-		volumeCmds[volumePos++] = GL_POLYGON;
+//		volumeCmds[volumePos++] = GL_POLYGON;
+		volumeCmds[volumePos++] = GL_TRIANGLE_FAN;
 		volumeCmds[volumePos++] = surf->numedges;
 
 		startVerts = (int)vertPos/3;
 		for (i=0 ; i<surf->numedges ; i++)
 		{
-			v2 = (vec3_t *)&poly->verts[i];
+			//v2 = (vec3_t *)&poly->verts[i];
+			v2 = (vec3_t *)(&globalVertexTable[surf->polys->firstvertex+i]);
 			VectorSubtract ( (*v2), currentshadowlight->origin, v1);
 
 			scale = Length (v1);
@@ -1220,7 +1245,8 @@ void PrecalcVolumesForLight(model_t *model) {
 		startNearVerts = (int)vertPos/3;
 		for (i=0 ; i<surf->numedges ; i++)
 		{
-			v2 = (vec3_t *)&poly->verts[i];
+			//v2 = (vec3_t *)&poly->verts[i];
+			v2 = (vec3_t *)(&globalVertexTable[surf->polys->firstvertex+i]);
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[0];	// <AWE> lvalue cast. what da...?
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[1];	// <AWE> a float is a float is a...
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[2];
@@ -1314,23 +1340,24 @@ void PrecalcVolumesForLight(model_t *model) {
 
 			if (colorscale <0) colorscale = 0;
 
-			lightCmds[lightPos++] = GL_POLYGON;
+			lightCmds[lightPos++].asInt = GL_TRIANGLE_FAN;
 
-			(void *)lightCmds[lightPos++] = surf;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[0]*colorscale;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[1]*colorscale;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[2]*colorscale;
-			(float)lightCmds[lightPos++] = colorscale;
+			lightCmds[lightPos++].asVoid = surf;
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[0]*colorscale; 
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[1]*colorscale;
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[2]*colorscale;
+			lightCmds[lightPos++].asFloat = colorscale;
 
-			v = poly->verts[0];
+			//v = poly->verts[0];
+			v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 			for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 			{
 				// Project the light image onto the face
 				VectorSubtract (v, nearPt, nearToVert);
 
 				// Get our texture coordinates, transform into tangent plane
-				(float)lightCmds[lightPos++] = DotProduct (nearToVert, (*s)) * scale + 0.5;
-				(float)lightCmds[lightPos++] = DotProduct (nearToVert, (*t)) * scale + 0.5;
+				lightCmds[lightPos++].asVec = DotProduct (nearToVert, (*s)) * scale + 0.5;
+				lightCmds[lightPos++].asVec = DotProduct (nearToVert, (*t)) * scale + 0.5;
 				
 				//calculate local light vector and put it into tangent space
 				{
@@ -1346,9 +1373,9 @@ void PrecalcVolumesForLight(model_t *model) {
 
 					tsLightDir[1] = -DotProduct(lightDir,(*t));
 					tsLightDir[0] = DotProduct(lightDir,(*s));
-					(float)lightCmds[lightPos++] = tsLightDir[0];
-					(float)lightCmds[lightPos++] = tsLightDir[1];
-					(float)lightCmds[lightPos++] = tsLightDir[2];
+					lightCmds[lightPos++].asVec = tsLightDir[0];
+					lightCmds[lightPos++].asVec = tsLightDir[1];
+					lightCmds[lightPos++].asVec = tsLightDir[2];
 				}
 			}
 		if (lightPos >  MAX_LIGHT_COMMANDS) {
@@ -1361,7 +1388,7 @@ void PrecalcVolumesForLight(model_t *model) {
 
 	//Con_Printf("used %i\n",volumePos);
 	//finish them off with 0
-	lightCmds[lightPos++] = 0;
+	lightCmds[lightPos++].asInt = 0;
 	volumeCmds[volumePos++] = 0;
 
 	numLightCmds = lightPos;
@@ -1375,7 +1402,7 @@ DrawVolumeFromCmds
 Draws the generated commands as shadow volumes
 =============
 */
-void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts) {
+void DrawVolumeFromCmds(int *volumeCmds, lightcmd_t *lightCmds, float *volumeVerts) {
 
 	int command, num, i;
 	int volumePos = 0;
@@ -1426,15 +1453,16 @@ void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 		lightPos+=4;  //skip color
 		num = surf->polys->numverts; 
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			//skip attent texture coord.
 			lightPos+=2;
@@ -1472,7 +1500,8 @@ void R_RenderGlow (shadowlight_t *light)
 	int		ofsx, ofsy;
 	qboolean hitWorld;
 
-	if (!light->halo) return;
+	if (!light->halo || gl_wireframe.value) 
+		return;
 
 	//trace a from the eye to the light source
 	TraceLine (r_refdef.vieworg, light->origin, hit);
@@ -1618,6 +1647,7 @@ void CutLeafs(byte *vis) {
 			c = leaf->nummarksurfaces;
 			surf = leaf->firstmarksurface;
 			
+			if (leaf->index != i) Con_Printf("Weird leaf index %i, %i\n",i,leaf->index);
 			found = false;
 			for (c=0; c<leaf->nummarksurfaces; c++, surf++) {			
 				if ((*surf)->polys->lightTimestamp == r_lightTimestamp) {
@@ -1701,7 +1731,7 @@ void AddToShadowBsp(msurface_t *surf) {
 	surf->visframe = 0;
 	//Make temp copy of suface polygon
 	numsurfvects = surf->numedges;
-	for (i=0, v=surf->polys->verts[0]; i<numsurfvects; i++, v+=VERTEXSIZE) {
+	for (i=0, v=(float *)(&globalVertexTable[surf->polys->firstvertex]); i<numsurfvects; i++, v+=VERTEXSIZE) {
 		VectorCopy(v,surfvects[i]);
 	}
 
@@ -1838,7 +1868,7 @@ int done = 0;
 
 /*
 ================
-ShadowVolumeBsp
+R_CalcSvBsp
 
 Called for every static ent during spawning of the client
 ================
@@ -1879,6 +1909,12 @@ void R_CalcSvBsp(entity_t *ent) {
 		//Create a light and make it static
 		R_ShadowFromEntity(ent);
 		numStaticShadowLights++;
+
+		if (numShadowLights >= MAXSHADOWLIGHTS)  {
+			Con_Printf("R_CalcSvBsp: More than MAXSHADOWLIGHTS lights");
+			return;
+		}
+
 		currentshadowlight = &shadowlights[numShadowLights-1];
 
 		//Hack: support quake light_* entities
@@ -1894,11 +1930,6 @@ void R_CalcSvBsp(entity_t *ent) {
 			currentshadowlight->baseColor[0] = 1;
 			currentshadowlight->baseColor[1] = 0.9;
 			currentshadowlight->baseColor[2] = 0.75;
-		}
-
-		if (numShadowLights == MAXSHADOWLIGHTS)  {
-			Con_Printf("R_CalcSvBsp: More than MAXSHADOWLIGHTS lights");
-			return;
 		}
 
 		currentshadowlight->isStatic = true;
@@ -1957,6 +1988,7 @@ void R_CalcSvBsp(entity_t *ent) {
 		currentshadowlight->leaf = Mod_PointInLeaf (currentshadowlight->origin, cl.worldmodel);
 		lightvis = Mod_LeafPVS (currentshadowlight->leaf, cl.worldmodel);
 		Q_memcpy(&currentshadowlight->vis[0], lightvis, MAX_MAP_LEAFS/8);
+		Q_memcpy(&currentshadowlight->entvis[0], lightvis, MAX_MAP_LEAFS/8);
 		CutLeafs(currentshadowlight->vis);
 
 		//Precalculate the shadow volume / glow-texcoords
@@ -1970,7 +2002,7 @@ void R_CalcSvBsp(entity_t *ent) {
 
 		currentshadowlight->lightCmds = Hunk_Alloc(4*numLightCmds);
 		Q_memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, 4*numLightCmds);
-		//Con_Printf("light done");
+		//Con_Printf("light done\n");
 	} else {
 		//Con_Printf("thrown away");
 	}
@@ -1995,7 +2027,8 @@ void LightFromSurface(msurface_t *surf) {
 	invnum = 1.0/poly->numverts;
 
 	//Calculate origin for the light we are possibly going to spawn
-	v = poly->verts[0];
+	//v = poly->verts[0];
+	v = (float *)(&globalVertexTable[poly->firstvertex]);
 	center[0] = center[1] = center[2] = 0;
 	for (i=0 ; i<poly->numverts ; i++, v+= VERTEXSIZE)
 	{
@@ -2036,6 +2069,7 @@ void LightFromSurface(msurface_t *surf) {
 		R_CalcSvBsp(&fakeEnt);
 		Con_Printf("Added surface light");
 	}
+
 }
 
 /**
@@ -2077,6 +2111,8 @@ void LightFromFile(vec3_t orig) {
 		R_CalcSvBsp(&fakeEnt);
 		//Con_Printf("Added file light");
 	}
+
+
 }
 
 
@@ -2142,14 +2178,30 @@ char *ParseEnt (char *data, qboolean *isLight, vec3_t origin)
 		} else if (!strcmp(keyname, "_noautolight")) {
 			Con_Printf("Automatic light gen disabled\n");//XYW \n
 			foundworld = true;
+		} else if (!strcmp(keyname, "_skybox")) {
+			strcpy(skybox_name,com_token);
+		} else if (!strcmp(keyname, "_cloudspeed")) {
+			skybox_cloudspeed = atof(com_token);
 		} else if (!strcmp(keyname, "_lightmapbright")) {
-			//Con_Printf("Automatic light gen disabled");
-			sh_lightmapbright.value = atof(com_token);
+			Cvar_Set("sh_lightmapbright",com_token);
 			Con_Printf("Lightmap brightness set to %f\n",sh_lightmapbright.value);
+		} else if (!strcmp(keyname, "_fog_color")) {
+			ParseVector(com_token, origin);	
+			Cvar_SetValue("fog_r",origin[0]);
+			Cvar_SetValue("fog_g",origin[1]);
+			Cvar_SetValue("fog_b",origin[2]);
+		} else if (!strcmp(keyname, "_fog_start")) {
+			Cvar_Set("fog_start",com_token);
+		} else if (!strcmp(keyname, "_fog_end")) {
+			Cvar_Set("fog_end",com_token);
 		} else {
+
 			//just do nothing
+
 		}
 	}
+
+
 
 	if (foundworld) return NULL;
 	return data;
@@ -2159,6 +2211,9 @@ void LoadLightsFromFile (char *data)
 {	
 	qboolean	isLight;
 	vec3_t		origin;
+
+	Cvar_SetValue ("fog_start",0.0);
+	Cvar_SetValue ("fog_end",0.0);
 
 // parse ents
 	while (1)
@@ -2176,7 +2231,11 @@ void LoadLightsFromFile (char *data)
 			LightFromFile(origin);
 			//Con_Printf("found light in file");
 		}
-	}	
+	}
+	
+	if ((!fog_start.value) && (!fog_end.value)) {
+		Cvar_SetValue ("fog_enabled",0.0);
+	}
 }
 
 void R_AutomaticLightPos() {
@@ -2191,4 +2250,3 @@ void R_AutomaticLightPos() {
 
 	LoadLightsFromFile(cl.worldmodel->entities);
 }
-

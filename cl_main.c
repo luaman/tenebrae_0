@@ -40,6 +40,8 @@ cvar_t	m_yaw = {"m_yaw","0.022", true};
 cvar_t	m_forward = {"m_forward","1", true};
 cvar_t	m_side = {"m_side","0.8", true};
 
+cvar_t	sbar_updateperframe = {"sbar_updateperframe","1", true};
+
 
 client_static_t	cls;
 client_state_t	cl;
@@ -211,7 +213,7 @@ Con_DPrintf ("CL_SignonReply: %i\n", cls.signon);
 		SCR_EndLoadingPlaque ();		// allow normal screen updates
 		//PENTA:  Is this the right place to call stuff like this?
 		R_AutomaticLightPos();
-
+		R_LoadSkys();
 		break;
 	}
 }
@@ -503,6 +505,12 @@ void CL_RelinkEntities (void)
 		if (ent->msgtime != cl.mtime[0])
 		{
 			ent->model = NULL;
+
+			//Don't t lerp - Eradicator
+			ent->frame_start_time     = 0;
+			ent->translate_start_time = 0;
+			ent->rotate_start_time    = 0;
+
 			continue;
 		}
 
@@ -513,6 +521,7 @@ void CL_RelinkEntities (void)
 			// so move to the final spot
 			VectorCopy (ent->msg_origins[0], ent->origin);
 			VectorCopy (ent->msg_angles[0], ent->angles);
+			R_FillEntityLeafs (ent);
 		}
 		else
 		{	// if the delta is large, assume a teleport and don't lerp
@@ -522,6 +531,13 @@ void CL_RelinkEntities (void)
 				delta[j] = ent->msg_origins[0][j] - ent->msg_origins[1][j];
 				if (delta[j] > 100 || delta[j] < -100)
 					f = 1;		// assume a teleportation, not a motion
+			}
+
+			if (f >= 1) //Transform Interpolation - Eradicator
+			{
+				ent->frame_start_time     = 0;
+				ent->translate_start_time = 0;
+				ent->rotate_start_time    = 0;
 			}
 
 		// interpolate the origin and angles
@@ -536,7 +552,7 @@ void CL_RelinkEntities (void)
 					d += 360;
 				ent->angles[j] = ent->msg_angles[1][j] + f*d;
 			}
-			
+			R_FillEntityLeafs (ent);
 		}
 
 // rotate binary objects locally
@@ -871,6 +887,8 @@ void CL_Init (void)
 	Cvar_RegisterVariable (&m_forward);
 	Cvar_RegisterVariable (&m_side);
 
+	Cvar_RegisterVariable (&sbar_updateperframe);
+
 //	Cvar_RegisterVariable (&cl_autofire);
 	
 	Cmd_AddCommand ("entities", CL_PrintEntities_f);
@@ -880,4 +898,3 @@ void CL_Init (void)
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand ("timedemo", CL_TimeDemo_f);
 }
-

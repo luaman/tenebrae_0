@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif /* __APPLE__ || MACOSX */
 
 #include "quakedef.h"
+#if defined(_WIN32)
+#include <windows.h> //Console Paste - Eradicator
+#endif
 
 /*
 
@@ -203,6 +206,14 @@ Interactive line editing and console scrollback
 void Key_Console (int key)
 {
 	char	*cmd;
+#if defined(_WIN32)
+	//START - Console Paste - Eradicator
+	char	*s;
+	int		i;
+	HANDLE	th;
+	char	*clipText, *textCopied;
+	//END - Console Paste
+#endif
 
 #if defined (__APPLE__) || defined (MACOSX)
 
@@ -306,11 +317,60 @@ void Key_Console (int key)
 	}
 
 	if (key == K_TAB)
-	{	// command completion
-		cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
-		if (!cmd)
+	{
+		//Rehash of tab completion - Eradicator
+		int c, v, a;
+
+		c = Cmd_CompleteCountPossible (key_lines[edit_line]+1);
+		v = Cvar_CompleteCountPossible (key_lines[edit_line]+1);
+		a = Cmd_CompleteAliasCountPossible (key_lines[edit_line]+1);
+
+		if (!(c + v + a))
+			return;
+
+		if (c + v > 1)
+		{
+			Con_Printf("\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+
+			if (c)
+			{
+				if (c==1)
+					Con_Printf("1 possible command:\n");
+				else
+					Con_Printf("%i possible commands:\n", c);
+				Cmd_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			if (v)
+			{
+				if (v==1)
+					Con_Printf("1 possible cvar:\n");
+				else
+					Con_Printf("%i possible cvars:\n", v);
+				Cvar_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			if (a)
+			{
+				if (a==1)
+					Con_Printf("1 possible alias:\n");
+				else
+					Con_Printf("%i possible aliases:\n", a);
+				Cmd_CompleteAliasPrintPossible (key_lines[edit_line]+1);
+			}
+			return;
+		}
+
+		if (c)
+			cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
+
+		if (v)
 			cmd = Cvar_CompleteVariable (key_lines[edit_line]+1);
-		if (cmd)
+
+		if (a)
+			cmd = Cmd_CompleteAlias (key_lines[edit_line]+1);
+
+		if(cmd)
 		{
 			Q_strcpy (key_lines[edit_line]+1, cmd);
 			key_linepos = Q_strlen(cmd)+1;
@@ -391,6 +451,34 @@ void Key_Console (int key)
 		con_backscroll = 0;
 		return;
 	}
+
+	#if defined(_WIN32)
+	if ((key=='V' || key=='v') && GetKeyState(VK_CONTROL)<0) { //Console Paste - Eradicator
+		if (OpenClipboard(NULL)) {
+			th = GetClipboardData(CF_TEXT);
+			if (th) {
+				clipText = GlobalLock(th);
+				if (clipText) {
+					textCopied = malloc(GlobalSize(th)+1);
+					strcpy(textCopied, clipText);
+					strtok(textCopied, "\n\r\b");
+					i = strlen(textCopied);
+					if (i+key_linepos>=MAXCMDLINE)
+						i=MAXCMDLINE-key_linepos;
+					if (i>0) {
+						textCopied[i]=0;
+						strcat(key_lines[edit_line], textCopied);
+						key_linepos+=i;;
+					}
+					free(textCopied);
+				}
+				GlobalUnlock(th);
+			}
+			CloseClipboard();
+		return;
+		}
+	}
+	#endif
 	
 	if (key < 32 || key > 127)
 		return;	// non printable
@@ -791,7 +879,8 @@ void Key_Event (int key, qboolean down)
 #endif /* __APPLE__ || MACOSX */
 
 		key_repeats[key]++;
-		if (key != K_BACKSPACE && key != K_PAUSE && key_repeats[key] > 1)
+		if ((key < K_BACKSPACE || key > K_RIGHTARROW) && key != K_PAUSE && key_repeats[key] > 1) //Allow Repeat for Arrow Keys - Eradicator
+		//if (key != K_BACKSPACE && key != K_PAUSE && key_repeats[key] > 1)
 		{
 			return;	// ignore most autorepeats
 		}

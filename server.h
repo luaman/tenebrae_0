@@ -68,7 +68,7 @@ typedef struct
 	byte		reliable_datagram_buf[MAX_DATAGRAM];
 
 	sizebuf_t	signon;
-	byte		signon_buf[8192];
+	byte		signon_buf[32768]; //Increased from 8192 to 32768 - Eradicator
 } server_t;
 
 

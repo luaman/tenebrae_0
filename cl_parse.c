@@ -116,7 +116,8 @@ void CL_ParseStartSoundPacket(void)
 		volume = DEFAULT_SOUND_PACKET_VOLUME;
 	
     if (field_mask & SND_ATTENUATION)
-		attenuation = MSG_ReadByte () / 64.0;
+		//attenuation = MSG_ReadByte () / 64.0;
+		attenuation = MSG_ReadByte () * 0.015625;	//Speedup - Eradicator
 	else
 		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;
 	
@@ -376,6 +377,7 @@ if (bits&(1<<i))
 		modnum = MSG_ReadByte ();
 		if (modnum >= MAX_MODELS)
 			Host_Error ("CL_ParseModel: bad modnum");
+		//Relink ent based on new model
 	}
 	else
 		modnum = ent->baseline.modelindex;
@@ -399,6 +401,7 @@ if (bits&(1<<i))
 		if (num > 0 && num <= cl.maxclients)
 			R_TranslatePlayerSkin (num - 1);
 #endif
+		R_FillEntityLeafs (ent);
 	}
 	
 	if (bits & U_FRAME)
@@ -536,7 +539,12 @@ void CL_ParseBaseline (entity_t *ent)
 		ent->baseline.origin[i] = MSG_ReadCoord ();
 		ent->baseline.angles[i] = MSG_ReadAngle ();
 		ent->baseline.color[i] = MSG_ReadByte () / 255.0;
-	}	
+	}
+
+	VectorCopy(ent->baseline.origin,ent->origin);
+	ent->model = cl.model_precache[ent->baseline.modelindex];
+		//setup nodes
+	R_FillEntityLeafs (ent);	
 }
 
 
@@ -729,6 +737,8 @@ void CL_ParseStatic (void)
 	VectorCopy (ent->baseline.angles, ent->angles);	
 	R_AddEfrags (ent);
 	R_CalcSvBsp(ent);
+
+	R_FillEntityLeafs (ent);
 }
 
 void CL_ParseLight (void)
@@ -915,6 +925,14 @@ void CL_ParseServerMessage (void)
 			
 		case svc_particle:
 			R_ParseParticleEffect ();
+			break;
+
+		case svc_basicemitter:
+			R_ParseBasicEmitter ();
+			break;
+
+		case svc_extendedemitter:
+			R_ParseExtendedEmitter ();
 			break;
 
 		case svc_spawnbaseline:

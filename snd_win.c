@@ -194,9 +194,33 @@ sndinitstat SNDDMA_InitDirect (void)
 
 	shm = &sn;
 
-	shm->channels = 2;
-	shm->samplebits = 16;
-	shm->speed = 11025;
+	//shm->channels = 2;
+	if (COM_CheckParm("-sndchannels")) //Better sound channels (once 2) - Eradicator
+	{
+		shm->channels = Q_atoi(com_argv[COM_CheckParm("-sndchannels")+1]);
+	}
+	else
+	{
+		shm->channels = 2;
+	}
+	//shm->samplebits = 16;
+	if (COM_CheckParm("-sndbits")) //Better sample bits (once 16) - Eradicator
+	{
+		shm->samplebits = Q_atoi(com_argv[COM_CheckParm("-sndbits")+1]);
+	}
+	else
+	{
+		shm->samplebits = 16;
+	}
+	//shm->speed = samplerate.value; //Better Sample Rate (once 11025) - Eradicator
+	if (COM_CheckParm("-sndspeed"))
+	{
+		shm->speed = Q_atoi(com_argv[COM_CheckParm("-sndspeed")+1]);
+	}
+	else
+	{
+		shm->speed = 22050;
+	}
 
 	memset (&format, 0, sizeof(format));
 	format.wFormatTag = WAVE_FORMAT_PCM;
@@ -725,5 +749,49 @@ Reset the sound device for exiting
 void SNDDMA_Shutdown(void)
 {
 	FreeSound ();
+}
+
+//New Sound Functions - Eradicator
+DWORD dsound_dwSize;
+DWORD dsound_dwSize2;
+DWORD *dsound_pbuf;
+DWORD *dsound_pbuf2;
+void *S_LockBuffer(void)
+{
+	int reps;
+	HRESULT hresult;
+
+	if (pDSBuf)
+	{
+		reps = 0;
+
+		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &dsound_pbuf, &dsound_dwSize, &dsound_pbuf2, &dsound_dwSize2, 0)) != DS_OK)
+		{
+			if (hresult != DSERR_BUFFERLOST)
+			{
+				Con_Printf ("S_LockBuffer: DS::Lock Sound Buffer Failed\n");
+				S_Shutdown ();
+				S_Startup ();
+				return NULL;
+			}
+
+			if (++reps > 10000)
+			{
+				Con_Printf ("S_LockBuffer: DS: couldn't restore buffer\n");
+				S_Shutdown ();
+				S_Startup ();
+				return NULL;
+			}
+		}
+		return dsound_pbuf;
+	}
+	else
+		return shm->buffer;
+}
+
+void S_UnlockBuffer(void)
+{
+	if (pDSBuf)
+		pDSBuf->lpVtbl->Unlock(pDSBuf, dsound_pbuf, dsound_dwSize, dsound_pbuf2, dsound_dwSize2);
 }
 

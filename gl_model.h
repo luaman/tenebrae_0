@@ -61,6 +61,17 @@ typedef struct
 	vec3_t		position;
 } mvertex_t;
 
+
+//PENTA: "modern" vertices
+//WARNING: if you change the size of this also change VERTEXSIZE
+typedef struct
+{
+	vec3_t		position;
+	float		texture[2];
+	float		lightmap[2];
+} mmvertex_t;
+
+
 #define	SIDE_FRONT	0
 #define	SIDE_BACK	1
 #define	SIDE_ON		2
@@ -122,6 +133,8 @@ typedef struct
 
 #define	VERTEXSIZE	7
 
+//Penta
+//I changed this the poly only stores the first index for the vertex in the global vertex list...
 typedef struct glpoly_s
 {
 	struct	glpoly_s	*next;
@@ -131,8 +144,7 @@ typedef struct glpoly_s
 	int			lightTimestamp;	//PENTA: timestamp of last light that
 								//this polygon was visible to
 	struct	glpoly_s	**neighbours;
-	float	verts[4][VERTEXSIZE];	// variable sized (xyz s1t1 s2t2)
-
+	int		firstvertex;
 } glpoly_t;
 
 typedef struct msurface_s
@@ -334,11 +346,12 @@ typedef struct {
 	int					texcoords;	//PENTA: For every triangle the 3 texture coords
 	int					indecies; //PENTA: indecies for gl vertex arrays
 	int					gl_texturenum[MAX_SKINS][4];
+        int                                     gl_lumatex[MAX_SKINS][4]; // duh
 	int					texels[MAX_SKINS];	// only for player skins
 	maliasframedesc_t	frames[1];	// variable sized
 } aliashdr_t;
 
-#define	MAXALIASVERTS	1024
+#define	MAXALIASVERTS	2048
 #define	MAXALIASFRAMES	256
 #define	MAXALIASTRIS	2048
 extern	aliashdr_t	*pheader;
@@ -352,7 +365,7 @@ extern	trivertx_t	*poseverts[MAXALIASFRAMES];
 // Whole model
 //
 
-typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
+typedef enum {mod_brush, mod_sprite, mod_alias, mod_alias3} modtype_t;
 
 #define	EF_ROCKET	1			// leave a trail
 #define	EF_GRENADE	2			// leave a trail

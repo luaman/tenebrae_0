@@ -96,22 +96,10 @@ void R_InitParticleTexture (void)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	particletexture_glow = EasyTgaLoad("particles/glow.tga");
+	particletexture_blood = EasyTgaLoad("textures/particles/blood.tga");
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_glow2 = EasyTgaLoad("particles/glow2.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_smoke = EasyTgaLoad("particles/smoke.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_tele = EasyTgaLoad("particles/teleport.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_blood = EasyTgaLoad("particles/blood.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_dirblood = EasyTgaLoad("particles/blood2.tga");
+	particletexture_dirblood = EasyTgaLoad("textures/particles/blood2.tga");
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 }
@@ -205,7 +193,6 @@ void R_Init (void)
 	Cvar_RegisterVariable (&r_wateralpha);
 	Cvar_RegisterVariable (&r_dynamic);
 	Cvar_RegisterVariable (&r_novis);
-	Cvar_RegisterVariable (&r_speeds);
 
 	Cvar_RegisterVariable (&gl_finish);
 	Cvar_RegisterVariable (&gl_clear);
@@ -228,6 +215,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&gl_doubleeyes);
 
 	Cvar_RegisterVariable (&gl_watershader);//PENTA: register our vars.
+	Cvar_RegisterVariable (&gl_calcdepth);
 	Cvar_RegisterVariable (&sh_lightmapbright);
 	Cvar_RegisterVariable (&sh_radiusscale);
 	Cvar_RegisterVariable (&sh_visiblevolumes);
@@ -236,6 +224,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_showlightnum);
 	Cvar_RegisterVariable (&sh_glows);
 	Cvar_RegisterVariable (&sh_fps); // muff
+	Cvar_RegisterVariable (&sh_debuginfo);
 	Cvar_RegisterVariable (&sh_norevis);
 	Cvar_RegisterVariable (&sh_nosvbsp);
 	Cvar_RegisterVariable (&sh_noeclip);
@@ -247,13 +236,30 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_playershadow);
 	Cvar_RegisterVariable (&sh_nocache);
 	Cvar_RegisterVariable (&sh_glares);
+	Cvar_RegisterVariable (&sh_noefrags);
+	Cvar_RegisterVariable (&sh_showtangent);
+	Cvar_RegisterVariable (&sh_noshadowpopping);
 
 	Cvar_RegisterVariable (&mir_detail);
 	Cvar_RegisterVariable (&mir_frameskip);
 	Cvar_RegisterVariable (&mir_forcewater);
 	Cvar_RegisterVariable (&gl_wireframe);
 
+	Cvar_RegisterVariable (&fog_r);
+	Cvar_RegisterVariable (&fog_g);
+	Cvar_RegisterVariable (&fog_b);
+	Cvar_RegisterVariable (&fog_start);
+	Cvar_RegisterVariable (&fog_end);
+	Cvar_RegisterVariable (&fog_enabled);
+
+	Cvar_RegisterVariable (&fog_waterfog);
+	Cvar_RegisterVariable (&gl_caustics);
+	Cvar_RegisterVariable (&gl_truform);
+	Cvar_RegisterVariable (&gl_truform_tesselation);
+
+	R_InitParticleEffects();
 	R_InitParticles ();
+	R_InitDecals ();
 	R_InitParticleTexture ();
 
 #ifdef GLTEST
@@ -278,6 +284,7 @@ void R_TranslatePlayerSkin (int playernum)
 	unsigned	translate32[256];
 	int		i, j, s;
 	model_t		*model;
+	alias3data_t 	*data;
 	aliashdr_t 	*paliashdr;
 	byte		*original;
 	static unsigned	pixels[512*256], *out;		// <AWE> added "static" otherwise array has to be <32kb.
@@ -317,7 +324,10 @@ void R_TranslatePlayerSkin (int playernum)
 	if (model->type != mod_alias)
 		return; // only translate skins on alias models
 
-	paliashdr = (aliashdr_t *)Mod_Extradata (model);
+        // HACK HACK HACK -> garanted to work with original player model _ONLY_
+        data = (alias3data_t *)Mod_Extradata (model);
+	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[0]);
+
 	s = paliashdr->skinwidth * paliashdr->skinheight;
 	if (currententity->skinnum < 0 || currententity->skinnum >= paliashdr->numskins) {
 		Con_Printf("(%d): Invalid player skin #%d\n", playernum, currententity->skinnum);
@@ -423,6 +433,10 @@ void R_NewMap (void)
 {
 	int		i;
 	
+	//Exec a config file in maps dir with same name as the map - Eradicator
+	//Cbuf_AddText(va("exec maps/%s.cfg\n", sv.name));
+	//Cbuf_Execute();
+	
 	for (i=0 ; i<256 ; i++)
 		d_lightstylevalue[i] = 264;		// normal light value
 
@@ -436,8 +450,11 @@ void R_NewMap (void)
 		 	
 	r_viewleaf = NULL;
 	R_ClearParticles ();
+	R_ClearDecals ();
 
 	GL_BuildLightmaps ();
+
+	R_CopyVerticesToHunk();
 
 	// identify sky texture
 	skytexturenum = -1;
@@ -457,9 +474,12 @@ void R_NewMap (void)
 		//Con_Printf("No sky texture found");
 	}
 
-#ifdef QUAKE2
-	R_LoadSkys ();
-#endif
+
+	strcpy(skybox_name,"default");
+	skybox_cloudspeed = 1.0;
+//#ifdef QUAKE2
+
+//#endif
 
 	//PENTA: Clear lights
 	// PENTA: Delete all static lights

@@ -24,9 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "errno.h"
 #include "resource.h"
 #include "conproc.h"
+#include <time.h>
+#include "io.h" //Any Pak File - Eradicator
 
-#define MINIMUM_WIN_MEMORY		0x0880000
-#define MAXIMUM_WIN_MEMORY		0x2000000 //PENTA: Allow quake to allocate more memory by default
+#define MINIMUM_WIN_MEMORY		0x4000000 //and 64 meg minimum
+#define MAXIMUM_WIN_MEMORY		0x40000000 //PENTA: Allow quake to allocate 1 gig at max
 
 #define CONSOLE_ERROR_TIMEOUT	60.0	// # of seconds to wait on Sys_Error running
 										//  dedicated before exiting
@@ -94,7 +96,7 @@ FILE IO
 ===============================================================================
 */
 
-#define	MAX_HANDLES		10
+#define	MAX_HANDLES		256 //Changed max pak files to 256 from 10 - Eradicator
 FILE	*sys_handles[MAX_HANDLES];
 
 int		findhandle (void)
@@ -110,10 +112,10 @@ int		findhandle (void)
 
 /*
 ================
-filelength
+lengthoffile //Renamed from filelength to stop conflict - Eradicator
 ================
 */
-int filelength (FILE *f)
+int lengthoffile (FILE *f)
 {
 	int		pos;
 	int		end;
@@ -152,7 +154,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	{
 		sys_handles[i] = f;
 		*hndl = i;
-		retval = filelength(f);
+		retval = lengthoffile(f);
 	}
 
 	VID_ForceLockState (t);
@@ -245,6 +247,67 @@ int	Sys_FileTime (char *path)
 void Sys_mkdir (char *path)
 {
 	_mkdir (path);
+}
+
+
+void Sys_Strtime(char *buf)
+{
+  _strtime(buf);
+}
+
+// directory entry list internal data
+typedef struct {
+  struct _finddata_t fileinfo;
+  int handle;
+  char dir[MAX_OSPATH];
+} windirdata_t;
+
+
+dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
+{
+  static windirdata_t windata; // FIX-ME : non reentrant...yuk
+  char dirfilter[MAX_OSPATH];
+  if (dirdata)
+  {
+#if !defined(_WIN32) //You can't use snprintf in Windows
+    snprintf(dirfilter,MAX_OSPATH,"%s/%s", dir, filter);
+#else
+	sprintf(dirfilter,"%s/%s", dir, filter);
+#endif
+    windata.handle = _findfirst (dirfilter, &windata.fileinfo);
+    if (windata.handle!=-1){
+      strncpy(windata.dir,dir,MAX_OSPATH); 
+#if !defined(_WIN32)
+    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", dir, windata.fileinfo.name);
+#else
+	sprintf(dirdata->entry,"%s/%s", dir, windata.fileinfo.name);
+#endif
+      dirdata->internal=&windata;
+      return dirdata;
+    }
+  }
+  return NULL;
+}
+
+dirdata_t *Sys_Findnext (dirdata_t *dirdata)
+{
+  windirdata_t *windata;
+  if (dirdata){
+    windata=dirdata->internal;
+    // next entry ?
+    if (_findnext( windata->handle, &(windata->fileinfo))!=-1){
+#if !defined(_WIN32)
+    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", windata->dir, windata->fileinfo.name);
+#else
+	sprintf(dirdata->entry,"%s/%s", windata->dir, windata->fileinfo.name);
+#endif
+      return dirdata;
+    }
+    // no -> close 
+    _findclose(windata->handle);
+    dirdata->internal=NULL;
+  }
+  return NULL;
 }
 
 
@@ -696,7 +759,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	double			time, oldtime, newtime;
 	MEMORYSTATUS	lpBuffer;
 	static	char	cwd[1024];
-	int				t;
+	int				j,t;
+	int				mb_mem_size=50;
 	RECT			rect;
 
     /* previous instances do not exist in Win32 */
@@ -776,31 +840,37 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	}
 
 // take the greater of all the available memory or half the total memory,
-// but at least 8 Mb and no more than 16 Mb, unless they explicitly
+// but at least 64 Mb and no more than 1 Gb, unless they explicitly
 // request otherwise
 	parms.memsize = lpBuffer.dwAvailPhys;
 
+
+	//on some systems dwAvailPhys seems to return all physical mem
+	//not only the avail..
+	if (lpBuffer.dwAvailPhys >= (int)(lpBuffer.dwTotalPhys * 0.9)) {
+		parms.memsize = (int)(lpBuffer.dwTotalPhys*0.75);
+	}
+	
 	if (parms.memsize < MINIMUM_WIN_MEMORY)
 		parms.memsize = MINIMUM_WIN_MEMORY;
 
 	if (parms.memsize < (lpBuffer.dwTotalPhys >> 1))
-		parms.memsize = lpBuffer.dwTotalPhys >> 1;
+		parms.memsize = (lpBuffer.dwTotalPhys >> 1);
 
 	if (parms.memsize > MAXIMUM_WIN_MEMORY)
 		parms.memsize = MAXIMUM_WIN_MEMORY;
 
-	if (COM_CheckParm ("-heapsize"))
-	{
-		t = COM_CheckParm("-heapsize") + 1;
+	j = COM_CheckParm ("-heapsize");
+	if (j)
+		mb_mem_size =
+			(int) (Q_atof (com_argv[j + 1]));
 
-		if (t < com_argc)
-			parms.memsize = Q_atoi (com_argv[t]) * 1024;
-	}
-
+	parms.memsize = mb_mem_size*1024*1024;
 	parms.membase = malloc (parms.memsize);
-
-	if (!parms.membase)
-		Sys_Error ("Not enough memory free; check disk space\n");
+	// not enough memory !!
+	if (!parms.membase){
+	  Sys_Error("Not enough memory - asked for %d - change with -heapsize <value in Mb> - check disk space\n",mb_mem_size);
+	}
 
 	Sys_PageIn (parms.membase, parms.memsize);
 

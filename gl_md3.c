@@ -26,6 +26,8 @@ PENTA: the whole file is freakin penta...
 #define MD3_VERSION			15
 #define	MD3_XYZ_SCALE		(1.0/64)
 
+//#define MD3DEBUG
+
 typedef struct md3Frame_s {
 	vec3_t		bounds[2];
 	vec3_t		localOrigin;
@@ -92,6 +94,15 @@ typedef struct {
 	float		s;
 	float		t;
 } md3St_t;
+
+
+typedef struct md3tag_s
+{
+     char		name[MAX_QPATH];	// supported names : weapon
+     vec3_t		origin;			// pretty much self explanatory
+     vec3_t		axis[3];		// no ?
+     
+} md3tag_t;
 
 
 int findneighbourmd3_old(int index, int edgei, int numtris, mtriangle_t *triangles) {
@@ -164,7 +175,7 @@ int findneighbourmd3(int index, int edgei, int numtris, mtriangle_t *triangles) 
 		return found;
 	}
 	//naughty egde let no-one have the neighbour
-	Con_Printf("%s: warning: open edge added\n",loadname);
+	//Con_Printf("%s: warning: open edge added\n",loadname);
 	return -1;
 }
 
@@ -193,7 +204,7 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 	vec2[2] = *v[2][2] - *v[0][2];
 	delta2 = st[2][0] - st[0][0];
 
-	if  ((!delta1) && (!delta2)) Con_Printf("%s: warning: Degenerate tangent space\n",loadname);
+	//if  ((!delta1) && (!delta2)) Con_Printf("%s: warning: Degenerate tangent space\n",loadname);
 
 
 	dirv[0] = (delta1 * vec2[0] - vec1[0] * delta2);
@@ -214,15 +225,11 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 Mod_LoadMd3Model
 
 PENTA: Very similar to LoadAliasModel
+DC: added multiple surface -> alias3data_t 
 =================
 */
-#define	LL(x) x=LittleLong(x)
 
-// <AWE> added following macros
-#if defined (__APPLE__) || defined (MACOSX)
-#define min(A,B)	((A) < (B) ? (A) : (B))
-#define max(A,B)	((A) > (B) ? (A) : (B))
-#endif /* __APPLE__ || MACOSX */
+#define	LL(x) x=LittleLong(x)
 
 void Mod_LoadMd3Model (model_t *mod, void *buffer)
 {
@@ -231,6 +238,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	int					size;
 	int					start, end, total;
 	md3Surface_t		*surf;
+	md3tag_t			*tag;
 	vec3_t				md3scale = {MD3_XYZ_SCALE, 	MD3_XYZ_SCALE, 	MD3_XYZ_SCALE};
 	vec3_t				md3origin = {0.0f, 0.0f, 0.0f};
 	ftrivertx_t			*verts, *v;
@@ -248,6 +256,9 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	md3Shader_t			*shader;
 	byte				fake[16];
 	char				shadername[MAX_QPATH];
+        alias3data_t			*palias3;
+        int				surfcount;
+        
 
 	start = Hunk_LowMark ();
 
@@ -275,6 +286,14 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	LL(pinmodel->ofsTags);
 	LL(pinmodel->ofsSurfaces);
 	LL(pinmodel->ofsEnd);
+
+#ifdef MD3DEBUG
+	Con_Printf("Statistics for model %s\n",loadname);
+	Con_Printf("NumFrames: %i\n",pinmodel->numFrames);
+	Con_Printf("NumSurfaces: %i\n",pinmodel->numSurfaces);
+	Con_Printf("NumSkins: %i\n",pinmodel->numSkins);
+        Con_Printf("NumTags: %i\n",surf->numTags);
+#endif
 
 	if ( pinmodel->numFrames < 1 ) {
 		Con_Printf( "LoadMd3Model: %s has no frames\n", mod->name );
@@ -316,9 +335,16 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
         LL(surf->ofsSt);
         LL(surf->ofsXyzNormals);
         LL(surf->ofsEnd);
-		
+	
+#ifdef MD3DEBUG		
+		Con_Printf("->surface %i\n",i);
+		Con_Printf("  NumTriangles: %i\n",surf->numTriangles);
+		Con_Printf("  NumVertices: %i\n",surf->numVerts);
+		Con_Printf("  NumFrames: %i\n",surf->numFrames);
+		Con_Printf("  NumShaders: %i\n",surf->numShaders);
+#endif
 		if ( surf->numVerts > MAXALIASVERTS)
-			Sys_Error ("LoadMd3Model: %s has too many vertices",mod->name);
+			Sys_Error ("LoadMd3Model: %s has too many vertices (%i)%i",mod->name,surf->numVerts,surf->numTriangles);
 
 		if (surf->numTriangles <= 0)
 			Sys_Error ("LoadMd3Model: %s has no triangles", mod->name);
@@ -364,10 +390,36 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 // We have now a working version of the md3 in the "*buffer" now convert that to an "alias" model
 // this conversion is not to bad sice the I changed the way alias models work to make them more
 // quake3 friendly, the only thing that remains is that we only use the first surface of the  model.
+// - DC -
+// added multiple surfaces.
+// multiples surfaces : the cached data (alias3data_t) hold an aliashdr_t for each surface
 //
+
+        size = sizeof (alias3data_t);
+        palias3 = Hunk_AllocName (size, mod->name);
+        palias3->numSurfaces = pinmodel->numSurfaces;
+        
+        // allocate header offset array
+        size = sizeof (aliashdr_t *) * (pinmodel->numSurfaces - 1);
+        if (size)
+             Hunk_Alloc (size);
+
+     mod->flags = 0;
+     mod->type = mod_alias;
+     mod->numframes = pinmodel->numFrames;
+     mod->synctype = ST_SYNC;
+
+     mod->mins[0] = mod->mins[1] = mod->mins[2] =  99999.0;
+     mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = -99999.0; 
+     
+        for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
+             
 	//Alocate hunk mem for the header and the frame info (not the actual frame vertices)
 	size = 	sizeof (aliashdr_t) + (pinmodel->numFrames-1) * sizeof (maliasframedesc_t);
-	pheader = Hunk_AllocName (size, mod->name);
+             pheader = Hunk_Alloc (size);
+             // store alias offset
+             palias3->ofsSurfaces[surfcount] = (int)((char*)pheader - (char*)palias3);
+	Q_memset(pheader,0,sizeof(aliashdr_t));
 
 	//Convert the header to the old header
 	pheader->ident = pinmodel->ident;
@@ -377,23 +429,16 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	pheader->boundingradius = 100; //This seems not used anymore by quake
 	VectorCopy(md3origin,pheader->eyeposition);//This seems not used anymore by quake
 	pheader->numskins = 1; //Hacked value
-	pheader->skinwidth = 255;//Hacked value
-	pheader->skinheight = 255;//Hacked value
+	pheader->skinwidth = 4;//Hacked value
+	pheader->skinheight = 4;//Hacked value
 	pheader->numverts = surf->numVerts;
 	pheader->numtris = surf->numTriangles;
-	pheader->numframes = pinmodel->numFrames;
-	pheader->synctype = ST_SYNC;
+          pheader->numframes = surf->numFrames;
+          pheader->synctype = mod->synctype;
 	pheader->flags = 0;//Hacked value
 	pheader->size = 1;//All right, the unofficial specs say the average size of triangles, so we just put something there
-	pheader->numposes = pinmodel->numFrames;
+          pheader->numposes = surf->numFrames;
 	pheader->poseverts = surf->numVerts;
-
-	mod->mins[0] = mod->mins[1] = mod->mins[2] =  99999.0;
-	mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = -99999.0; 
-	mod->flags = 0;
-	mod->type = mod_alias;
-	mod->numframes = pheader->numframes;
-	mod->synctype = pheader->synctype;
 
 	//Convert the frames
 	frame = (md3Frame_t *) ( (byte *)pinmodel + pinmodel->ofsFrames );
@@ -419,9 +464,8 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 		pheader->frames[i].bboxmax.v[1] = (byte)frame->bounds[1][1]/pheader->scale[1];
 		pheader->frames[i].bboxmax.v[2] = (byte)frame->bounds[1][2]/pheader->scale[2];
 	}
+	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
 
-	//calculate radius
-	mod->radius = max(Length(mod->mins),Length(mod->maxs));
 
 	//Convert the vertices
 	verts = Hunk_Alloc (pheader->numposes * pheader->poseverts * sizeof(ftrivertx_t) );
@@ -458,7 +502,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 			}
 		}
 
-	//Calculate plane equatations
+             //Calculate plane equations
 	norms = Hunk_Alloc (pheader->numtris * pheader->numposes * sizeof(plane_t));
 	pheader->planes = (byte *)norms - (byte *)pheader;
 	for (i=0; i<pheader->numposes; i++) {
@@ -543,14 +587,128 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 
 
 	//Load skins
-	fake[0] = 0;
+	for (i=0; i<16; i++)
+		fake[i] = 254;
+
 	shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
+
+	if (!shader->name[0]) {
+		Q_strcpy(shader->name,"unnamed");
+	}
+
 	COM_FileBase (shader->name, shadername);
 	pheader->gl_texturenum[0][0] =
 	pheader->gl_texturenum[0][1] =
 	pheader->gl_texturenum[0][2] =
 	pheader->gl_texturenum[0][3] = GL_LoadTexture (shadername, 4, 4, &fake[0], true, false, true);
-	//Con_Printf("Load shader %s\n",shader->name);
+
+	pheader->gl_lumatex[0][0] =
+	pheader->gl_lumatex[0][1] =
+	pheader->gl_lumatex[0][2] =
+	pheader->gl_lumatex[0][3] = GL_LoadLuma(shadername, true);
+#ifdef MD3DEBUG
+	Con_Printf("Load shader %s\n",shadername);
+#endif
+             // next surface
+             surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
+        } /* for numsurf */
+
+     //calculate radius
+     mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
+
+        
+        /* monster or player models only ? */
+        /* tags */
+        tag = (md3tag_t *)( (byte *)pinmodel + pinmodel->ofsTags );
+
+        for (i = 0; i< pinmodel->numTags; ++i){
+
+             Con_Printf("Tag %s\n",tag[i].name);
+
+             // swap everything first 
+             for ( j = 0 ; j < 3 ; j++ ) {
+                  tag[i].origin[j] = LittleFloat( tag[i].origin[j] );
+                  tag[i].axis[0][j] = LittleFloat( tag[i].axis[0][j] );
+                  tag[i].axis[1][j] = LittleFloat( tag[i].axis[1][j] );
+                  tag[i].axis[2][j] = LittleFloat( tag[i].axis[2][j] );
+             }
+             // then look for supported tags
+             // weapon tag ?
+             if (!strcmp(tag[i].name,"tag_weapon")){
+                  // for weapon, we only need origin, as the weapon 
+                  // follows the player look
+                  VectorCopy(palias3->weaponTag.origin,tag[i].origin);
+             }
+        }
+
+
+	if (!strcmp (mod->name, "progs/g_shot.mdl") || //Hack to give .md3 files renamed to .mdl rotate effects - Eradicator
+ 		!strcmp (mod->name, "progs/g_nail.mdl") ||
+ 		!strcmp (mod->name, "progs/g_nail2.mdl") ||
+ 		!strcmp (mod->name, "progs/g_rock.mdl") ||
+ 		!strcmp (mod->name, "progs/g_rock2.mdl") || 
+ 		!strcmp (mod->name, "progs/g_light.mdl") ||
+		!strcmp (mod->name, "progs/armor.mdl") ||
+		!strcmp (mod->name, "progs/backpack.mdl") ||
+ 		!strcmp (mod->name, "progs/w_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/w_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/m_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/m_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/b_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/b_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/quaddama.mdl") ||
+ 		!strcmp (mod->name, "progs/invisibl.mdl") ||
+ 		!strcmp (mod->name, "progs/invulner.mdl") ||
+ 		!strcmp (mod->name, "progs/jetpack.mdl") || 
+ 		!strcmp (mod->name, "progs/cube.mdl") ||
+ 		!strcmp (mod->name, "progs/suit.mdl") ||
+ 		!strcmp (mod->name, "progs/boots.mdl") ||
+ 		!strcmp (mod->name, "progs/end1.mdl") ||
+ 		!strcmp (mod->name, "progs/end2.mdl") ||
+ 		!strcmp (mod->name, "progs/end3.mdl") ||
+		!strcmp (mod->name, "progs/end4.mdl")) {
+		mod->flags |= EF_ROTATE; 
+	}
+	else if (!strcmp (mod->name, "progs/missile.mdl")) {
+		mod->flags |= EF_ROCKET;
+	}
+	else if (!strcmp (mod->name, "progs/gib1.mdl") || //EF_GIB
+ 			!strcmp (mod->name, "progs/gib2.mdl") || 
+ 			!strcmp (mod->name, "progs/gib3.mdl") || 
+ 			!strcmp (mod->name, "progs/h_player.mdl") || 
+ 			!strcmp (mod->name, "progs/h_dog.mdl") || 
+ 			!strcmp (mod->name, "progs/h_mega.mdl") || 
+ 			!strcmp (mod->name, "progs/h_guard.mdl") || 
+ 			!strcmp (mod->name, "progs/h_wizard.mdl") || 
+ 			!strcmp (mod->name, "progs/h_knight.mdl") || 
+ 			!strcmp (mod->name, "progs/h_hellkn.mdl") || 
+ 			!strcmp (mod->name, "progs/h_zombie.mdl") || 
+ 			!strcmp (mod->name, "progs/h_shams.mdl") || 
+ 			!strcmp (mod->name, "progs/h_shal.mdl") || 
+ 			!strcmp (mod->name, "progs/h_ogre.mdl") ||
+ 			!strcmp (mod->name, "progs/armor.mdl") ||
+			!strcmp (mod->name, "progs/h_demon.mdl")) {
+		mod->flags |= EF_GIB;
+	}
+	else if (!strcmp (mod->name, "progs/grenade.mdl")) {
+		mod->flags |= EF_GRENADE;
+	}	
+	else if (!strcmp (mod->name, "progs/w_spike.mdl")) //EF_TRACER
+	{
+		mod->flags |= EF_TRACER;
+	}
+	else if (!strcmp (mod->name, "progs/k_spike.mdl")) //EF_TRACER2
+	{
+		mod->flags |= EF_TRACER2;
+	}
+	else if (!strcmp (mod->name, "progs/v_spike.mdl")) //EF_TRACER3
+	{
+		mod->flags |= EF_TRACER3;
+	}
+ 	else if (!strcmp (mod->name, "progs/zom_gib.mdl")) //EF_ZOMGIB
+ 	{
+ 		mod->flags |= EF_ZOMGIB;
+	}
 
 
 //
@@ -562,7 +720,10 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	Cache_Alloc (&mod->cache, total, loadname);
 	if (!mod->cache.data)
 		return;
-	memcpy (mod->cache.data, pheader, total);
+	memcpy (mod->cache.data, palias3, total);        
+
+        
 
 	Hunk_FreeToLowMark (start);
+
 }

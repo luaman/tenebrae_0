@@ -24,6 +24,8 @@ extern cvar_t	pausable;
 
 int	current_skill;
 
+cvar_t	useprofiles = {"useprofiles","1"}; //Cvar to toggle use of profiles - Eradicator
+
 void Mod_Print (void);
 
 /*
@@ -943,8 +945,43 @@ void Host_Name_f (void)
 	MSG_WriteByte (&sv.reliable_datagram, svc_updatename);
 	MSG_WriteByte (&sv.reliable_datagram, host_client - svs.clients);
 	MSG_WriteString (&sv.reliable_datagram, host_client->name);
+
+	//Load profile config on name change - Eradicator
+	if (useprofiles.value)
+	{
+		Cbuf_AddText(va("exec profiles/%s.cfg\n", host_client->name));
+		Cbuf_Execute();
+	}
 }
 
+void Host_SaveProfile_f (void)
+{
+	FILE	*f;
+	char	filename[128];
+	int		i;
+
+	sprintf(filename, "%s/profiles/%s.cfg", com_gamedir, cl_name.string);
+	f = fopen (filename, "w");
+	if (!f)
+	{
+		Con_Printf ("\nCouldn't save map settings.\n");
+		return;
+	}
+
+	for (i=0 ; i<256 ; i++)
+		if (keybindings[i])
+			if (*keybindings[i])
+				fprintf (f, "bind \"%s\" \"%s\"\n", Key_KeynumToString(i), keybindings[i]);
+
+	fclose (f);
+	Con_Printf ("Profile saved successfully\n");
+}
+
+void Host_LoadProfile_f (void)
+{
+	Cbuf_AddText(va("exec profiles/%s.cfg\n", cl_name.string));
+	Cbuf_Execute();
+}
 	
 void Host_Version_f (void)
 {
@@ -1736,9 +1773,13 @@ void Host_Viewframe_f (void)
 void PrintFrameName (model_t *m, int frame)
 {
 	aliashdr_t 			*hdr;
+        alias3data_t		*data;        
 	maliasframedesc_t	*pframedesc;
 
-	hdr = (aliashdr_t *)Mod_Extradata (m);
+        // HACK HACK HACK -> should  change the function prototype ?
+        //                   or display frame name for all surfaces ?
+        data = (alias3data_t *)Mod_Extradata(m);
+	hdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[0]);
 	if (!hdr)
 		return;
 	pframedesc = &hdr->frames[frame];
@@ -1878,6 +1919,7 @@ void Host_Stopdemo_f (void)
 Host_InitCommands
 ==================
 */
+extern cvar_t pausedemo; //Pause Demo - Eradicator
 void Host_InitCommands (void)
 {
 	Cmd_AddCommand ("status", Host_Status_f);
@@ -1894,6 +1936,10 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("connect", Host_Connect_f);
 	Cmd_AddCommand ("reconnect", Host_Reconnect_f);
 	Cmd_AddCommand ("name", Host_Name_f);
+
+	Cmd_AddCommand ("saveprofile", Host_SaveProfile_f);
+	Cmd_AddCommand ("loadprofile", Host_LoadProfile_f);
+
 	Cmd_AddCommand ("noclip", Host_Noclip_f);
 	Cmd_AddCommand ("version", Host_Version_f);
 #ifdef IDGODS
@@ -1917,6 +1963,9 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("startdemos", Host_Startdemos_f);
 	Cmd_AddCommand ("demos", Host_Demos_f);
 	Cmd_AddCommand ("stopdemo", Host_Stopdemo_f);
+
+	Cvar_RegisterVariable (&pausedemo);
+	Cvar_RegisterVariable (&useprofiles);
 
 	Cmd_AddCommand ("viewmodel", Host_Viewmodel_f);
 	Cmd_AddCommand ("viewframe", Host_Viewframe_f);

@@ -329,7 +329,10 @@ void SV_AirMove (void)
 	vec3_t		wishvel;
 	float		fmove, smove;
 
-	AngleVectors (sv_player->v.angles, forward, right, up);
+	//Fixed quake movement speed bug when looking up/down - Eradicator
+	wishvel[0] = wishvel[2] = 0;
+	wishvel[1] = sv_player->v.angles[1];
+	AngleVectors (wishvel, forward, right, up);
 
 	fmove = cmd.forwardmove;
 	smove = cmd.sidemove;

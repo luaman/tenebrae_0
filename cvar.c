@@ -95,6 +95,82 @@ char *Cvar_CompleteVariable (char *partial)
 	return NULL;
 }
 
+/*
+============
+Cvar_CompleteCountPossible
+============
+*/
+int Cvar_CompleteCountPossible (char *partial)
+{
+	cvar_t	*cvar;
+	int	len;
+	int	h;
+
+	h=0;
+
+	len = Q_strlen(partial);
+	
+	if (!len)
+		return 0;
+		
+	// Loop through the cvars and count all partial matches
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+		if (!Q_strncmp (partial,cvar->name, len))
+			h++;
+	return h;
+}
+
+/*
+============
+Cvar_CompletePrintPossible
+============
+*/
+void Cvar_CompletePrintPossible (char *partial)
+{
+	cvar_t	*cvar;
+	int	len;
+	int	lpos;
+	int	out;
+	int	con_linewidth;
+	char	sout[32];
+	char	lout[2048];
+
+	len = Q_strlen(partial);
+	lpos = 0;
+	Q_strcpy(lout,"");
+
+	// Determine the width of the console
+	con_linewidth = (vid.width >> 3) - 3;
+
+	// Loop through the cvars and print all matches
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+		if (!Q_strncmp (partial,cvar->name, len))
+		{
+			Q_strcpy(sout, cvar->name);
+
+			out = Q_strlen(sout);
+			lpos += out;
+
+			// Pad with spaces
+			for (out; out<20; out++)		
+			{
+				if (lpos < con_linewidth)
+					Q_strcat (sout, " ");
+				
+				lpos++;
+			}
+
+			Q_strcat (lout, sout);
+
+			if (lpos > con_linewidth - 24)
+				for  (lpos; lpos < con_linewidth; lpos++)
+					Q_strcat(lout, " ");
+
+			if (lpos >= con_linewidth)
+				lpos = 0;
+		}
+	Con_Printf ("%s\n\n", lout);
+}
 
 /*
 ============
@@ -112,12 +188,28 @@ void Cvar_Set (char *var_name, char *value)
 		Con_Printf ("Cvar_Set: variable %s not found\n", var_name);
 		return;
 	}
+	
+	//START - coop and dm flag fix - Eradicator
+	if ( (var->value != 0) && (!Q_strcmp (var->name, deathmatch.name)) )
+		Cvar_Set ("coop", "0");
+
+	if ( (var->value != 0) && (!Q_strcmp (var->name, coop.name)) )
+		Cvar_Set ("deathmatch", "0");
+	//END - coop and dm flag fix - Eradicator
 
 	changed = Q_strcmp(var->string, value);
-	
-	Z_Free (var->string);	// free the old value string
-	
-	var->string = Z_Malloc (Q_strlen(value)+1);
+
+	if(!changed) //Cvar Speedup - Eradicator
+		return;
+	//Don't reallocate when the buffer is the same size
+	if (!var->string || strlen(var->string) != strlen(value))
+	{
+		Z_Free (var->string);
+		var->string = Z_Malloc (strlen(value)+1);
+	}
+	//Z_Free (var->string);	// free the old value string
+	//var->string = Z_Malloc (Q_strlen(value)+1);
+
 	Q_strcpy (var->string, value);
 	var->value = Q_atof (var->string);
 	if (var->server && changed)
@@ -136,7 +228,11 @@ void Cvar_SetValue (char *var_name, float value)
 {
 	char	val[32];
 	
-	sprintf (val, "%f",value);
+	if (value == (int)value) //decimal fix - Eradicator
+		sprintf (val, "%d", (int)value);
+	else
+		sprintf (val, "%f",value);
+
 	Cvar_Set (var_name, val);
 }
 
@@ -220,5 +316,49 @@ void Cvar_WriteVariables (FILE *f)
 	for (var = cvar_vars ; var ; var = var->next)
 		if (var->archive)
 			fprintf (f, "%s \"%s\"\n", var->name, var->string);
+}
+
+/*
+=========
+Cvar_List
+
+Displays a list of all cvars similar to Quake3 cvarlist - Eradicator
+=========
+*/
+void Cvar_List_f (void)
+{
+	cvar_t		*cvar;
+	char 		*partial;
+	int		len;
+	int		count;
+
+	if (Cmd_Argc() > 1)
+	{
+		partial = Cmd_Argv (1);
+		len = Q_strlen(partial);
+	}
+	else
+	{
+		partial = NULL;
+		len = 0;
+	}
+
+	count=0;
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+	{
+		if (partial && Q_strncmp (partial,cvar->name, len))
+		{
+			continue;
+		}
+		Con_Printf ("\"%s\" is \"%s\"\n", cvar->name, cvar->string);
+		count++;
+	}
+
+	Con_Printf ("%i cvar(s)", count);
+	if (partial)
+	{
+		Con_Printf (" beginning with \"%s\"", partial);
+	}
+	Con_Printf ("\n");
 }
 

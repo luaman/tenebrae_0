@@ -45,7 +45,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#if !defined(_SETJMP_H)
 #include <setjmp.h>
+#endif
+
+#ifndef min
+#define min(a,b) (a<b?a:b) 
+#endif
+#ifndef max
+#define max(a,b) (a>b?a:b) 
+#endif
+
 
 #if defined(_WIN32) && !defined(WINDED)
 
@@ -63,7 +74,12 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
-#if defined __i386__ // && !defined __sun__
+//PENTA: win32 we use assembler
+#if defined(_WIN32) || defined __glx__
+#define USE_ASM 1
+#endif
+
+#if defined(__i386__) && defined(USE_ASM)
 #define id386	1
 #else
 #define id386	0
@@ -100,13 +116,15 @@ void	VID_UnlockBuffer (void);
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
 
-#define	MAX_MSGLEN		8000		// max length of a reliable message
-#define	MAX_DATAGRAM	1024		// max length of unreliable message
+#define	MAX_MSGLEN		64000 //Later Packet Overflow
+#define	MAX_DATAGRAM	16384
+//#define	MAX_MSGLEN		8000		// max length of a reliable message
+//#define	MAX_DATAGRAM	1024		// max length of unreliable message
 
 //
 // per-level limits
 //
-#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
+#define	MAX_EDICTS		2048			// FIXME: ouch! ouch! ouch! ////Upped Limits (once 600)- Eradicator
 #define	MAX_LIGHTSTYLES	64
 #define	MAX_MODELS		256			// these are sent over the net as bytes
 #define	MAX_SOUNDS		256			// so they cannot be blindly increased
@@ -202,7 +220,7 @@ void	VID_UnlockBuffer (void);
 
 //===========================================
 
-#define	MAX_SCOREBOARD		16
+#define	MAX_SCOREBOARD		64 //Increased player limit (once 16) - Eradicator
 #define	MAX_SCOREBOARDNAME	32
 
 #define	SOUND_CHANNELS		8
@@ -279,6 +297,9 @@ typedef struct
 typedef struct
 {
 	char	*basedir;
+#if defined (USERPREF_DIR)
+	char	*userdir;		// - DC - for user pref dir
+#endif
 	char	*cachedir;		// for development over ISDN lines
 	int		argc;
 	char	**argv;
@@ -290,6 +311,18 @@ typedef struct
 //=============================================================================
 
 
+/* -DC -
+ * directory entry parsing
+ */
+
+typedef struct 
+{
+  char entry[MAX_OSPATH];         // current entry in the list
+  void *internal;      // system internal data
+} dirdata_t;
+
+dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata);
+dirdata_t *Sys_Findnext (dirdata_t *dirdata);
 
 extern qboolean noclip_anglehack;
 

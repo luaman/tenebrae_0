@@ -62,9 +62,13 @@ void ResampleSfx (sfx_t *sfx, int inrate, int inwidth, byte *data)
 	if (stepscale == 1 && inwidth == 1 && sc->width == 1)
 	{
 // fast special case
+#ifndef OPENAL
 		for (i=0 ; i<outcount ; i++)
 			((signed char *)sc->data)[i]
 			= (int)( (unsigned char)(data[i]) - 128);
+#else
+	    memcpy(sc->data, data, outcount);	
+#endif
 	}
 	else
 	{

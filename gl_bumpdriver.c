@@ -42,187 +42,223 @@ float gl_Material_Color2[4] = {0.9, 0.9, 0.9, 0.9};
 void R_DrawLightEntitiesGF3 (shadowlight_t *l);
 void R_DrawLightEntitiesGF (shadowlight_t *l);
 void R_DrawLightEntitiesGEN (shadowlight_t *l);
+#ifndef __glx__
 void R_DrawLightEntitiesRadeon (shadowlight_t *l); //PA:
+void R_DrawLightEntitiesParhelia (shadowlight_t *l); //PA:
+#endif
+void R_DrawLightEntitiesARB (shadowlight_t *l); //PA:
 
 void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not have parameters.
 {
-	if (gl_geforce3) {
-		R_DrawWorldBumpedGF3(/* l */);	// <AWE> Function has no parameters.
-	} else if (gl_nvcombiner) {
-		R_DrawWorldBumpedGF(/* l */);	// <AWE> Function has no parameters.
-	//PA:
-	} else if (gl_radeon) {
-        R_DrawWorldBumpedRadeon(/* l */);
-	} else {
-		R_DrawWorldBumpedGEN(/* l */);
-	}
+    switch(gl_cardtype )
+    {
+    case GEFORCE3:
+	R_DrawWorldBumpedGF3(/* l */);	// <AWE> Function has no parameters.
+	break;
+
+    case GEFORCE:
+	R_DrawWorldBumpedGF(/* l */);	// <AWE> Function has no parameters.
+	break;
+
+#ifndef __glx__
+    case RADEON:
+	R_DrawWorldBumpedRadeon(/* l */);
+	break;
+    case PARHELIA:
+	R_DrawWorldBumpedParhelia(/* l */);
+	break;
+#endif
+    case ARB:
+	R_DrawWorldBumpedARB(/* l */);
+	break;
+    default:
+	R_DrawWorldBumpedGEN(/* l */);
+	break;
+    }
 }
 
 void R_DrawLightEntities (shadowlight_t *l)
 {
-	if (gl_geforce3) {
-		R_DrawLightEntitiesGF3(l);
-	} else if (gl_nvcombiner) {
-		R_DrawLightEntitiesGF(l);
-	//PA:
-	} else if (gl_radeon) {
-		R_DrawLightEntitiesRadeon(l);
-	} else {
-		R_DrawLightEntitiesGEN(l);
-	}
+    switch(gl_cardtype )
+    {
+    case GEFORCE3:
+	R_DrawLightEntitiesGF3( l );
+	break;
+
+    case GEFORCE:
+	R_DrawLightEntitiesGF( l );
+	break;
+
+#ifndef __glx__
+    case RADEON:
+	R_DrawLightEntitiesRadeon( l );
+	break;
+    case PARHELIA:
+	R_DrawLightEntitiesParhelia( l );
+	break;
+#endif
+    case ARB:
+	R_DrawLightEntitiesARB( l );
+	break;
+    default:
+	R_DrawLightEntitiesGEN( l );
+	break;
+    }
 }
 
 
 void R_DrawLightEntitiesGF (shadowlight_t *l)
 {
-	int		i;
-	float	pos[4];
-	if (!r_drawentities.value)
-		return;
+    int		i;
+    float	pos[4];
+    if (!r_drawentities.value)
+	return;
 
-	if (!currentshadowlight->visible)
-		return;
+    if (!currentshadowlight->visible)
+	return;
 
-	glDepthMask (0);
-	glShadeModel (GL_SMOOTH);
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
 
-	//Meshes: Atten & selfshadow via vertex ligting
+    //Meshes: Atten & selfshadow via vertex ligting
 
-	glEnable(GL_LIGHT0);
-	glEnable(GL_NORMALIZE);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_NORMALIZE);
 	
-	pos[0] = l->origin[0];
-	pos[1] = l->origin[1];
-	pos[2] = l->origin[2];
-	pos[3] = 1;
+    pos[0] = l->origin[0];
+    pos[1] = l->origin[1];
+    pos[2] = l->origin[2];
+    pos[3] = 1;
 
-	glLightfv(GL_LIGHT0, GL_POSITION,&pos[0]);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, &l->color[0]);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, &gl_Light_Ambience2[0]);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, &gl_Light_Specular2[0]);
-	glEnable(GL_COLOR_MATERIAL);
+    glLightfv(GL_LIGHT0, GL_POSITION,&pos[0]);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, &l->color[0]);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, &gl_Light_Ambience2[0]);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, &gl_Light_Specular2[0]);
+    glEnable(GL_COLOR_MATERIAL);
 
 
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
 	{
-		currententity = cl_lightvisedicts[i];
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
 
-		if (currententity->model->type == mod_alias)
-		{
-			//these models are full bright 
-			if (currententity->model->flags & EF_FULLBRIGHT) continue;
-			if (!currententity->aliasframeinstant) continue;
-			if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
-
-			R_DrawAliasObjectLight(currententity, R_DrawAliasBumped);
-		}
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumped);
 	}
+    }
 
-	if (R_ShouldDrawViewModel()) {
-		R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumped);
-	}
+    if (R_ShouldDrawViewModel())
+    {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumped);
+    }
 
 
-	glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
+    glDisable(GL_COLOR_MATERIAL);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_LIGHT0);
 
-	/*
-		Brushes: we use the same thecnique as the world
-	*/
+    /*
+      Brushes: we use the same thecnique as the world
+    */
 	
-	//glEnable(GL_TEXTURE_2D);
-	//GL_Bind(glow_texture_object);
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	//glShadeModel (GL_SMOOTH);
-	//glEnable(GL_ALPHA_TEST);
-	///glAlphaFunc(GL_GREATER,0.2);
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
+    //glEnable(GL_TEXTURE_2D);
+    //GL_Bind(glow_texture_object);
+    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    //glShadeModel (GL_SMOOTH);
+    //glEnable(GL_ALPHA_TEST);
+    //glAlphaFunc(GL_GREATER,0.2);
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
 	{
-		currententity = cl_lightvisedicts[i];
-
-		if (currententity->model->type == mod_brush)
-		{
-			if (!currententity->brushlightinstant) continue;
-			if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
-			R_DrawBrushObjectLight(currententity, R_DrawBrushBumped);
-		}
-
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumped);
 	}
 	
-	//reset gl state
+    }
+	
+    //reset gl state
 
-	//glAlphaFunc(GL_GREATER,0.666);//Satan!
-	//glDisable(GL_ALPHA_TEST);
-	glColor3f (1,1,1);
-	glDepthMask (1);	
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glDisable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glAlphaFunc(GL_GREATER,0.666);//Satan!
+    //glDisable(GL_ALPHA_TEST);
+    glColor3f (1,1,1);
+    glDepthMask (1);	
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void R_DrawLightEntitiesGEN (shadowlight_t *l)
 {
-	//Currently this is merged with the geforce2 path
-	R_DrawLightEntitiesGF(l);
+    //Currently this is merged with the geforce2 path
+    R_DrawLightEntitiesGF(l);
 }
 
 void R_DrawLightEntitiesGF3 (shadowlight_t *l)
 {
-	int		i;
+    int		i;
 
-	if (!r_drawentities.value)
-		return;
+    if (!r_drawentities.value)
+	return;
 
-	if (!currentshadowlight->visible)
-		return;
+    if (!currentshadowlight->visible)
+	return;
 
-	glDepthMask (0);
-	glShadeModel (GL_SMOOTH);
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
 
-	//Alias models
+    //Alias models
 
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
 	{
-		currententity = cl_lightvisedicts[i];
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
 
-		if (currententity->model->type == mod_alias)
-		{
-			//these models are full bright 
-			if (currententity->model->flags & EF_FULLBRIGHT) continue;
-			if (!currententity->aliasframeinstant) continue;
-			if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
-
-			R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedGF3);
-		}
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedGF3);
 	}
+    }
 
-	if (R_ShouldDrawViewModel()) {
-		R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedGF3);
-	}
+    if (R_ShouldDrawViewModel()) {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedGF3);
+    }
 
-	//Brush models
-	for (i=0 ; i<cl_numlightvisedicts ; i++)
+    //Brush models
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
 	{
-		currententity = cl_lightvisedicts[i];
-
-		if (currententity->model->type == mod_brush)
-		{
-			if (!currententity->brushlightinstant) continue;
-			if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
-			R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedGF3);
-		}
-
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedGF3);
 	}
 
-	//Cleanup state
-	glColor3f (1,1,1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glDisable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDepthMask (1);
+    }
+
+    //Cleanup state
+    glColor3f (1,1,1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask (1);
 }
 
+#ifndef __glx__
 //PA:
 void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 {
@@ -268,6 +304,124 @@ void R_DrawLightEntitiesRadeon (shadowlight_t *l)
 	    if (!currententity->brushlightinstant) continue;
 	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
 	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedRadeon);
+	}
+
+    }
+
+    //Cleanup state
+    glColor3f (1,1,1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask (1);
+}
+
+
+//PA:
+void R_DrawLightEntitiesParhelia (shadowlight_t *l)
+{
+    int		i;
+
+    if (!r_drawentities.value)
+	return;
+
+    if (!currentshadowlight->visible)
+	return;
+
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
+
+    //Alias models
+
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
+	{
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
+
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedParhelia);
+	}
+    }
+
+    if (R_ShouldDrawViewModel())
+    {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedParhelia);
+    }
+
+    //Brush models
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
+	{
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedParhelia);
+	}
+
+    }
+
+    //Cleanup state
+    glColor3f (1,1,1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask (1);
+}
+
+#endif
+
+void R_DrawLightEntitiesARB (shadowlight_t *l)
+{
+    int		i;
+
+    if (!r_drawentities.value)
+	return;
+
+    if (!currentshadowlight->visible)
+	return;
+
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
+
+    //Alias models
+
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
+	{
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
+
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedARB);
+	}
+    }
+
+    if (R_ShouldDrawViewModel())
+    {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedARB);
+    }
+
+    //Brush models
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
+	{
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedARB);
 	}
 
     }

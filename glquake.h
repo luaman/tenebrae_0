@@ -36,6 +36,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <GL/glu.h>
 #endif /* __APPLE__ ||ÊMACOSX */
 
+// - DC -
+#if defined (SDL) 
+#include <SDL/SDL_opengl.h>
+#endif
+
+#if defined (__glx__)
+#include <GL/glx.h>
+#endif
+
 void GL_BeginRendering (int *x, int *y, int *width, int *height);
 void GL_EndRendering (void);
 
@@ -60,7 +69,6 @@ extern	TEXSUBIMAGEPTR TexSubImage2DFunc;
 extern	int texture_extension_number;
 extern	int		texture_mode;
 extern	int	glow_texture_object;	//PENTA: gl texture object of the glow texture
-extern	int bump_texture_object;	//PENTA: gl texture object of the bump texture
 extern	int normcube_texture_object;//PENTA: gl texture object of the normalization cubemap 
 extern	int halo_texture_object;	//PENTA: Halo light texture
 extern  int	atten1d_texture_object;
@@ -144,25 +152,102 @@ typedef enum {
 	pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2
 } ptype_t;
 
+typedef enum {
+	pb_add, pb_subtract
+} pblend_t;
+
+
+typedef enum {
+	emt_box
+} emtype_t;
+
+typedef enum {
+	align_view, align_vel, align_surf
+} align_t;
+
+typedef struct ParticleEffect_s {
+	char name[64];
+	vec3_t emmiterParams1, emmiterParams2; //mins maxs of emmiter box
+	emtype_t emmiterType; //currently only box is supported
+	vec3_t startcolormin, startcolormax, endcolormin, endcolormax;
+	vec3_t velocitymin, velocitymax; //min max velocity
+	float	lifemin, lifemax; //min max life
+	int	movetype; //how it moves (gravity/collision...)
+	vec3_t	gravity;
+	float	rotmin, rotmax;//rotaiton speed
+	float	growmin, growmax;//scale speed (make second smaller to shrink)
+	float	sizemin, sizemax;//scale speed (make second smaller to shrink)
+	vec3_t	drag; //drag of particle (how fast it looses it's speed)
+	int	srcblend, dstblend; // gl enums for blend modes
+	int	numbounces; //number of bounces before particle is deleted
+	int	texture; //gl object of the texture	
+	align_t	align;//particle is aligned with its velocity
+	float	velscale;
+	struct ParticleEffect_s *spawn; //particle effect to spawn on hit
+	struct ParticleEffect_s *next;
+} ParticleEffect_t;
+
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
 typedef struct particle_s
 {
 // driver-usable fields
 	vec3_t		org;
-	float		color;
+	vec3_t		color;
 // drivers never touch the following fields
 	struct particle_s	*next;
 	vec3_t		vel;
-	float		ramp;
-	float		die;
-	ptype_t		type;
+        //float		ramp;
+	float		die, lifetime;
+        //ptype_t		type;
 //PENTA: Nicer particles (tm)
 	int			texture; //texture object of particle
 	int			numbounces; //number of bounces left before deletion set to zero for no bounce
 	float		rot;
 	float		rspeed;
+	float		size;
+	float		growspeed;
+	qboolean	velaligned;
+	//pblend_t	blendfunc;
+	vec3_t		startcolor, endcolor;
+	int			srcblend, dstblend;
+	vec3_t		gravity;
+	vec3_t		drag;
+	float		velscale;
+	ParticleEffect_t *spawn; 
 } particle_t;
 
+typedef enum {
+	dt_blood
+} dtype_t;
+
+#define MAX_DECAL_VERTICES 128
+#define MAX_DECAL_TRIANGLES 64
+//PENTA: Decals
+typedef struct decal_s
+{
+	vec3_t		origin;
+	vec3_t		normal;
+	vec3_t		tangent;
+	float		radius;
+
+	float		color[4], startcolor[4], endcolor[4];
+	struct decal_s	*next;
+	float		die;
+	float		lifetime;
+	dtype_t		type;
+	int			texture; //texture object of particle
+	int			srcblend;
+	int			dstblend;
+
+	//geometry of decail
+	int	vertexCount, triangleCount;
+	vec3_t		vertexArray[MAX_DECAL_VERTICES];
+	float		texcoordArray[MAX_DECAL_VERTICES][2];
+	int			triangleArray[MAX_DECAL_TRIANGLES][3];
+} decal_t;
+
+void R_SpawnDecal(vec3_t center, vec3_t normal, vec3_t tangent, ParticleEffect_t *effect);
+float RandomMinMax(float min, float max);
 
 //====================================================
 
@@ -214,7 +299,6 @@ extern	cvar_t	r_norefresh;
 extern	cvar_t	r_drawentities;
 extern	cvar_t	r_drawworld;
 extern	cvar_t	r_drawviewmodel;
-extern	cvar_t	r_speeds;
 extern	cvar_t	r_waterwarp;
 extern	cvar_t	r_fullbright;
 extern	cvar_t	r_lightmap;
@@ -245,6 +329,7 @@ extern	cvar_t	gl_max_size;
 extern	cvar_t	gl_playermip;
 
 extern  cvar_t	gl_watershader; //PENTA:
+extern  cvar_t	gl_calcdepth;
 
 extern  cvar_t	sh_lightmapbright; //PENTA:
 extern  cvar_t	sh_radiusscale;
@@ -254,6 +339,7 @@ extern  cvar_t  sh_worldshadows;
 extern  cvar_t  sh_showlightnum;
 extern  cvar_t  sh_glows;
 extern	cvar_t  sh_fps;	// set for running times - muff
+extern	cvar_t  sh_debuginfo;
 extern	cvar_t	sh_norevis; //PENTA: no recalculating the vis for light positions
 extern	cvar_t	sh_nosvbsp; //PENTA: no shadow bsp
 extern	cvar_t	sh_noeclip; //PENTA: no entity/leaf clipping for shadows
@@ -265,7 +351,15 @@ extern	cvar_t	sh_colormaps;//PENTA: enable disable textures on the world (light 
 extern	cvar_t	sh_playershadow;//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 extern	cvar_t	sh_nocache;
 extern	cvar_t	sh_glares;
-
+extern	cvar_t	sh_noefrags;
+extern  cvar_t  sh_showtangent;
+extern  cvar_t	sh_noshadowpopping;
+extern	cvar_t	fog_waterfog;
+extern	cvar_t	gl_caustics;
+extern	cvar_t	gl_truform;
+extern	cvar_t	gl_truform_tesselation;
+extern	cvar_t	gl_compress_textures;
+extern  cvar_t	scr_fov;	// 10 - 170
 extern	cvar_t	mir_detail; //PENTA: mirror detail level
 							//0: no mirrors
 							//1: World only
@@ -274,6 +368,13 @@ extern	cvar_t	mir_detail; //PENTA: mirror detail level
 extern	cvar_t	mir_frameskip; //PENTA: mirror is updated every i'th frame
 extern	cvar_t	mir_forcewater; //Forces all quake's water to be reflecting.
 extern  cvar_t	gl_wireframe;
+extern  cvar_t	fog_r;
+extern  cvar_t	fog_g;
+extern  cvar_t	fog_b;
+extern  cvar_t	fog_start;
+extern  cvar_t	fog_end;
+extern  cvar_t	fog_enabled;
+extern	float	fog_color[4];
 
 extern	int			mirrortexturenum;	// quake texturenum, not gltexturenum
 extern	qboolean	mirror;
@@ -287,6 +388,7 @@ extern	double	r_Dproject_matrix[16];			//PENTA	<AWE> added "extern".
 extern	double	r_Dworld_matrix[16];			//PENTA	<AWE> added "extern".
 extern  int 	r_Iviewport[4];				//PENTA
 
+extern	float color_black[4];
 
 #define NUMVERTEXNORMALS	162
 
@@ -306,6 +408,7 @@ void GL_Bind (int texnum);
 #endif
 
 #if !defined (__APPLE__) && !defined (MACOSX)
+
 
 // Multitexture
 //#define    TEXTURE0_SGIS				0x835E
@@ -348,7 +451,22 @@ void GL_Bind (int texnum);
 #define GL_TEXTURE30_ARB                    0x84DE
 #define GL_TEXTURE31_ARB                    0x84DF
 
+// ARB_texture_compression defines
+#define GL_COMPRESSED_RGBA_ARB                0x84EE
+
+#define GL_STENCIL_BACK_FUNC_ATI                    0x8800
+#define GL_STENCIL_BACK_FAIL_ATI                    0x8801
+#define GL_STENCIL_BACK_PASS_DEPTH_FAIL_ATI         0x8802
+#define GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI         0x8803
+
+typedef void (APIENTRY *PFNGLSTENCILOPSEPARATEATIPROC)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
+typedef void (APIENTRY *PFNGLSTENCILFUNCSEPARATEATIPROC)(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
+
+extern PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
+extern PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
+
 #endif /* !__APPLE__ && !MACOSX */
+
 
 typedef void (APIENTRY * PFNGLACTIVETEXTUREARBPROC) (GLenum texture);
 typedef void (APIENTRY * PFNGLCLIENTACTIVETEXTUREARBPROC) (GLenum texture);
@@ -394,7 +512,7 @@ extern PFNGLMULTITEXCOORD3FARBPROC qglMultiTexCoord3fARB;
 extern PFNGLMULTITEXCOORD3FVARBPROC qglMultiTexCoord3fvARB;
 
 // <AWE> : MacOS X 10.2: defined in <OpenGL/glext.h>
-#if !defined (__APPLE__) && !defined (MACOSX)
+#if !defined (__APPLE__) && !defined (MACOSX) 
 
 //PENTA: Texture env combine/ Texture env dot3
 #define GL_COMBINE_ARB                    0x8570
@@ -521,6 +639,8 @@ extern PFNGLMULTITEXCOORD3FVARBPROC qglMultiTexCoord3fvARB;
 
 #endif /* !__APPLE__ && !MACOSX */
 
+// - DC - 
+#if !defined(SDL) && !defined (__glx__)
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFVNVPROC) (GLenum pname, const GLfloat *params);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERFNVPROC) (GLenum pname, GLfloat param);
 typedef void (APIENTRY * PFNGLCOMBINERPARAMETERIVNVPROC) (GLenum pname, const GLint *params);
@@ -534,6 +654,7 @@ typedef void (APIENTRY * PFNGLGETCOMBINEROUTPUTPARAMETERFVNVPROC) (GLenum stage,
 typedef void (APIENTRY * PFNGLGETCOMBINEROUTPUTPARAMETERIVNVPROC) (GLenum stage, GLenum portion, GLenum pname, GLint *params);
 typedef void (APIENTRY * PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC) (GLenum variable, GLenum pname, GLfloat *params);
 typedef void (APIENTRY * PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC) (GLenum variable, GLenum pname, GLint *params);
+#endif
 
 extern PFNGLCOMBINERPARAMETERFVNVPROC qglCombinerParameterfvNV;
 extern PFNGLCOMBINERPARAMETERIVNVPROC qglCombinerParameterivNV;
@@ -549,8 +670,9 @@ extern PFNGLGETCOMBINEROUTPUTPARAMETERIVNVPROC qglGetCombinerOutputParameterivNV
 extern PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC qglGetFinalCombinerInputParameterfvNV;
 extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParameterivNV;
 
+
 // <AWE> : MacOS X 10.2: defined in <OpenGL/glext.h>
-#if !defined (__APPLE__) && !defined (MACOSX)
+#if !defined (__APPLE__) && !defined (MACOSX) && !defined(SDL) && !defined (__glx__)
 
 //PENTA: texture3d
 #define GL_PACK_SKIP_IMAGES               0x806B
@@ -572,7 +694,7 @@ extern PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC qglGetFinalCombinerInputParam
 #define GL_MAX_3D_TEXTURE_SIZE            0x8073
 #define GL_MAX_3D_TEXTURE_SIZE_EXT        0x8073
 
-#endif /* !__APPLE__ && !MACOSX */
+#endif /* !__APPLE__ && !MACOSX && !SDL && !__glx__ */
 
 typedef void (APIENTRY * PFNGLTEXIMAGE3DEXT)(GLenum target, GLint level, GLenum internalformat,
 											 GLsizei width, GLsizei height, GLsizei depth,
@@ -983,8 +1105,8 @@ extern PFNGLVERTEXATTRIBS4UBVNVPROC qglVertexAttribs4ubvNV ;
 
 #endif /* !__APPLE__ && !MACOSX */
 
-// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X.
-#if defined (__APPLE__) || defined (MACOSX)
+// <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X. -DC- and SDL 
+#if defined (__APPLE__) || defined (MACOSX) || defined(SDL) || defined (__glx__)
 
 typedef void (APIENTRY * PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC) (GLsizei length, const GLvoid *pointer);
 typedef void (APIENTRY * PFNGLVERTEXARRAYRANGEAPPLEPROC) (GLsizei size, const GLvoid *pointer);
@@ -1020,12 +1142,25 @@ typedef void (APIENTRY *lpSelTexFUNC) (GLenum);
 extern qboolean gl_mtexable;
 extern qboolean gl_palettedtex; // <AWE>: true if EXT_paletted_texture present [for GL_Upload8_EXT ()].
 extern qboolean gl_texturefilteranisotropic; // <AWE> true if anisotropic texture filtering available.
-extern qboolean gl_nvcombiner; //PENTA: true if nvdida texture shaders are present
-extern qboolean gl_geforce3;
-extern qboolean gl_radeon;//PA:
-extern qboolean gl_var;
 
-extern GLfloat	gl_texureanisotropylevel; // <AWE> required for anisotropic textures.
+typedef enum
+{
+	GENERIC = 0,
+	GEFORCE,
+	GEFORCE3,
+	RADEON,
+	PARHELIA,
+	ARB
+} qcardtype;
+extern qcardtype gl_cardtype;
+
+//extern qboolean gl_nvcombiner; //PENTA: true if nvdida texture shaders are present
+//extern qboolean gl_geforce3;
+//extern qboolean gl_radeon;//PA:
+extern qboolean gl_var;
+extern qboolean gl_texcomp;
+
+extern GLfloat	gl_textureanisotropylevel; // <AWE> required for anisotropic textures.
 
 void GL_DisableMultitexture(void);
 void GL_EnableMultitexture(void);
@@ -1036,6 +1171,14 @@ typedef struct screenrect_s {
 	int coords [4];
 	struct screenrect_s *next;
 } screenrect_t;
+
+
+typedef union lightcmd_u {
+  int asInt;
+  float asFloat;
+  vec_t asVec;
+  void *asVoid;
+} lightcmd_t;
 
 
 typedef struct shadowlight_s {
@@ -1049,12 +1192,13 @@ typedef struct shadowlight_s {
 	qboolean castShadow;//lights casts shadows
 	qboolean halo;		//light has a halo
 	mleaf_t	*leaf;		//leaf this light is in
-	byte vis[MAX_MAP_LEAFS/8];//visibility information for nodes
+	byte vis[MAX_MAP_LEAFS/8];//redone pvs for light, only poly's in nodes
+	byte entvis[MAX_MAP_LEAFS/8];//original pvs a light origin
 	msurface_t	**visSurf; //the surfaces that should cast shadows for this light (only when static)
 	int		*volumeCmds;  //gl commands to draw the shadow volume
 	float	*volumeVerts;
 	int		numVolumeVerts;
-	int		*lightCmds;	//gl commands to draw the cap/lighted volumes
+	lightcmd_t	*lightCmds;	//gl commands to draw the cap/lighted volumes
 	int		 numVisSurf;
 	int		style;
 	entity_t *owner;
@@ -1076,13 +1220,14 @@ typedef struct aliaslightinstant_s {
 	entity_t	*lastent;
 	shadowlight_t *lastlight;
 	vec3_t	lightpos, vieworg; //Object space light position
+	void *lastframeinstant;
 
 	//Per light stuff
 	vec3_t	extvertices[MAXALIASVERTS]; //extruded vertices (volumes)
 	vec3_t	tslights[MAXALIASVERTS]; //per vertex tangent space light vector
 	vec3_t	tshalfangles[MAXALIASVERTS]; //per vertex half angle vector
 	vec3_t	colors[MAXALIASVERTS]; //per vertex attenuation for non gf3 cards
-	qboolean triangleVis[MAXALIASVERTS]; //triangle facingness for lights
+	qboolean triangleVis[MAXALIASTRIS]; //triangle facingness for lights
 	
 	int		indecies[MAXALIASTRIS*3];//light visibility list
 	int numtris;
@@ -1090,6 +1235,9 @@ typedef struct aliaslightinstant_s {
 } aliaslightinstant_t;
 
 typedef struct aliasframeinstant_s {
+	
+     // chain of frameinstant for multiple surfaces
+        struct aliasframeinstant_s *_next;
 	
 	int lockframe;	//number of the frame when it was last locked.
 	int	updateframe; //number of the fame when it was last recalculated
@@ -1148,10 +1296,12 @@ extern shadowlight_t *currentshadowlight;
 extern msurface_t *shadowchain; //linked list of polygons that are shadowed
 extern float frustumPlanes[6][4];
 
+extern mmvertex_t *globalVertexTable;
+
 #define MAX_VOLUME_COMMANDS 131072 //Thats 0.5 meg storage for commands, insane
 #define MAX_VOLUME_VERTS 87381 //1 Meg storage for vertices
 #define MAX_LIGHT_COMMANDS 65536 //0.25 meg for light commands
-extern int	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
+extern lightcmd_t	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
 
 //XYZ
 extern int	numNormals[MAXALIASTRIS]; //Used during tangent space calc
@@ -1196,10 +1346,11 @@ extern int brushCacheRequests, brushFullCacheHits, brushPartialCacheHits;	// <AW
 	well I don't now for sure since I'm actually not c a specialist.
 	If you know the answer mail me please.
 */
+
 svnode_t *R_CreateEmptyTree(void);
 svnode_t *R_AddShadowCaster(svnode_t *node, vec3_t *v, int vnum, msurface_t *surf,int depth);
 svnode_t *ExpandVolume(vec3_t *v,int *sign, int vnum, msurface_t *surf);
-plane_t *AllocPlane(void);
+plane_t *AllocPlane(plane_t *tryplane);
 svnode_t *AllocNode(void);
 svnode_t *NodeFromEdge(vec3_t *v,int vnum, int edgeindex);
 float CalcFov (float fov_x, float width, float height);
@@ -1216,6 +1367,7 @@ qboolean	R_CheckRectList (screenrect_t *rec);
 void		R_ClearBrushInstantCaches (void);
 void		R_ClearInstantCaches (void);
 void		R_ClearParticles (void);
+void		R_ClearDecals(void);
 void		R_ClearRectList (void);
 void		R_ConstructShadowVolume (shadowlight_t *light);
 qboolean	R_ContributeFrame (shadowlight_t *light);
@@ -1225,19 +1377,27 @@ void		R_DrawAliasBumped (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
 void		R_DrawAliasBumpedGF3 (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
 void		R_DrawAliasBumpedRadeon(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
 void		R_DrawBrushBumpedRadeon(entity_t *e);//PA:
-void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant);
+void		R_DrawAliasBumpedParhelia(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedParhelia(entity_t *e);//PA:
+void		R_DrawAliasBumpedARB(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedARB(entity_t *e);//PA:
+void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant, qboolean specular);
 void		R_DrawAliasObjectLight (entity_t *e, void (*AliasGeoSender) (aliashdr_t *paliashdr,
                                                                              aliasframeinstant_t* instant));
 void		R_DrawBrushATT (entity_t *ent);
 void		R_DrawBrushBumped (entity_t *e);
 void		R_DrawBrushBumpedGF3 (entity_t *e);
+void		R_DrawBrushBumpedRadeon (entity_t *e);
+void		R_DrawBrushBumpedParhelia (entity_t *e);
+void		R_DrawBrushBumpedARB (entity_t *e);
 void		R_DrawBrushModel (entity_t *e);
 void		R_DrawBrushModelVolumes(entity_t *e);
 void		R_DrawBrushObjectLight (entity_t *e,void (*BrushGeoSender) (entity_t *e));
-void		R_DrawBrushWV (entity_t *e);
+void		R_DrawBrushWV (entity_t *e, qboolean specular);
 void		R_DrawGlare (void);
 void		R_DrawLightEntities (shadowlight_t *l);
 void		R_DrawParticles (void);
+void		R_DrawDecals (void);
 void		R_DrawShadowVolume (shadowlight_t *light);
 void		R_DrawSkyChain (msurface_t *s);
 void		R_DrawSpriteModelWV (entity_t *e);
@@ -1247,7 +1407,9 @@ void		R_DrawWorldBumpedGEN (void);
 void 		R_DrawWorldBumpedGF (void);
 void		R_DrawWorldBumpedGF3 (void);
 void		R_DrawWorldBumpedRadeon (void);
-void		R_DrawWorldWV (int *lightCmds);
+void		R_DrawWorldBumpedParhelia (void);
+void		R_DrawWorldBumpedARB (void);
+void		R_DrawWorldWV (lightcmd_t *lightCmds, qboolean specular);
 qboolean	R_FillShadowChain (shadowlight_t *light);
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity);
 void		R_Glare (void);
@@ -1255,6 +1417,7 @@ void		R_InitDrawWorld (void);
 void		R_InitGlare (void);
 void		R_InitMirrorChains (void);
 void		R_InitParticles (void);
+void		R_InitDecals (void);
 void		R_InitShadowsForFrame (void);
 int		R_LightPoint (vec3_t p);
 void		R_LoadVertexProgram (void);
@@ -1266,9 +1429,11 @@ void		R_RotateForEntity (entity_t *e);
 void		R_SetTotalRect (void);
 void		R_SetupBrushInstantForLight(entity_t *e);
 void		R_SetupInstantForLight(entity_t *e);
+void		R_SetupInstantForFrame(entity_t *e, qboolean forcevis);
 void		R_SetupInstants (void);
 qboolean	R_ShouldDrawViewModel (void);
 void		R_StoreEfrags (efrag_t **ppefrag);
+void		R_FillEntityLeafs (entity_t *ent);
 void		R_WorldMultiplyTextures (void);
 void		R_WorldToObjectMatrix(entity_t *e, matrix_4x4 result);
 
@@ -1281,6 +1446,8 @@ void		EmitWaterPolys (msurface_t *fa);
 void		InitShaderTex (void);
 void 		LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height);
 void		LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height);
+int             LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* height);
+void            LoadTGA (FILE *fin);
 qboolean	OverrideFluidTex (char *name);
 void		ProjectPlane (const vec3_t src,const vec3_t v1,const vec3_t v2,vec3_t dst);
 void		TraceLine (vec3_t start, vec3_t end, vec3_t impact);
@@ -1293,6 +1460,7 @@ void		GL_EnableColorShader (qboolean specular);
 void		GL_GetOverrideName (char *identifier, char *tail, char *dest);
 int		GL_LoadCubeMap (int identifier);
 void		GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr);
+void		R_DrawAliasModel ( float bright);
 void		GL_ModulateAlphaDrawColor (void);
 void		GL_SelectTexture (GLenum target);
 void		GL_Set2D (void);
@@ -1300,8 +1468,18 @@ void		GL_SetupCubeMapMatrix (qboolean world);
 void		GL_SubdivideSurface (msurface_t *fa);
 void		GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha);
 int		GL_LoadLuma(char *identifier, qboolean mipmap);
-
+void		R_DrawCaustics(void);
+int			CL_PointContents (vec3_t p);
 void		V_CalcBlend (void);
+
+#define VERTEX_TEXTURE 1
+#define VERTEX_LIGHTMAP 2
+
+int R_GetNextVertexIndex(void);
+int R_AllocateVertexInTemp(vec3_t pos, float texture [2], float lightmap[2]);
+void R_CopyVerticesToHunk(void);
+void R_EnableVertexTable(int fields);
+void R_DisableVertexTable(int fields);
 
 qboolean 	VID_Is8bit (void);
 
@@ -1317,3 +1495,13 @@ typedef struct mirrorplane_s {
 extern mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
 extern int mirror_contents;
 extern int newenvmap;
+
+msurface_t	*causticschain;
+extern int	caustics_textures[8];
+extern qboolean	busy_caustics;
+
+extern char	skybox_name[64];
+extern float skybox_cloudspeed;
+extern qboolean skybox_hasclouds;
+
+#include "gl_md3.h"

@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "gas2masm"=.\gas2masm\gas2masm.dsp - Package Owner=<4>
+Project: "gas2masm"=.\gas2masm.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -11,21 +11,6 @@ Package=<5>
 
 Package=<4>
 {{{
-}}}
-
-###############################################################################
-
-Project: "winquake"=.\WinQuake.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name gas2masm
-    End Project Dependency
 }}}
 
 ###############################################################################

@@ -35,6 +35,7 @@ typedef struct efrag_s
 	struct efrag_s		*entnext;
 } efrag_t;
 
+#define MAX_CLIENT_ENT_LEAFS 128
 typedef struct entity_s
 {
 	qboolean				forcelink;		// model changed
@@ -74,8 +75,6 @@ typedef struct entity_s
 	int		light_lev;
 	int		pflags;
 
-	void* aliasframeinstant;
-	void* brushlightinstant;
 
 	// Animation interpolation (Based on QuakeForge)
     float                   frame_start_time;
@@ -84,6 +83,13 @@ typedef struct entity_s
     int                     pose1; 
     int                     pose2;
 	
+     // frame instant chain
+     struct aliasframeinstant_s *aliasframeinstant;
+     void* brushlightinstant;
+
+	//PENTA:
+	int			numleafs;
+	short		leafnums[MAX_CLIENT_ENT_LEAFS];
 } entity_t;
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
@@ -145,6 +151,8 @@ void R_NewMap (void);
 
 
 void R_ParseParticleEffect (void);
+void R_ParseBasicEmitter (void);
+void R_ParseExtendedEmitter (void);
 void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count);
 void R_RocketTrail (vec3_t start, vec3_t end, int type);
 

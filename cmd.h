@@ -88,6 +88,7 @@ qboolean Cmd_Exists (char *cmd_name);
 // used by the cvar code to check for cvar / command name overlap
 
 char 	*Cmd_CompleteCommand (char *partial);
+char 	*Cmd_CompleteAlias (char *partial);
 // attempts to match a partial command for automatic command line completion
 // returns NULL if nothing fits
 
@@ -118,4 +119,6 @@ void	Cmd_ForwardToServer (void);
 void	Cmd_Print (char *text);
 // used by command functions to send output to either the graphics console or
 // passed as a print message to the client
+
+void	Cmd_List_f (void); //Cmdlist - Eradicator
 

@@ -1008,8 +1008,8 @@ void PR_LoadProgs (void)
 		CRC_ProcessByte (&pr_crc, ((byte *)progs)[i]);
 
 // byte swap the header
-	for (i=0 ; i<sizeof(*progs)/4 ; i++)
-		((int *)progs)[i] = LittleLong ( ((int *)progs)[i] );		
+	for (i=0 ; i<sizeof(*progs)/4; i++)
+		((int *)progs)[i] = LittleLong ( ((int *)progs)[i] );			
 
 	if (progs->version != PROG_VERSION)
 		Sys_Error ("progs.dat has wrong version number (%i should be %i)", progs->version, PROG_VERSION);

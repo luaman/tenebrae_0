@@ -50,7 +50,6 @@ void GL_EnableDiffuseShader () {
     glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
 	
 	GL_EnableMultitexture();
-	GL_Bind(bump_texture_object);
 	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
     glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
     glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
@@ -67,14 +66,13 @@ void GL_EnableSpecularShader () {
 
 	vec3_t scaler = {0.75f, 0.75f, 0.75f};
 
-	if (gl_nvcombiner) {
+	if ( gl_cardtype == GEFORCE || gl_cardtype == GEFORCE3 ) {
 		GL_SelectTexture(GL_TEXTURE0_ARB);
 		glDisable(GL_TEXTURE_2D);
 		glEnable(GL_TEXTURE_CUBE_MAP_ARB);
 		//GL_Bind(normcube_texture_object);
 		glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
 		GL_EnableMultitexture();
-		GL_Bind(bump_texture_object);
 
 		//setup and enable the register combiners
 		qglCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, 2);
@@ -111,7 +109,7 @@ void GL_EnableSpecularShader () {
 void GL_DisableSpecularShader () {
 
 	//not supported?
-	if (gl_nvcombiner) {
+	if ( gl_cardtype == GEFORCE || gl_cardtype == GEFORCE3 ) {
 		GL_DisableMultitexture();
 		glDisable(GL_REGISTER_COMBINERS_NV);
 		glEnable(GL_TEXTURE_2D);
@@ -334,7 +332,7 @@ R_DrawWorldLLV
 -Rebinds unit1's texture if the surface material changes (binds the current surface's bump map)
 =============
 */
-void R_DrawWorldLLV(int *lightCmds) {
+void R_DrawWorldLLV(lightcmd_t *lightCmds) {
 
 	int command, num, i;
 	int lightPos = 0;
@@ -348,10 +346,10 @@ void R_DrawWorldLLV(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -367,7 +365,8 @@ void R_DrawWorldLLV(int *lightCmds) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			//skip attent texture coord.
 			lightPos+=2;
@@ -387,7 +386,7 @@ void R_DrawWorldLLV(int *lightCmds) {
 	
 			glTexCoord3fv(&tsLightDir[0]);
 			*/
-			glTexCoord3fv((float *)(&lightCmds[lightPos]));
+			glTexCoord3fv(&lightCmds[lightPos].asFloat);
 			lightPos+=3;
 
 			qglMultiTexCoord2fARB(GL_TEXTURE1_ARB, v[3], v[4]);
@@ -407,7 +406,7 @@ R_DrawWorldHAV
 -Rebinds unit1's texture if the surface material changes (binds the current surface's bump map)
 =============
 */
-void R_DrawWorldHAV(int *lightCmds) {
+void R_DrawWorldHAV(lightcmd_t *lightCmds) {
 
 	int command, num, i;
 	int lightPos = 0;
@@ -422,10 +421,10 @@ void R_DrawWorldHAV(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -440,10 +439,11 @@ void R_DrawWorldHAV(int *lightCmds) {
 		GL_Bind (t->gl_texturenum+1);
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
-			lightP = (float *)(&lightCmds[lightPos]);
+			lightP = &lightCmds[lightPos].asFloat;
 			VectorCopy(lightP,lightDir);
 			VectorNormalize(lightDir);
 			lightPos+=3;//skip local light vector
@@ -482,7 +482,7 @@ As primary color the light color modulated by the current brightness (for flicke
 this depends on t)
 =============
 */
-void R_DrawWorldATT(int *lightCmds) {
+void R_DrawWorldATT(lightcmd_t *lightCmds) {
 	int command, num, i;
 	int lightPos = 0;
 
@@ -495,11 +495,11 @@ void R_DrawWorldATT(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
 		//edit: modulation of light maps
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -507,20 +507,20 @@ void R_DrawWorldATT(int *lightCmds) {
 		}
 
 		num = surf->polys->numverts;
-		v = surf->polys->verts[0];
-
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		
-		glColor4f( ((float *)(&lightCmds[lightPos]))[0] *b,
-				   ((float *)(&lightCmds[lightPos]))[1] *b,
-				   ((float *)(&lightCmds[lightPos]))[2] *b,
-				   ((float *)(&lightCmds[lightPos]))[3] *b );
+		glColor4f( (&lightCmds[lightPos].asFloat)[0] *b,
+				   (&lightCmds[lightPos].asFloat)[1] *b,
+				   (&lightCmds[lightPos].asFloat)[2] *b,
+				   (&lightCmds[lightPos].asFloat)[3] *b );
 		
 		lightPos+=4;
 
 		glBegin(command);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			
-			glTexCoord2fv((float *)(&lightCmds[lightPos]));			
+			glTexCoord2fv(&lightCmds[lightPos].asFloat);			
 			lightPos+=2;
 			lightPos+=3;
 			glVertex3fv(&v[0]);
@@ -538,7 +538,7 @@ R_DrawWorldWV
 -Rebinds unit1's texture if the surface material changes (binds the current surface's color map)
 =============
 */
-void R_DrawWorldWV(int *lightCmds) {
+void R_DrawWorldWV(lightcmd_t *lightCmds, qboolean specular) {
 
 	int command, num, i;
 	int lightPos = 0;
@@ -550,10 +550,10 @@ void R_DrawWorldWV(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -561,11 +561,15 @@ void R_DrawWorldWV(int *lightCmds) {
 		}
 
 		num = surf->polys->numverts;
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 
 		//XYZ
 		t = R_TextureAnimation (surf->texinfo->texture);
-		GL_Bind (t->gl_texturenum);
+		if ( specular )
+		    GL_Bind (t->gl_texturenum+1);
+		else
+		    GL_Bind (t->gl_texturenum);
 
 		lightPos+=4;//no attent color
 
@@ -615,8 +619,9 @@ void R_DrawBrushLLV(entity_t *e) {
 		t = R_TextureAnimation (surf->texinfo->texture);
 		GL_Bind (t->gl_texturenum+1);
 
-		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		glBegin(GL_TRIANGLE_FAN);
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(&ins->tslights[count+j][0]);
@@ -660,8 +665,9 @@ void R_DrawBrushHAV(entity_t *e) {
 		t = R_TextureAnimation (surf->texinfo->texture);
 		GL_Bind (t->gl_texturenum+1);
 
-		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		glBegin(GL_TRIANGLE_FAN);
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(&ins->tshalfangles[count+j][0]);
@@ -707,8 +713,9 @@ void R_DrawBrushATT(entity_t *e) {
 
 		glColor4f(bright,bright,bright,bright);
 
-		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		glBegin(GL_TRIANGLE_FAN);
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord2fv(&ins->atencoords[count+j][0]);
@@ -727,7 +734,7 @@ R_DrawBrushWV
 =============
 */
 
-void R_DrawBrushWV(entity_t *e) {
+void R_DrawBrushWV(entity_t *e, qboolean specular) {
 
 	model_t	*model = e->model;
 	msurface_t *surf;
@@ -748,10 +755,14 @@ void R_DrawBrushWV(entity_t *e) {
 
 		//XYZ
 		t = R_TextureAnimation (surf->texinfo->texture);
-		GL_Bind (t->gl_texturenum);
+		if ( specular )
+		    GL_Bind (t->gl_texturenum+1);
+		else
+		    GL_Bind (t->gl_texturenum);
 
-		glBegin(GL_POLYGON);
-		v = poly->verts[0];
+		glBegin(GL_TRIANGLE_FAN);
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 			glTexCoord3fv(v);
@@ -821,7 +832,13 @@ void R_DrawAliasFrameLLV (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -853,7 +870,13 @@ void R_DrawAliasFrameHAV (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -870,7 +893,7 @@ R_DrawAliasFrameWV
 Draw an alias model with the ojbect space vertex coordinates as texture coords
 =============
 */
-void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
+void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant, qboolean specular) {
 
 	int *indecies, anim;
 	fstvert_t *texcoords;
@@ -880,7 +903,10 @@ void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 	indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
 
 	anim = (int)(cl.time*10) & 3;
-	GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
+	if ( specular )
+	    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]+1);
+	else
+	    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
 
 	glVertexPointer(3, GL_FLOAT, 0, instant->vertices);
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -889,7 +915,7 @@ void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 	glTexCoordPointer(3, GL_FLOAT, 0, instant->vertices);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	
-	if (!gl_geforce3 && !gl_radeon) {//PA:
+	if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 
 		qglClientActiveTextureARB(GL_TEXTURE1_ARB);
 		glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
@@ -901,9 +927,16 @@ void R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 		glEnableClientState(GL_COLOR_ARRAY);
 		glColorPointer(3, GL_FLOAT, 0, linstant->colors);
 	}
-	glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
-	
-	if (!gl_geforce3 && !gl_radeon) {//PA:
+
+	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
+
+	if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
@@ -942,48 +975,61 @@ void R_DrawAliasObjectLight(entity_t *e,void (*AliasGeoSender) (aliashdr_t *pali
 	int				pose, numposes;
 	//matrix_4x4		transf;
 	//float			org[4],res[4];
-	model_t		*clmodel;
 	aliashdr_t	*paliashdr;
+        alias3data_t    *data;
 	vec3_t		oldlightpos;
-
-	if (!e->aliasframeinstant) return;
+        aliasframeinstant_t *aliasframeinstant;
+        int i,maxnumsurf;
 
 	currententity = e;
-	
-	clmodel = currententity->model;
 	
 //	VectorCopy (currententity->origin, r_entorigin);
 //	VectorSubtract (r_origin, r_entorigin, modelorg);
 
+        glPushMatrix ();
+        R_RotateForEntity (e);
 
 	//
 	// locate the proper data
 	//
-	paliashdr = (aliashdr_t *)Mod_Extradata (currententity->model);
+	data = (alias3data_t *)Mod_Extradata (e->model);
+        maxnumsurf = data->numSurfaces;
+        aliasframeinstant = e->aliasframeinstant;
+
+        for (i=0;i<maxnumsurf;++i){
+
+             paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+
+             if (!aliasframeinstant) {
+                  glPopMatrix();
+                  Con_Printf("R_DrawAliasObjectLight: missing instant for ent %s\n", e->model->name);
+                  return;
+             }
+
+             if (aliasframeinstant->shadowonly) continue;
 
 	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
 	{
+                glPopMatrix();
 		return;
 	}
 
 	VectorCopy(currentshadowlight->origin,oldlightpos);
 	VectorCopy(currentshadowlight->origin,currentshadowlight->oldlightorigin);
 	
-	//
-	// draw all the triangles
-	//
-    glPushMatrix ();
-	R_RotateForEntity (e);
-
 	pose = paliashdr->frames[e->frame].firstpose;
 	numposes = paliashdr->frames[e->frame].numposes;
 
 	//Draw it!
-	AliasGeoSender(paliashdr, e->aliasframeinstant);
+             AliasGeoSender(paliashdr,aliasframeinstant);
+
+             aliasframeinstant = aliasframeinstant->_next;
+             
+        } /* for paliashdr */
 
 	glPopMatrix();
-
 }
+
 
 /*
 =================
@@ -1128,14 +1174,14 @@ void R_DrawWorldBumpedGF() {
 	GL_ModulateAlphaDrawColor();
 	glColor3fv(&currentshadowlight->baseColor[0]);
 	GL_EnableColorShader (false);
-	R_DrawWorldWV(currentshadowlight->lightCmds);
+	R_DrawWorldWV(currentshadowlight->lightCmds, false);
 	GL_DisableColorShader (false);
 
 	glPopMatrix();
 	
 	// Specular
 
-	if (gl_nvcombiner)
+	if ( gl_cardtype == GEFORCE || gl_cardtype == GEFORCE3 )
 		GL_DrawAlpha();
 	else
 		GL_DrawSquareAlpha();
@@ -1146,7 +1192,7 @@ void R_DrawWorldBumpedGF() {
 
 	GL_DisableSpecularShader ();
 
-	if (!gl_nvcombiner) { 
+	if ( gl_cardtype == GENERIC ) { 
 		int i;
 		//raise specular to a high exponent my multiplying it a few times
 		//this is evidently slow and we should use a better system for it
@@ -1175,7 +1221,7 @@ void R_DrawWorldBumpedGF() {
 	GL_ModulateAlphaDrawColor();
 	glColor3fv(&currentshadowlight->baseColor[0]);
 	GL_EnableColorShader (true);
-	R_DrawWorldWV(currentshadowlight->lightCmds);
+	R_DrawWorldWV(currentshadowlight->lightCmds, true);
 
 	GL_DisableColorShader (true);
 
@@ -1227,7 +1273,7 @@ void R_DrawBrushBumped(entity_t *e) {
 	GL_ModulateAlphaDrawColor();
 	glColor3fv(&currentshadowlight->baseColor[0]);
 	GL_EnableColorShader (false);
-	R_DrawBrushWV(e);
+	R_DrawBrushWV(e, false);
 	GL_DisableColorShader (false);
 
 	glPopMatrix();
@@ -1236,7 +1282,7 @@ void R_DrawBrushBumped(entity_t *e) {
 
 	//	Specular bump mapping
 
-	if (gl_nvcombiner)
+	if ( gl_cardtype == GEFORCE || gl_cardtype == GEFORCE3 )
 		GL_DrawAlpha();
 	else
 		GL_DrawSquareAlpha();
@@ -1245,11 +1291,11 @@ void R_DrawBrushBumped(entity_t *e) {
 	R_DrawBrushHAV(e);
 	GL_DisableSpecularShader ();
 
-	if (!gl_nvcombiner) {
+	if ( gl_cardtype == GENERIC ) {
 		int i;
 		GL_SquareAlpha();
 		//Why R_DrawBrushWV?: Same as for world but not WV is better
-		for (i=0; i<3; i++) R_DrawBrushWV(e);
+		for (i=0; i<3; i++) R_DrawBrushWV(e, false);
 	}
 	
 
@@ -1270,7 +1316,7 @@ void R_DrawBrushBumped(entity_t *e) {
 	GL_ModulateAlphaDrawColor();
 	glColor3fv(&currentshadowlight->baseColor[0]);
 	GL_EnableColorShader (true);
-	R_DrawBrushWV(e);
+	R_DrawBrushWV(e, true);
 	GL_DisableColorShader (true);
 
 	glPopMatrix();
@@ -1287,6 +1333,7 @@ Draw a alias entity with bump maps
 */
 void R_DrawAliasBumped(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 
+     
 	//Diffuse bump mapping
 	GL_DrawAlpha();
 	GL_EnableDiffuseShader ();
@@ -1304,7 +1351,7 @@ glMatrixMode(GL_TEXTURE);
 	glEnable(GL_LIGHTING);
 
 	GL_EnableColorShader (false);
-	R_DrawAliasFrameWV(paliashdr,instant);
+	R_DrawAliasFrameWV(paliashdr,instant, false);
 	GL_DisableColorShader (false);
 
 	glDisable(GL_LIGHTING);
@@ -1313,7 +1360,7 @@ glMatrixMode(GL_TEXTURE);
 	glMatrixMode(GL_MODELVIEW);
 
 	//Specular bump mapping
-	if (gl_nvcombiner)
+	if ( gl_cardtype == GEFORCE )
 		GL_DrawAlpha();
 	else
 		GL_DrawSquareAlpha();
@@ -1322,10 +1369,10 @@ glMatrixMode(GL_TEXTURE);
 	R_DrawAliasFrameHAV(paliashdr,instant);
 	GL_DisableSpecularShader ();
 
-	if (!gl_nvcombiner) {
+	if ( gl_cardtype == GENERIC ) {
 		int i;
 		GL_SquareAlpha();
-		for (i=0; i<3; i++) R_DrawAliasFrameWV(paliashdr,instant);
+		for (i=0; i<3; i++) R_DrawAliasFrameWV(paliashdr,instant, false);
 	}
 
 
@@ -1340,7 +1387,7 @@ glMatrixMode(GL_TEXTURE);
 	glEnable(GL_LIGHTING);
 
 	GL_EnableColorShader (true);
-	R_DrawAliasFrameWV(paliashdr,instant);
+	R_DrawAliasFrameWV(paliashdr,instant, true);
 	GL_DisableColorShader (true);
 
 	glDisable(GL_LIGHTING);

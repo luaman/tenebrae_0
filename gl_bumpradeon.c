@@ -20,24 +20,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 PENTA: the whole file is freakin penta...
 
 Same as gl_bumpmap.c but Radeon 8500+ optimized 
-These routines require 5 texture units, vertex shader and pixel shader
+These routines require 6 texture units, vertex shader and pixel shader
 
 This could be further optimized for Radeon 9700 (specular exponent for
 example), but would need better documentation and extension.
 
-Most lights require 1 pass:
-1 diffuse + specular
-
-If a light has a cubemap filter it requires 2 passes
-1 attenuation
-2 diffuse + specular
+All lights not require only 1 pass:
+1 diffuse + specular with optional light filter
 
 */
 
 #include "quakedef.h"
 
-
-#include "glati.h"
+#include "glATI.h"
 
 PFNGLGENFRAGMENTSHADERSATIPROC		qglGenFragmentShadersATI = NULL;
 PFNGLBINDFRAGMENTSHADERATIPROC		qglBindFragmentShaderATI = NULL;
@@ -96,14 +91,19 @@ PFNGLGETLOCALCONSTANTBOOLEANVEXTPROC	qglGetLocalConstantBooleanvEXT = NULL;
 PFNGLGETLOCALCONSTANTINTEGERVEXTPROC	qglGetLocalConstantIntegervEXT = NULL;
 PFNGLGETLOCALCONSTANTFLOATVEXTPROC	qglGetLocalConstantFloatvEXT = NULL;
 
-static int workaround9700 = 1;
+static unsigned int fragment_shaders;
+static unsigned int vertex_shaders;
 
-unsigned int shaders;
-//<AWE> "diffuse_program_object" has to be defined static. Otherwise nameclash with gl_bumpgf.c
-static unsigned int diffuse_program_object;
-
+#if defined (SDL)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) SDL_GL_GetProcAddress (name);
+#elif defined (__glx__)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) glXGetProcAddressARB (name);
+#else
 #define SAFE_GET_PROC( func, type, name)     \
    func = (type) wglGetProcAddress( name);
+#endif
 
 //#define RADEONDEBUG
 
@@ -254,14 +254,17 @@ qboolean	GL_LookupRadeonSymbols (void)
 void GL_CreateShadersRadeon()
 {
     float scaler[4] = {0.5f, 0.5f, 0.5f, 0.5f};
-    GLuint matrix;
-    GLuint texturematrix;
+    int i;
+    GLuint mvp, modelview, zcomp;
+    GLuint texturematrix, texturematrix2;
     GLuint vertex;
     GLuint texcoord0;
     GLuint texcoord1;
     GLuint texcoord2;
     GLuint color;
     GLuint supportedTmu;
+    GLuint disttemp, disttemp2;
+    GLuint fogstart, fogend;
 
 #if !defined(__APPLE__) && !defined (MACOSX)
     SAFE_GET_PROC( qglGenFragmentShadersATI, PFNGLGENFRAGMENTSHADERSATIPROC, "glGenFragmentShadersATI");
@@ -326,10 +329,10 @@ void GL_CreateShadersRadeon()
 
     glEnable(GL_FRAGMENT_SHADER_ATI);
 
-    shaders = qglGenFragmentShadersATI(1);
+    fragment_shaders = qglGenFragmentShadersATI(2);
 
     // combined diffuse & specular shader w/ vertex color
-    qglBindFragmentShaderATI(shaders);
+    qglBindFragmentShaderATI(fragment_shaders);
     checkerror();
     qglBeginFragmentShaderATI();
     checkerror();
@@ -358,180 +361,218 @@ void GL_CreateShadersRadeon()
     // (gloss * specular + dot * color * self shadow ) * atten * light color
     // Alpha ops rule :-)
 
-    if ( supportedTmu == 8 && workaround9700 )
-    {
-        // Work-around some Radeon 9700 driver bugs, takes 8 instruction slots...
-	// dp3_sat r2.rgb, r0_bx2.rgb, r2_bx2.rgb      // specular
-	qglColorFragmentOp2ATI(GL_DOT3_ATI,
-			       GL_REG_2_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
-			       GL_REG_2_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
+    // dp3_sat r2.rgb, r0_bx2.rgb, r2_bx2.rgb   // specular
+    qglColorFragmentOp2ATI(GL_DOT3_ATI,
+                           GL_REG_2_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
+                           GL_REG_2_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-	// dp3_sat r0.rgb, r0_bx2.rgb, r1_bx2.rgb      // diffuse
-	qglColorFragmentOp2ATI(GL_DOT3_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
-			       GL_REG_1_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
+    // +mov_x8_sat r2.a, r1_bx2.b               // self shadow term
+    qglAlphaFragmentOp1ATI(GL_MOV_ATI,
+                           GL_REG_2_ATI, GL_8X_BIT_ATI|GL_SATURATE_BIT_ATI,
+                           GL_REG_1_ATI, GL_BLUE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-	// +mov_x8_sat r2.a, r1_bx2.b                  // self shadow term
-	qglAlphaFragmentOp1ATI(GL_MOV_ATI,
-			       GL_REG_2_ATI, GL_8X_BIT_ATI|GL_SATURATE_BIT_ATI,
-			       GL_REG_1_ATI, GL_BLUE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
+    // dp3_sat r1.rgb, r0_bx2.rgb, r1_bx2.rgb   // diffuse
+    qglColorFragmentOp2ATI(GL_DOT3_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
+                           GL_REG_1_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-        // mul r4.rgb, r4.rgb, v0.rgb                  // atten * light color
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_4_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_4_ATI, GL_NONE, GL_NONE,
-			       GL_PRIMARY_COLOR_ARB, GL_NONE, GL_NONE);
-	checkerror();
+    // +mad_x2_sat r1.a, r2.b, r2.b, -c0.b      // specular exponent
+    qglAlphaFragmentOp3ATI(GL_MAD_ATI,
+                           GL_REG_1_ATI, GL_2X_BIT_ATI|GL_SATURATE_BIT_ATI,
+                           GL_REG_2_ATI, GL_BLUE, GL_NONE,
+                           GL_REG_2_ATI, GL_BLUE, GL_NONE,
+                           GL_CON_0_ATI, GL_BLUE, GL_NEGATE_BIT_ATI);
+    checkerror();
 
-        // +mad_x2_sat r0.a, r2.b, r2.b, -c0.b  // specular exponent
-	qglAlphaFragmentOp3ATI(GL_MAD_ATI,
-			       GL_REG_0_ATI, GL_2X_BIT_ATI|GL_SATURATE_BIT_ATI,
-			       GL_REG_2_ATI, GL_BLUE, GL_NONE,
-			       GL_REG_2_ATI, GL_BLUE, GL_NONE,
-			       GL_CON_0_ATI, GL_BLUE, GL_NEGATE_BIT_ATI);
-	checkerror();
+    // mul r1.rgb, r1.rgb, r3.rgb               // diffuse color * diffuse bump
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_3_ATI, GL_NONE, GL_NONE);
+    checkerror();
 
-        // mul r0.rgb, r0.rgb, r3.rgb                  // diffuse color * diffuse bump
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_3_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // +mul r1.a, r1.a, r1.a                    // raise exponent
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE);
+    checkerror();
 
-	// +mul r0.a, r0.a, r0.a                       // raise exponent
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // mul r4.rgb, r4.rgb, v0.rgb               // atten * light color
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_4_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_4_ATI, GL_NONE, GL_NONE,
+                           GL_PRIMARY_COLOR_ARB, GL_NONE, GL_NONE);
+    checkerror();
 
-	// +mul r0.a, r0.a, r0.a                       // raise exponent
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // +mul r1.a, r1.a, r1.a                    // raise exponent
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE);
+    checkerror();
 
-	// mul r0.rgb, r0.rgb, r2.a                    // self shadow * diffuse
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_2_ATI, GL_ALPHA, GL_NONE);
-	checkerror();
+    // mul r1.rgb, r1.rgb, r2.a                 // self shadow * diffuse
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_2_ATI, GL_ALPHA, GL_NONE);
+    checkerror();
 
-        // +mul r0.a, r0.a, r3.a                       // specular * gloss map
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_3_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // +mul r0.a, r1.a, r0.a                    // specular * gloss map
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_0_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE);
+    checkerror();
 
-	// add r0.rgb, r0.rgb, r0.a                    // diffuse + specular
-	qglColorFragmentOp2ATI(GL_ADD_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_ALPHA, GL_NONE);
-	checkerror();
+    // add r0.rgb, r1.rgb, r0.a                 // diffuse + specular
+    qglColorFragmentOp2ATI(GL_ADD_ATI,
+                           GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_0_ATI, GL_ALPHA, GL_NONE);
+    checkerror();
 
-        // mul_sat r0.rgb, r0.rgb, r4.rgb              // (diffuse + specular)*atten*color
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_4_ATI, GL_NONE, GL_NONE);
-	checkerror();
-    }
-    else
-    {
-        // More optimal Radeon 8500+ code, 7 instruction slots
-	// dp3_sat r2.rgb, r0_bx2.rgb, r2_bx2.rgb      // specular
-	qglColorFragmentOp2ATI(GL_DOT3_ATI,
-			       GL_REG_2_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
-			       GL_REG_2_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
+    // mul_sat r0.rgb, r0.rgb, r4.rgb           // (diffuse + specular)*atten*color
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE,
+                           GL_REG_4_ATI, GL_NONE, GL_NONE);
+    checkerror();
 
-	// +mov_x8_sat r2.a, r1_bx2.b                  // self shadow term
-	qglAlphaFragmentOp1ATI(GL_MOV_ATI,
-			       GL_REG_2_ATI, GL_8X_BIT_ATI|GL_SATURATE_BIT_ATI,
-			       GL_REG_1_ATI, GL_BLUE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
 
-	// dp3_sat r0.rgb, r0_bx2.rgb, r1_bx2.rgb      // diffuse
-	qglColorFragmentOp2ATI(GL_DOT3_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
-			       GL_REG_1_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
-	checkerror();
+    qglEndFragmentShaderATI();
+    checkerror();
 
-	// +mad_x2_sat r0.a, r2.b, r2.b, -c0.b  // specular exponent
-	qglAlphaFragmentOp3ATI(GL_MAD_ATI,
-			       GL_REG_0_ATI, GL_2X_BIT_ATI|GL_SATURATE_BIT_ATI,
-			       GL_REG_2_ATI, GL_BLUE, GL_NONE,
-			       GL_REG_2_ATI, GL_BLUE, GL_NONE,
-			       GL_CON_0_ATI, GL_BLUE, GL_NEGATE_BIT_ATI);
-	checkerror();
+    // Second shader with cube filter
+    qglBindFragmentShaderATI(fragment_shaders+1);
+    checkerror();
+    qglBeginFragmentShaderATI();
+    checkerror();
 
-	// mul r0.rgb, r0.rgb, r3.rgb                  // diffuse color * diffuse bump
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_3_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    qglSetFragmentShaderConstantATI(GL_CON_0_ATI, &scaler[0]);
+    checkerror();
 
-	// +mul r0.a, r0.a, r0.a                       // raise exponent
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // texld r0, t0
+    qglSampleMapATI (GL_REG_0_ATI, GL_TEXTURE0_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
+    // texld r1, t1
+    qglSampleMapATI (GL_REG_1_ATI, GL_TEXTURE1_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
+    // texld r2, t2
+    qglSampleMapATI (GL_REG_2_ATI, GL_TEXTURE2_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
+    // texld r3, t3
+    qglSampleMapATI (GL_REG_3_ATI, GL_TEXTURE3_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
+    // texld r4, t4
+    qglSampleMapATI (GL_REG_4_ATI, GL_TEXTURE4_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
+    // texld r5, t5
+    qglSampleMapATI (GL_REG_5_ATI, GL_TEXTURE5_ARB, GL_SWIZZLE_STR_ATI);
+    checkerror();
 
-	// mul r4.rgb, r4.rgb, v0.rgb                  // atten * light color
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_4_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_4_ATI, GL_NONE, GL_NONE,
-			       GL_PRIMARY_COLOR_ARB, GL_NONE, GL_NONE);
-	checkerror();
+    // gloss * atten * light color * specular +
+    // dot * color * atten * light color * self shadow =
+    // (gloss * specular + dot * color * self shadow ) * atten * light color * filter
+    // Alpha ops rule :-)
 
-	// +mul r0.a, r0.a, r0.a                       // raise exponent
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // dp3_sat r2.rgb, r0_bx2.rgb, r2_bx2.rgb      // specular
+    qglColorFragmentOp2ATI(GL_DOT3_ATI,
+                           GL_REG_2_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
+                           GL_REG_2_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-	// mul r0.rgb, r0.rgb, r2.a                    // self shadow * diffuse
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_2_ATI, GL_ALPHA, GL_NONE);
-	checkerror();
+    // +mov_x8_sat r2.a, r1_bx2.b                  // self shadow term
+    qglAlphaFragmentOp1ATI(GL_MOV_ATI,
+                           GL_REG_2_ATI, GL_8X_BIT_ATI|GL_SATURATE_BIT_ATI,
+                           GL_REG_1_ATI, GL_BLUE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-	// +mul r0.a, r0.a, r3.a                       // specular * gloss map
-	qglAlphaFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_3_ATI, GL_NONE, GL_NONE);
-	checkerror();
+    // dp3_sat r1.rgb, r0_bx2.rgb, r1_bx2.rgb  // diffuse
+    qglColorFragmentOp2ATI(GL_DOT3_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI,
+                           GL_REG_1_ATI, GL_NONE, GL_2X_BIT_ATI|GL_BIAS_BIT_ATI);
+    checkerror();
 
-	// add r0.rgb, r0.rgb, r0.a                    // diffuse + specular
-	qglColorFragmentOp2ATI(GL_ADD_ATI,
-			       GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_0_ATI, GL_ALPHA, GL_NONE);
-	checkerror();
+    // +mad_x2_sat r1.a, r2.b, r2.b, -c0.b     // specular exponent
+    qglAlphaFragmentOp3ATI(GL_MAD_ATI,
+                           GL_REG_1_ATI, GL_2X_BIT_ATI|GL_SATURATE_BIT_ATI,
+                           GL_REG_2_ATI, GL_BLUE, GL_NONE,
+                           GL_REG_2_ATI, GL_BLUE, GL_NONE,
+                           GL_CON_0_ATI, GL_BLUE, GL_NEGATE_BIT_ATI);
+    checkerror();
 
-	// mul_sat r0.rgb, r0.rgb, r4.rgb              // (diffuse + specular)*atten*color
-	qglColorFragmentOp2ATI(GL_MUL_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_SATURATE_BIT_ATI,
-			       GL_REG_0_ATI, GL_NONE, GL_NONE,
-			       GL_REG_4_ATI, GL_NONE, GL_NONE);
-	checkerror();
-    }
+    // mul r1.rgb, r1.rgb, r3.rgb              // diffuse color * diffuse bump
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_3_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
+    // +mul r1.a, r1.a, r1.a                   // raise exponent
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
+    // mul r4.rgb, r4.rgb, v0.rgb              // atten * light color
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_4_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_4_ATI, GL_NONE, GL_NONE,
+                           GL_PRIMARY_COLOR_ARB, GL_NONE, GL_NONE);
+    checkerror();
+
+    // +mul r1.a, r1.a, r1.a                   // raise exponent
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
+    // mul r1.rgb, r1.rgb, r2.a               // self shadow * diffuse
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_1_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_2_ATI, GL_ALPHA, GL_NONE);
+    checkerror();
+
+    // +mul r0.a, r1.a, r0.a                 // specular * gloss map
+    qglAlphaFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_0_ATI, GL_SATURATE_BIT_ATI,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
+    // add r0.rgb, r0.rgb, r0.a              // diffuse + specular
+    qglColorFragmentOp2ATI(GL_ADD_ATI,
+                           GL_REG_0_ATI, GL_RED_BIT_ATI|GL_GREEN_BIT_ATI|GL_BLUE_BIT_ATI, GL_NONE,
+                           GL_REG_1_ATI, GL_NONE, GL_NONE,
+                           GL_REG_0_ATI, GL_ALPHA, GL_NONE);
+    checkerror();
+
+    // mul r0.rgb, r0.rgb, r4.rgb            // (diffuse + specular)*atten*color
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE,
+                           GL_REG_4_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
+    // mul_sat r0.rgb, r0.rgb, r5.rgb    // (diffuse + specular)*atten*color*filter
+    qglColorFragmentOp2ATI(GL_MUL_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_SATURATE_BIT_ATI,
+                           GL_REG_0_ATI, GL_NONE, GL_NONE,
+                           GL_REG_5_ATI, GL_NONE, GL_NONE);
+    checkerror();
+
 
     qglEndFragmentShaderATI();
     checkerror();
@@ -541,65 +582,164 @@ void GL_CreateShadersRadeon()
 
     glEnable(GL_VERTEX_SHADER_EXT);
 
-    // Generates a necessary input for the diffuse bumpmapping registers
-    matrix        = qglBindParameterEXT( GL_MVP_MATRIX_EXT );
-    vertex        = qglBindParameterEXT( GL_CURRENT_VERTEX_EXT );
-    color         = qglBindParameterEXT( GL_CURRENT_COLOR );
-    texturematrix = qglBindTextureUnitParameterEXT( GL_TEXTURE4_ARB, GL_TEXTURE_MATRIX );
-    texcoord0     = qglBindTextureUnitParameterEXT( GL_TEXTURE0_ARB, GL_CURRENT_TEXTURE_COORDS );
-    texcoord1     = qglBindTextureUnitParameterEXT( GL_TEXTURE1_ARB, GL_CURRENT_TEXTURE_COORDS );
-    texcoord2     = qglBindTextureUnitParameterEXT( GL_TEXTURE2_ARB, GL_CURRENT_TEXTURE_COORDS );
-
-    diffuse_program_object = qglGenVertexShadersEXT(1);
-
-    qglBindVertexShaderEXT(diffuse_program_object);
+    vertex_shaders = qglGenVertexShadersEXT(2);
+    checkerror();
+    qglBindVertexShaderEXT(vertex_shaders);
+    checkerror();
     qglBeginVertexShaderEXT();
+    checkerror();
+
+    // Generates a necessary input for the diffuse bumpmapping registers
+    mvp           = qglBindParameterEXT( GL_MVP_MATRIX_EXT );
+    checkerror();
+    modelview     = qglBindParameterEXT( GL_MODELVIEW_MATRIX );
+    checkerror();
+    vertex        = qglBindParameterEXT( GL_CURRENT_VERTEX_EXT );
+    checkerror();
+    color         = qglBindParameterEXT( GL_CURRENT_COLOR );
+    checkerror();
+    texturematrix = qglBindTextureUnitParameterEXT( GL_TEXTURE4_ARB, GL_TEXTURE_MATRIX );
+    checkerror();
+    texcoord0     = qglBindTextureUnitParameterEXT( GL_TEXTURE0_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord1     = qglBindTextureUnitParameterEXT( GL_TEXTURE1_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord2     = qglBindTextureUnitParameterEXT( GL_TEXTURE2_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    disttemp      = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    disttemp2     = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    zcomp         = qglGenSymbolsEXT(GL_VECTOR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    fogstart      = qglBindParameterEXT( GL_FOG_START );
+    checkerror();
+    fogend        = qglBindParameterEXT( GL_FOG_END );
+    checkerror();
 
     // Transform vertex to view-space
-    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_VERTEX_EXT, matrix, vertex );
+    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_VERTEX_EXT, mvp, vertex );
+    checkerror();
     
     // Transform vertex by texture matrix and copy to output
     qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_TEXTURE_COORD4_EXT, texturematrix, vertex );
+    checkerror();
 
-    //copy tex coords of unit 0 to unit 3
+    // copy tex coords of unit 0 to unit 3
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD0_EXT, texcoord0);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD1_EXT, texcoord1);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD2_EXT, texcoord2);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD3_EXT, texcoord0);
+    checkerror();
     qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_COLOR0_EXT, color);
+    checkerror();
+
+    // Transform vertex and take z for fog
+    qglExtractComponentEXT( zcomp, modelview, 2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_DOT4_EXT, disttemp, zcomp, vertex );
+    checkerror();
+
+    // calculate fog values end - z and end - start
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp, fogend, disttemp);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp2, fogend, fogstart);
+    checkerror();
+
+    // divide end - z by end - start, that's it
+    qglShaderOp1EXT( GL_OP_RECIP_EXT, disttemp2, disttemp2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_MUL_EXT, GL_OUTPUT_FOG_EXT, disttemp, disttemp2);
+    checkerror();
+
     qglEndVertexShaderEXT();
+    checkerror();
+
+    // Two transformed textures
+    qglBindVertexShaderEXT(vertex_shaders+1);
+    checkerror();
+    qglBeginVertexShaderEXT();
+    checkerror();
+
+    // Generates a necessary input for the diffuse bumpmapping registers
+    mvp            = qglBindParameterEXT( GL_MVP_MATRIX_EXT );
+    checkerror();
+    modelview      = qglBindParameterEXT( GL_MODELVIEW_MATRIX );
+    checkerror();
+    vertex         = qglBindParameterEXT( GL_CURRENT_VERTEX_EXT );
+    checkerror();
+    color          = qglBindParameterEXT( GL_CURRENT_COLOR );
+    checkerror();
+    texturematrix  = qglBindTextureUnitParameterEXT( GL_TEXTURE4_ARB, GL_TEXTURE_MATRIX );
+    checkerror();
+    texturematrix2 = qglBindTextureUnitParameterEXT( GL_TEXTURE5_ARB, GL_TEXTURE_MATRIX );
+    checkerror();
+    texcoord0      = qglBindTextureUnitParameterEXT( GL_TEXTURE0_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord1      = qglBindTextureUnitParameterEXT( GL_TEXTURE1_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    texcoord2      = qglBindTextureUnitParameterEXT( GL_TEXTURE2_ARB, GL_CURRENT_TEXTURE_COORDS );
+    checkerror();
+    disttemp       = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    disttemp2      = qglGenSymbolsEXT(GL_SCALAR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    zcomp          = qglGenSymbolsEXT(GL_VECTOR_EXT, GL_LOCAL_EXT, GL_FULL_RANGE_EXT, 1);
+    checkerror();
+    fogstart       = qglBindParameterEXT( GL_FOG_START );
+    checkerror();
+    fogend         = qglBindParameterEXT( GL_FOG_END );
+    checkerror();
+
+    // Transform vertex to view-space
+    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_VERTEX_EXT, mvp, vertex );
+    checkerror();
+    
+    // Transform vertex by texture matrix and copy to output
+    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_TEXTURE_COORD4_EXT, texturematrix, vertex );
+    checkerror();
+
+    // Transform vertex by texture matrix and copy to output
+    qglShaderOp2EXT( GL_OP_MULTIPLY_MATRIX_EXT, GL_OUTPUT_TEXTURE_COORD5_EXT, texturematrix2, vertex );
+    checkerror();
+
+    // copy tex coords of unit 0 to unit 3
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD0_EXT, texcoord0);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD1_EXT, texcoord1);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD2_EXT, texcoord2);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_TEXTURE_COORD3_EXT, texcoord0);
+    checkerror();
+    qglShaderOp1EXT( GL_OP_MOV_EXT, GL_OUTPUT_COLOR0_EXT, color);
+    checkerror();
+
+    // Transform vertex and take z for fog
+    qglExtractComponentEXT( zcomp, modelview, 2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_DOT4_EXT, disttemp, zcomp, vertex );
+    checkerror();
+
+    // calculate fog values end - z and end - start
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp, fogend, disttemp);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_SUB_EXT, disttemp2, fogend, fogstart);
+    checkerror();
+
+    // divide end - z by end - start, that's it
+    qglShaderOp1EXT( GL_OP_RECIP_EXT, disttemp2, disttemp2);
+    checkerror();
+    qglShaderOp2EXT( GL_OP_MUL_EXT, GL_OUTPUT_FOG_EXT, disttemp, disttemp2);
+    checkerror();
+
+    qglEndVertexShaderEXT();
+    checkerror();
 
     glDisable(GL_VERTEX_SHADER_EXT);
-
-}
-
-
-/*
-Pixel shader for diffuse bump mapping when a light does have a cubemap filter
-(note the required texture coordinates are the same)
-*/
-
-void GL_EnableAttenShaderRadeon ()
-{
-    //we use ordinary combiners, no fancy ATI stuff
-
-    //texture coords for unit 0: Object space vertex position
-
-    //pass trough normalization cubemap
-    GL_SelectTexture(GL_TEXTURE0_ARB);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
-    glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
-}
-
-void GL_DisableAttenShaderRadeon ()
-{
-    glDisable(GL_TEXTURE_3D);
-    glEnable(GL_TEXTURE_2D);
 }
 
 
@@ -611,8 +751,8 @@ void GL_DisableDiffuseShaderRadeon()
     //tex 3 = color map
     //tex 4 = (attenuation or light filter, depends on light settings)
 
-    glDisable(GL_FRAGMENT_SHADER_ATI);
     glDisable(GL_VERTEX_SHADER_EXT);
+    glDisable(GL_FRAGMENT_SHADER_ATI);
 
     GL_SelectTexture(GL_TEXTURE1_ARB);
     glDisable(GL_TEXTURE_CUBE_MAP_ARB);
@@ -627,11 +767,10 @@ void GL_DisableDiffuseShaderRadeon()
     if (currentshadowlight->filtercube)
     {
         glDisable(GL_TEXTURE_CUBE_MAP_ARB);
+        glPopMatrix();
+        GL_SelectTexture(GL_TEXTURE5_ARB);
     }
-    else
-    {
-        glDisable(GL_TEXTURE_3D);
-    }
+    glDisable(GL_TEXTURE_3D);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
 
@@ -660,94 +799,74 @@ void GL_EnableDiffuseSpecularShaderRadeon(qboolean world, vec3_t lightOrig)
     GL_SelectTexture(GL_TEXTURE3_ARB);
     glEnable(GL_TEXTURE_2D);
 
+    glEnable(GL_FRAGMENT_SHADER_ATI);
+    glEnable(GL_VERTEX_SHADER_EXT);
+   
     GL_SelectTexture(GL_TEXTURE4_ARB);
     glMatrixMode(GL_TEXTURE);
     glPushMatrix();
     glLoadIdentity();
     if (currentshadowlight->filtercube)
     {
+        glGetError();
+        qglBindFragmentShaderATI( fragment_shaders + 1 );
+        checkerror();
+        qglBindVertexShaderEXT( vertex_shaders + 1);
+        checkerror();
+
         glEnable(GL_TEXTURE_CUBE_MAP_ARB);
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, currentshadowlight->filtercube);
         GL_SetupCubeMapMatrix(world);
+
+        GL_SelectTexture(GL_TEXTURE5_ARB);
+        glMatrixMode(GL_TEXTURE);
+        glPushMatrix();
+        glLoadIdentity();
     }
     else
     {
-        glEnable(GL_TEXTURE_3D);
-        glBindTexture(GL_TEXTURE_3D, atten3d_texture_object);
-
-        glTranslatef(0.5,0.5,0.5);
-        glScalef(0.5,0.5,0.5);
-        glScalef(invrad, invrad, invrad);
-        glTranslatef(-lightOrig[0], -lightOrig[1], -lightOrig[2]);
+        glGetError();
+        qglBindFragmentShaderATI( fragment_shaders );
+        checkerror();
+        qglBindVertexShaderEXT( vertex_shaders );
+        checkerror();
     }
 
-    GL_SelectTexture(GL_TEXTURE0_ARB);
+    glEnable(GL_TEXTURE_3D);
+    glBindTexture(GL_TEXTURE_3D, atten3d_texture_object);
 
-    glEnable(GL_FRAGMENT_SHADER_ATI);
-    glEnable(GL_VERTEX_SHADER_EXT);
-
-    
-    qglBindFragmentShaderATI( shaders );
-    qglBindVertexShaderEXT( diffuse_program_object );
-}
-
-
-void GL_EnableAttentShaderRadeon(aliaslightinstant_t *instant)
-{
-    float invrad = 1/currentshadowlight->radius;
-    glMatrixMode(GL_TEXTURE);
-    glPushMatrix();
-    glLoadIdentity();
     glTranslatef(0.5,0.5,0.5);
     glScalef(0.5,0.5,0.5);
     glScalef(invrad, invrad, invrad);
-    if (!instant)
-    {
-        glTranslatef(-currentshadowlight->origin[0],
-                     -currentshadowlight->origin[1],
-                     -currentshadowlight->origin[2]);
-    }
-    else
-    {
-        glTranslatef(-instant->lightpos[0],
-                     -instant->lightpos[1],
-                     -instant->lightpos[2]);
-    }
+    glTranslatef(-lightOrig[0], -lightOrig[1], -lightOrig[2]);
 
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_3D, atten3d_texture_object);
+    GL_SelectTexture(GL_TEXTURE0_ARB);
+
 }
 
-void GL_DisableAttentShaderRadeon()
-{
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glDisable(GL_TEXTURE_3D);
-    glEnable(GL_TEXTURE_2D);
-}
 
-void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds) 
+void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds) 
 {
     int command, num, i;
     int lightPos = 0;
     vec3_t lightOr;
     msurface_t *surf;
     float               *v;
-    float *lightP;
+    float* lightP;
     vec3_t lightDir;
     vec3_t tsH,H;
-	texture_t	*t;//XYZ
+
+    texture_t	*t;//XYZ
 
     //support flickering lights
     VectorCopy(currentshadowlight->origin,lightOr);
 
     while (1)
     {
-        command = lightCmds[lightPos++];
+        command = lightCmds[lightPos++].asInt;
         if (command == 0) break; //end of list
 
-        surf = (void *)lightCmds[lightPos++];
+        surf = lightCmds[lightPos++].asVoid;
 
         if (surf->visframe != r_framecount) {
             lightPos+=(4+surf->polys->numverts*(2+3));
@@ -757,23 +876,26 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
         num = surf->polys->numverts;
         lightPos+=4;//skip color
 
-		//XYZ
-		t = R_TextureAnimation (surf->texinfo->texture);
+        //XYZ
+        t = R_TextureAnimation (surf->texinfo->texture);
 
-		GL_SelectTexture(GL_TEXTURE0_ARB);
-		GL_Bind(t->gl_texturenum+1);
-		GL_SelectTexture(GL_TEXTURE3_ARB);
-		GL_Bind(t->gl_texturenum);
+        GL_SelectTexture(GL_TEXTURE0_ARB);
+        GL_Bind(t->gl_texturenum+1);
+        GL_SelectTexture(GL_TEXTURE3_ARB);
+        GL_Bind(t->gl_texturenum);
 
         glBegin(command);
-        v = surf->polys->verts[0];
+        //v = surf->polys->verts[0];
+        v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
         for (i=0; i<num; i++, v+= VERTEXSIZE)
         {
             //skip attent texture coord.
-            lightPos+=2;
+            lightPos += 2;
 
-            lightP = (float *)(&lightCmds[lightPos]);
-            VectorCopy(lightP,lightDir);
+            lightP = &lightCmds[lightPos].asFloat;
+            lightPos += 3;
+
+            VectorCopy(lightP, lightDir);
             VectorNormalize(lightDir);
 
             //calculate local H vector and put it into tangent space
@@ -799,12 +921,13 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
 
             // diffuse
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
-            qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB,(float *)(&lightCmds[lightPos]));
+	    
+            qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB, lightP);
+
             // half vector for specular
             qglMultiTexCoord3fvARB(GL_TEXTURE2_ARB,&tsH[0]);
 
             glVertex3fv(&v[0]);
-            lightPos+=3;
         }
         glEnd();
     }
@@ -822,7 +945,7 @@ void R_DrawBrushRadeonDiffuseSpecular(entity_t *e)
     int         i, j, count;
     brushlightinstant_t *ins = e->brushlightinstant;
     float       *v;
-	texture_t	*t;//XYZ	
+    texture_t	*t;//XYZ	
 
     count = 0;
 
@@ -833,16 +956,17 @@ void R_DrawBrushRadeonDiffuseSpecular(entity_t *e)
 
         poly = surf->polys;
 
- 		//XYZ
-		t = R_TextureAnimation (surf->texinfo->texture);
+        //XYZ
+        t = R_TextureAnimation (surf->texinfo->texture);
 
-		GL_SelectTexture(GL_TEXTURE0_ARB);
-		GL_Bind(t->gl_texturenum+1);
-		GL_SelectTexture(GL_TEXTURE3_ARB);
-		GL_Bind(t->gl_texturenum);
+        GL_SelectTexture(GL_TEXTURE0_ARB);
+        GL_Bind(t->gl_texturenum+1);
+        GL_SelectTexture(GL_TEXTURE3_ARB);
+        GL_Bind(t->gl_texturenum);
 
-        glBegin(GL_POLYGON);
-        v = poly->verts[0];
+        glBegin(GL_TRIANGLE_FAN);
+        //v = poly->verts[0];
+        v = (float *)(&globalVertexTable[poly->firstvertex]);
         for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
         {       
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
@@ -858,7 +982,6 @@ void R_DrawBrushRadeonDiffuseSpecular(entity_t *e)
 
 void R_DrawAliasFrameRadeonDiffuseSpecular (aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 {
-
     mtriangle_t *tris;
     fstvert_t   *texcoords;
     int anim;
@@ -910,20 +1033,7 @@ void R_DrawWorldBumpedRadeon()
 
     glDepthMask (0);
     glShadeModel (GL_SMOOTH);
-                
-    if (currentshadowlight->filtercube)
-    {
-        //draw attent into dest alpha
-        GL_DrawAlpha();
-        GL_EnableAttentShaderRadeon(NULL);
-        R_DrawWorldWV(currentshadowlight->lightCmds);
-        GL_DisableAttentShaderRadeon();
-        GL_ModulateAlphaDrawColor();
-    }
-    else
-    {
-        GL_AddColor();
-    }
+    GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
 
     GL_EnableDiffuseSpecularShaderRadeon(true,currentshadowlight->origin);
@@ -938,18 +1048,7 @@ void R_DrawWorldBumpedRadeon()
 
 void R_DrawBrushBumpedRadeon(entity_t *e)
 {
-    if (currentshadowlight->filtercube) {
-        //draw attent into dest alpha
-        GL_DrawAlpha();
-        GL_EnableAttentShaderRadeon(NULL);
-        R_DrawBrushWV(e);
-        GL_DisableAttentShaderRadeon();
-        GL_ModulateAlphaDrawColor();
-    }
-    else
-    {
-        GL_AddColor();
-    }
+    GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
 
 
@@ -960,19 +1059,7 @@ void R_DrawBrushBumpedRadeon(entity_t *e)
 
 void R_DrawAliasBumpedRadeon(aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 {
-    if (currentshadowlight->filtercube)
-    {
-        //draw attent into dest alpha
-        GL_DrawAlpha();
-        GL_EnableAttentShaderRadeon(instant->lightinstant);
-        R_DrawAliasFrameWV(paliashdr,instant);
-        GL_DisableAttentShaderRadeon();
-        GL_ModulateAlphaDrawColor();
-    }
-    else
-    {
-        GL_AddColor();
-    }
+    GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
 
     GL_EnableDiffuseSpecularShaderRadeon(false,instant->lightinstant->lightpos);

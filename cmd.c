@@ -453,6 +453,8 @@ void Cmd_Init (void)
 	Cmd_AddCommand ("alias",Cmd_Alias_f);
 	Cmd_AddCommand ("cmd", Cmd_ForwardToServer);
 	Cmd_AddCommand ("wait", Cmd_Wait_f);
+	Cmd_AddCommand ("cmdlist", Cmd_List_f); //Cmdlist - Eradicator
+	Cmd_AddCommand ("cvarlist", Cvar_List_f); //Cvarlist - Eradicator
 }
 
 /*
@@ -622,6 +624,176 @@ char *Cmd_CompleteCommand (char *partial)
 
 /*
 ============
+Cmd_CompleteCountPossible
+============
+*/
+int Cmd_CompleteCountPossible (char *partial)
+{
+	cmd_function_t	*cmd;
+	int	len;
+	int	h;
+
+	h=0;
+
+	len = Q_strlen(partial);
+	
+	if (!len)
+		return 0;
+		
+	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+		if (!Q_strncmp (partial,cmd->name, len))
+			h++;
+	return h;
+}
+
+/*
+============
+Cmd_CompletePrintPossible
+============
+*/
+void Cmd_CompletePrintPossible (char *partial)
+{
+	cmd_function_t	*cmd;
+	int	len;
+	int	lpos;
+	int	out;
+	int	con_linewidth;
+	char	sout[32];
+	char	lout[2048];
+
+	lpos = 0;
+	len = Q_strlen(partial);
+	Q_strcpy(lout,"");
+
+	con_linewidth = (vid.width >> 3) - 3;
+
+	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+		if (!Q_strncmp (partial,cmd->name, len))
+		{
+			Q_strcpy(sout, cmd->name);
+
+			out = Q_strlen(sout);
+			lpos += out;
+
+			for (out; out<20; out++)		
+			{
+				if (lpos < con_linewidth)
+					Q_strcat (sout, " ");
+				
+				lpos++;
+			}
+
+			Q_strcat (lout, sout);
+
+			if (lpos > con_linewidth - 24)
+				for  (lpos; lpos < con_linewidth; lpos++)
+					Q_strcat(lout, " ");
+
+			if (lpos >= con_linewidth)
+				lpos = 0;
+		}
+
+	Con_Printf ("%s\n\n", lout);
+}
+
+/*
+============
+Cmd_CompleteAlias
+
+Alias Command Tab Completion - Eradicator
+============
+*/
+char *Cmd_CompleteAlias (char *partial)
+{
+	cmdalias_t		*alias;
+	int				len;
+	
+	len = Q_strlen(partial);
+	
+	if (!len)
+		return NULL;
+		
+	for (alias=cmd_alias ; alias ; alias=alias->next)
+		if (!Q_strncmp (partial,alias->name, len))
+			return alias->name;
+	return NULL;
+}
+
+/*
+============
+Cmd_CompleteAliasCountPossible
+============
+*/
+int Cmd_CompleteAliasCountPossible (char *partial)
+{
+	cmdalias_t		*alias;
+	int				len;
+	int				h;
+
+	h=0;
+
+	len = Q_strlen(partial);
+	
+	if (!len)
+		return 0;
+		
+	for (alias=cmd_alias ; alias ; alias=alias->next)
+		if (!Q_strncmp (partial,alias->name, len))
+			h++;
+	return h;
+}
+
+/*
+============
+Cmd_CompleteAliasPrintPossible
+============
+*/
+void Cmd_CompleteAliasPrintPossible (char *partial)
+{
+	cmdalias_t	*alias;
+	int		len;
+	int		lpos;
+	int		out;
+	int		con_linewidth;
+	char		sout[32];
+	char		lout[2048];
+
+	lpos = 0;
+	len = Q_strlen(partial);
+	Q_strcpy(lout,"");
+
+	con_linewidth = (vid.width >> 3) - 3;
+
+	for (alias=cmd_alias ; alias ; alias=alias->next)
+		if (!Q_strncmp (partial,alias->name, len))
+		{
+			Q_strcpy(sout, alias->name);
+
+			out = Q_strlen(sout);
+			lpos += out;
+
+			for (out; out<20; out++)		
+			{
+				if (lpos < con_linewidth)
+					Q_strcat (sout, " ");
+				
+				lpos++;
+			}
+
+			Q_strcat (lout, sout);
+
+			if (lpos > con_linewidth - 24)
+				for  (lpos; lpos < con_linewidth; lpos++)
+					Q_strcat(lout, " ");
+					
+			if (lpos >= con_linewidth)
+				lpos = 0;
+		}
+	Con_Printf ("%s\n\n", lout);
+}
+
+/*
+============
 Cmd_ExecuteString
 
 A complete command line has been parsed, so try to execute it
@@ -719,4 +891,48 @@ int Cmd_CheckParm (char *parm)
 			return i;
 			
 	return 0;
+}
+
+/*
+========
+Cmd_List
+
+Displays a list of all the commands similar to the Quake3 cmdlist - Eradicator
+========
+*/
+void Cmd_List_f (void)
+{
+	cmd_function_t	*cmd;
+	char 		*partial;
+	int		len;
+	int		count;
+
+	if (Cmd_Argc() > 1)
+	{
+		partial = Cmd_Argv (1);
+		len = Q_strlen(partial);
+	}
+	else
+	{
+		partial = NULL;
+		len = 0;
+	}
+	
+	count=0;
+	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+	{
+		if (partial && Q_strncmp (partial,cmd->name, len))
+		{
+			continue;
+		}
+		Con_Printf ("\"%s\"\n", cmd->name);
+		count++;
+	}
+
+	Con_Printf ("%i command(s)", count);
+	if (partial)
+	{
+		Con_Printf (" beginning with \"%s\"", partial);
+	}
+	Con_Printf ("\n");
 }

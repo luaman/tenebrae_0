@@ -63,11 +63,15 @@ CL_WriteDemoMessage
 Dumps the current net message, prefixed by the length and view angles
 ====================
 */
+extern cvar_t pausedemo; //Pause Demo - Eradicator
 void CL_WriteDemoMessage (void)
 {
 	int		len;
 	int		i;
 	float	f;
+
+	if (pausedemo.value) //Pause Demo - Eradicator
+		return;
 
 	len = LittleLong (net_message.cursize);
 	fwrite (&len, 4, 1, cls.demofile);
@@ -97,6 +101,10 @@ int CL_GetMessage (void)
 	// decide if it is time to grab the next message		
 		if (cls.signon == SIGNONS)	// allways grab until fully connected
 		{
+
+			if (pausedemo.value) //Pause Demo - Eradicator
+				return 0;
+
 			if (cls.timedemo)
 			{
 				if (host_framecount == cls.td_lastframe)

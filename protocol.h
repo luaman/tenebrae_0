@@ -130,6 +130,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define svc_cutscene		34
 
+#define svc_basicemitter	35		//PENTA: Simple emitter sends less data to the client
+#define svc_extendedemitter	36		//PENTA: More coplex, sends entity velocity and stuff to spawn more complex effects
 
 //
 // client to server

@@ -186,6 +186,7 @@ void SCR_DrawCenterString (void)
 			if (start[l] == '\n' || !start[l])
 				break;
 		x = (vid.width - l*8)/2;
+
 		for (j=0 ; j<l ; j++, x+=8)
 		{
 			Draw_Character (x, y, start[j]);	
@@ -402,11 +403,14 @@ SCR_DrawRam
 */
 void SCR_DrawRam (void)
 {
+	/*
 	if (!scr_showram.value)
 		return;
-
+	*/
 	if (!r_cache_thrash)
 		return;
+
+	Con_Printf("Thrash cache\n");
 
 	Draw_Pic (scr_vrect.x+32, scr_vrect.y, scr_ram);
 }
@@ -508,7 +512,7 @@ void SCR_DrawFPS (void)
 	int x, y;
 	char st[80];
 
-	if (!sh_fps.value)
+	if (!sh_fps.value & !sh_debuginfo.value)
 		return;
 
 	t = Sys_FloatTime ();
@@ -518,18 +522,37 @@ void SCR_DrawFPS (void)
 		lastframetime = t;
 	}
 
-	sprintf(st, "FPS: %d NumLights: %d ClearsSaved %d\n", lastfps,numUsedShadowLights,numClearsSaved);
+	if (sh_debuginfo.value)
+	{
+		sprintf(st, "FPS: %d NumLights: %d ClearsSaved %d\n", lastfps,numUsedShadowLights,numClearsSaved);
+		x = 16;
+		y = 0 ;
+		Draw_String(x, y, st);
+	}
+	else
+	{
+		sprintf(st, "FPS: %d \n", lastfps);
+		x = vid.width - 65; //Draw at the right to avoid clustering view - Eradicator
+		y = 8;
+		Draw_String(x, y, st);
+	}
 
-	x = vid.width - strlen(st) * 16 - 16;
-	y = 0 ; //vid.height - (sb_lines * (vid.height/240) )- 16;
-//	Draw_TileClear(x, y, strlen(st)*16, 16);
-	Draw_String(x, y, st);
+	if (!sh_debuginfo.value) //Only display the rest in debug info (willi reques) - Eradicator
+		return;
 
 	sprintf(st, "Alias Cache: %d Requests, %d Full Hits,  %d Partial Hits\n", aliasCacheRequests,aliasFullCacheHits,aliasPartialCacheHits);
+	x = 16;
 	y = 16;
 	Draw_String(x, y, st);
+
 	sprintf(st, "Brush Cache: %d Requests, %d Full Hits,  %d Partial Hits\n", brushCacheRequests,brushFullCacheHits,brushPartialCacheHits);
+	x = 16;
 	y = 32;
+	Draw_String(x, y, st);
+
+	sprintf(st, "Poly counts: %d Alias polys, %d Brush polys\n", c_alias_polys, c_brush_polys);
+	x = 16;
+	y = 48;
 	Draw_String(x, y, st);
 }
 
@@ -671,6 +694,15 @@ void SCR_ScreenShot_f (void)
 
 	strcpy(pcxname,"screenshots/quake00000.tga");
 #endif /* __APPLE__ || MACOSX */
+
+
+// 
+// check screenshot dir  
+//
+	sprintf (checkname, "%s/screenshots", com_gamedir);
+        Sys_mkdir(checkname);
+	memset(checkname,0,MAX_OSPATH);        
+
 		
 	for (i=0 ; i<=99999 ; i++) 
 	{ 
@@ -930,6 +962,7 @@ needs almost the entire 256k of stack space!
 */
 void SCR_UpdateScreen (void)
 {
+	int				cross;
 	int			i;
 
 	if (block_drawing)
@@ -1025,8 +1058,8 @@ void SCR_UpdateScreen (void)
 	else
 	{
 		if (crosshair.value)
-			Draw_Character (scr_vrect.x + scr_vrect.width/2, scr_vrect.y + scr_vrect.height/2, '+');
-		
+			Draw_Character (scr_vrect.x + scr_vrect.width/2, scr_vrect.y + scr_vrect.height/2, '+');	
+
 		SCR_DrawRam ();
 		SCR_DrawNet ();
 		SCR_DrawTurtle ();

@@ -51,16 +51,13 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 /*
 ** assumes "src" is normalized
 */
-void PerpendicularVector( vec3_t dst, const vec3_t src )
+/*void PerpendicularVector( vec3_t dst, const vec3_t src )
 {
 	int	pos;
 	int i;
 	float minelem = 1.0F;
 	vec3_t tempvec;
 
-	/*
-	** find the smallest magnitude axially aligned vector
-	*/
 	for ( pos = 0, i = 0; i < 3; i++ )
 	{
 		if ( fabs( src[i] ) < minelem )
@@ -72,15 +69,57 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;
 	tempvec[pos] = 1.0F;
 
-	/*
-	** project the point onto the plane defined by src
-	*/
 	ProjectPointOnPlane( dst, tempvec, src );
 
-	/*
-	** normalize the result
-	*/
 	VectorNormalize( dst );
+}*/
+
+void PerpendicularVector( vec3_t dst, const vec3_t src ) //Optimized a bit :) - Eradicator
+{
+	int pos;
+	float minelem;
+
+	if (src[0])
+	{
+		dst[0] = 0;
+		if (src[1])
+		{
+			dst[1] = 0;
+			if (src[2])
+			{
+				dst[2] = 0;
+				pos = 0;
+				minelem = fabs(src[0]);
+				if (fabs(src[1]) < minelem)
+				{
+					pos = 1;
+					minelem = fabs(src[1]);
+				}
+				if (fabs(src[2]) < minelem)
+					pos = 2;
+
+				dst[pos] = 1;
+				dst[0] -= src[pos] * src[0];
+				dst[1] -= src[pos] * src[1];
+				dst[2] -= src[pos] * src[2];
+
+				VectorNormalize(dst);
+			}
+			else
+				dst[2] = 1;
+		}
+		else
+		{
+			dst[1] = 1;
+			dst[2] = 0;
+		}
+	}
+	else
+	{
+		dst[0] = 1;
+		dst[1] = 0;
+		dst[2] = 0;
+	}
 }
 
 #ifdef _WIN32

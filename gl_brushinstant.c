@@ -36,8 +36,9 @@ brushlightinstant_t BLightInstantCache[NUM_BRUSH_LIGHT_INSTANTS];
 int brushCacheRequests, brushFullCacheHits, brushPartialCacheHits;
 
 /*
-R_AllocateInstant
+R_AllocateBrushLightInstant
 */
+
 brushlightinstant_t *R_AllocateBrushLightInstant(entity_t *e) {
 
 	int i, oldest, oindex;
@@ -144,7 +145,9 @@ qboolean CheckBrushLightUpdate(entity_t *e, brushlightinstant_t *ins) {
 		(bdist(ins->lasteorg,e->origin) < DIST_DELTA) &&
 		(bdist(ins->lasteangles,e->angles) < ANG_DELTA) &&
 		(fabs(ins->lastlradius - currentshadowlight->radius) <= RADIUS_DELTA) && 
-		(ins->lastshadowonly == ins->shadowonly))
+		(ins->lastshadowonly == ins->shadowonly) &&
+		(ins->lockframe >= r_framecount-10))//XYW Don't reuse if it has been unused for a long time
+
 	{
 		atest = atest+1;
 		return false;
@@ -257,7 +260,8 @@ void R_CalcBrushVolumeVerts(entity_t *e, brushlightinstant_t *ins) {
 		//extrude vertices and copy to buffer
 		for (j=0 ; j<surf->numedges ; j++)
 		{
-			v2 = (vec3_t *)&poly->verts[j];
+			//v2 = (vec3_t *)&poly->verts[j];
+			v2 = (vec3_t *)(&globalVertexTable[poly->firstvertex+j]);
 			VectorSubtract ( (*v2) ,ins->lightpos, v1);
 			scale = Length (v1);
 
@@ -342,7 +346,8 @@ void R_CalcBrushAttenCoords(entity_t *e, brushlightinstant_t *ins) {
 		usedcolorscales++;
 
 		//we could probably do this in hardware, with a vertex program!
-		v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
+		//v = poly->verts[0];
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{
 			// Project the light image onto the face
@@ -375,7 +380,8 @@ void R_SetupBrushLightHAV(entity_t *ent, brushlightinstant_t *ins)
 
 		poly = psurf->polys;
 		
-		v = poly->verts[0];
+		//v = poly->verts[0];
+		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 		{	
 
@@ -438,7 +444,7 @@ void R_SetupBrushInstantForLight(entity_t *e)
 		R_CalcBrushVolumeVerts(e, brushlightinstant);
 		
 		if (!brushlightinstant->shadowonly) {
-			if (!gl_geforce3 && !gl_radeon) {//PA:
+			if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 				R_CalcBrushAttenCoords(e,  brushlightinstant);
 			}
 			//R_SetupBrushLightHAV(e, brushlightinstant);
