@@ -2057,37 +2057,36 @@ void COM_AddGameDirectory (char *dir)
 //
 // add any pak files , pak*.pak first 
 //
-        if (Sys_Findfirst (dir, "*.pak", &dirdata))
+	if (Sys_Findfirst (dir, "*.pak", &dirdata))
 	{
-	        do
+		do
 		{
-		        pak = COM_LoadPackFile (dirdata.entry);
+			pak = COM_LoadPackFile (dirdata.entry);
 			if (!pak)
 				break;
-                        filename=COM_SkipPath(dirdata.entry);
-                        search = Hunk_Alloc (sizeof(searchpath_t));
-                        search->pack = pak;
-                        if (Q_strncasecmp(filename,"pak",3)) {
-                             // pak*.pak
-                             search->next = com_searchpaths;
-                             com_searchpaths = search;                             
-                        } 
-                        else {
-                             // *.pak
-                             search->next = otherpaths;
-                             otherpaths = search;
-                        }
-                        
-                }
+			filename=COM_SkipPath(dirdata.entry);
+			search = Hunk_Alloc (sizeof(searchpath_t));
+			search->pack = pak;
+			if (Q_strncasecmp(filename,"pak",3)) {
+				// pak*.pak
+				search->next = otherpaths;
+				otherpaths = search;       
+			} else {
+				// *.pak
+				search->next = com_searchpaths;
+				com_searchpaths = search; 
+			}
+		}
 		while (Sys_Findnext( &dirdata ) != NULL);
 	}
-        if (otherpaths){
-             search = otherpaths;
-             while (search->next)
-                  search = search->next;                  
-             search->next = com_searchpaths;
-             com_searchpaths = otherpaths;             
-        }
+
+	if (otherpaths){
+		search = otherpaths;
+		while (search->next)
+			search = search->next;                  
+		search->next = com_searchpaths;
+		com_searchpaths = otherpaths;             
+	}
 //
 // add the directory to the search path last so it overrides paks
 //
