@@ -651,8 +651,9 @@ void    VID_Init (unsigned char *palette)
             Sys_Error("VID: Bad window height\n");
     }
     // Set video width, height and flags
+
     flags = SDL_OPENGL;
-    if ( COM_CheckParm ("-fullscreen") )
+    if ( !COM_CheckParm ("-window") )
         flags |= SDL_FULLSCREEN;
 
     // Initialize display 
@@ -661,12 +662,16 @@ void    VID_Init (unsigned char *palette)
 
     scr_width = vid.width;
     scr_height = vid.height;
-    
+
+    vid.conheight = vid.height;
+    vid.conwidth = vid.width;
+
+    /*
     if (vid.conheight > vid.height)
       vid.conheight = vid.height;
     if (vid.conwidth > vid.width)
       vid.conwidth = vid.width;
-
+    */
     
     vid.aspect = ((float)vid.height / (float)vid.width) * (320.0 / 240.0);
     vid.numpages = 2;
