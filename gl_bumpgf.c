@@ -35,6 +35,7 @@ If a light has a cubemap filter it requires 3 passes
 
 //<AWE> "diffuse_program_object" has to be defined static. Otherwise nameclash with "gl_bumpradeon.c".
 static GLuint diffuse_program_object;
+static GLuint specularaliasnopopping_program_object; //He he nice name to type a lot
 
 /*
 Pixel shader for diffuse bump mapping when a light does have a cubemap filter
@@ -116,9 +117,9 @@ void GL_EnableDiffuseShaderGF3(qboolean world, vec3_t lightOrig) {
 
 
 	//combiner0 Alpha: store 8*expand(tang space light vect z comp) into Spare0 Alpha (this is the selfshadow term)
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_ALPHA, GL_DISCARD_NV, GL_DISCARD_NV, GL_SPARE0_NV, GL_SCALE_BY_FOUR_NV, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
@@ -194,7 +195,7 @@ void GL_DisableDiffuseShaderGF3() {
     glDisable( GL_VERTEX_PROGRAM_NV );
 }
 
-void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig) {
+void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias) {
 
 	vec3_t scaler = {0.5f, 0.5f, 0.5f};
 	float invrad = 1/currentshadowlight->radius;
@@ -248,10 +249,18 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig) {
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_RGB, GL_SPARE0_NV, GL_SPARE1_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_TRUE, GL_FALSE, GL_FALSE);
 
 	//combiner0 Alpha: store 8*expand(tang space light vect z comp) into Spare1 Alpha (this is the selfshadow term)
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
+	if (sh_noshadowpopping.value && alias) {
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_SECONDARY_COLOR_NV, GL_EXPAND_NORMAL_NV, GL_BLUE);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_SECONDARY_COLOR_NV, GL_EXPAND_NORMAL_NV, GL_BLUE);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
+	} else {
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
+
+	}
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_ALPHA, GL_DISCARD_NV, GL_DISCARD_NV, GL_SPARE1_NV, GL_SCALE_BY_FOUR_NV, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
 	//rgb = multipy light with color
@@ -280,7 +289,13 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig) {
 	qglCombinerInputNV(GL_COMBINER3_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_SPARE0_NV, GL_UNSIGNED_IDENTITY_NV, GL_ALPHA);
 	qglCombinerOutputNV(GL_COMBINER3_NV, GL_ALPHA, GL_SPARE0_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 	//combiner3 rgb: Do nothing
-	qglCombinerOutputNV(GL_COMBINER2_NV, GL_RGB, GL_DISCARD_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
+//	qglCombinerOutputNV(GL_COMBINER2_NV, GL_RGB, GL_DISCARD_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
+	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_A_NV, GL_SPARE1_NV, GL_UNSIGNED_IDENTITY_NV, GL_ALPHA);
+	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_B_NV, GL_SPARE1_NV, GL_UNSIGNED_IDENTITY_NV, GL_RGB);
+	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_C_NV, GL_TEXTURE2_ARB, GL_UNSIGNED_IDENTITY_NV , GL_ALPHA);
+	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_D_NV, GL_TEXTURE3_ARB, GL_UNSIGNED_IDENTITY_NV , GL_RGB);
+	qglCombinerOutputNV(GL_COMBINER3_NV, GL_RGB, GL_SPARE1_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
+
 
 	//final combiner: final RGB = (Spare 0 Alpha) * ( (Spare 0 RGB) * (Spare 1 RGB) )
 	qglFinalCombinerInputNV(GL_VARIABLE_A_NV, GL_SPARE0_NV, GL_UNSIGNED_IDENTITY_NV, GL_ALPHA);
@@ -588,6 +603,12 @@ void R_DrawAliasFrameGF3Diffuse (aliashdr_t *paliashdr, aliasframeinstant_t *ins
 	//glDrawElements(GL_TRIANGLES,paliashdr->numtris*3,GL_UNSIGNED_INT,indecies);
 	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
 
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
+
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	qglClientActiveTextureARB(GL_TEXTURE0_ARB);
@@ -610,6 +631,9 @@ void R_DrawAliasFrameGF3Specular (aliashdr_t *paliashdr, aliasframeinstant_t *in
 
 	VectorCopy(currentshadowlight->origin,lightOr);
 
+	if (sh_noshadowpopping.value)
+		qglBindProgramNV( GL_VERTEX_PROGRAM_NV, specularaliasnopopping_program_object);
+
 	//bind normal map
 	anim = (int)(cl.time*10) & 3;
 
@@ -631,7 +655,21 @@ void R_DrawAliasFrameGF3Specular (aliashdr_t *paliashdr, aliasframeinstant_t *in
 	glTexCoordPointer(3, GL_FLOAT, 0, linstant->tshalfangles);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
+	//to to correct self shadowing on alias models send the light vectors an extra time...
+	if (sh_noshadowpopping.value) {
+		qglClientActiveTextureARB(GL_TEXTURE2_ARB);
+		glTexCoordPointer(3, GL_FLOAT, 0, linstant->tslights);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+
 	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
+
+	if (sh_noshadowpopping.value) {
+		glStencilFunc(GL_LEQUAL, 1, 0xffffffff);
+		//Con_Printf("%i backfacing tris\n",(paliashdr->numtris*3)-(linstant->numtris*3));
+		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
+		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -666,7 +704,7 @@ void R_DrawWorldBumpedGF3() {
 	R_DrawWorldGF3Diffuse(currentshadowlight->lightCmds);
 	GL_DisableDiffuseShaderGF3();
 
-	GL_EnableSpecularShaderGF3(true,currentshadowlight->origin);
+	GL_EnableSpecularShaderGF3(true,currentshadowlight->origin,false);
 	R_DrawWorldGF3Specular(currentshadowlight->lightCmds);
 	GL_DisableDiffuseShaderGF3();
 
@@ -694,7 +732,7 @@ void R_DrawBrushBumpedGF3(entity_t *e) {
 	R_DrawBrushGF3Diffuse(e);
 	GL_DisableDiffuseShaderGF3();
 
-	GL_EnableSpecularShaderGF3(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos);
+	GL_EnableSpecularShaderGF3(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos,false);
 	R_DrawBrushGF3Specular(e);
 	GL_DisableDiffuseShaderGF3();
 }
@@ -717,7 +755,7 @@ void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 	R_DrawAliasFrameGF3Diffuse(paliashdr,instant);
 	GL_DisableDiffuseShaderGF3();
 
-	GL_EnableSpecularShaderGF3(false,instant->lightinstant->lightpos);
+	GL_EnableSpecularShaderGF3(false,instant->lightinstant->lightpos,true);
 	R_DrawAliasFrameGF3Specular(paliashdr,instant);
 	GL_DisableDiffuseShaderGF3();
 }
@@ -764,6 +802,51 @@ void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 	  "MOV   o[TEX1], v[TEX1];"
 
 	  "MOV   o[COL0], v[COL0];"
+
+      "END";
+
+/*
+	Only used for specular on alias models when noshadowpopping is enabled...
+*/ 
+  char vpSpecularAliasNoPoppingGF3 [] = 
+      "!!VP1.1 # Diffuse bumpmapping vetex program.\n"
+	  "OPTION NV_position_invariant;"
+      // Generates a necessary input for the diffuse bumpmapping registers
+      // 
+      // c[0]...c[3]      contains the modelview projection composite matrix
+      // c[4]...c[7]      contains the texture matrix of unit 3
+      // v[OPOS]          contains the per-vertex position
+      // v[TEX1]          contains the per-vertex tangent space light vector
+      // v[TEX0]          contains the per-vertex texture coordinate 0
+	  // v[TEX2]		  contains the per-vertex light vector
+
+      // o[HPOS]          output register for homogeneous position
+      // o[TEX0]          output register for texture coordinate 0
+      // o[TEX1]          output register for texture coordinate 1
+      // o[TEX2]          output register for texture coordinate 2
+      // o[TEX3]          output register for texture coordinate 3
+
+      // Transform vertex to view-space
+
+      // Transform vertex by texture matrix and copy to output
+      "DP4   o[TEX3].x, v[OPOS], c[4];"
+      "DP4   o[TEX3].y, v[OPOS], c[5];"
+      "DP4   o[TEX3].z, v[OPOS], c[6];"
+      "DP4   o[TEX3].w, v[OPOS], c[7];"
+
+
+	  "MOV   o[TEX0], v[TEX0];"
+
+	  //range compress into secondary color
+	  "MAD   o[COL1], v[TEX2], c[20], c[20];"
+
+	  //copy tex coords of unit 0 to unit 2
+	  "MOV   o[TEX2], v[TEX0];"
+
+	  "MOV   o[TEX1], v[TEX1];"
+
+	  "MOV   o[COL0], v[COL0];"
+
       "END";
 
 void R_LoadVertexProgram() {
@@ -774,14 +857,15 @@ void R_LoadVertexProgram() {
 	if (!gl_geforce3) return;
 
 	// Create the vertex program.
-//	qglGenProgramsARB( 1, &diffuse_program_object);
 	qglGenProgramsNV( 1, &diffuse_program_object);
 
-//	qglProgramStringARB( GL_VERTEX_PROGRAM_ARB, diffuse_program_object,
-//					strlen(vpDiffuseGF3), (const GLvoid *) vpDiffuseGF3);
 	qglLoadProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object,
 					strlen(vpDiffuseGF3), (const GLubyte *) vpDiffuseGF3);
 
+	qglGenProgramsNV( 1, &specularaliasnopopping_program_object);
+
+	qglLoadProgramNV( GL_VERTEX_PROGRAM_NV, specularaliasnopopping_program_object,
+					strlen(vpSpecularAliasNoPoppingGF3), (const GLubyte *) vpSpecularAliasNoPoppingGF3);
 
 	if ( (errCode = glGetError()) != GL_NO_ERROR ) {
 		errString = gluErrorString( errCode );
@@ -800,4 +884,7 @@ void R_LoadVertexProgram() {
 
     // Track the texture unit 3 maxtix in registers 4-7
     qglTrackMatrixNV( GL_VERTEX_PROGRAM_NV, 4, GL_TEXTURE3_ARB, GL_IDENTITY_NV );
+
+	//store 0.5 0.5 0.5 0.5 in register 8
+	qglProgramParameter4fNV( GL_VERTEX_PROGRAM_NV, 20, 0.5, 0.5, 0.5, 0.5);
 }
