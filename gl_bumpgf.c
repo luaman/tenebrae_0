@@ -335,7 +335,7 @@ void GL_DisableAttentShaderGF3() {
 	glEnable(GL_TEXTURE_2D);
 }
 
-void R_DrawWorldGF3Diffuse(int *lightCmds) {
+void R_DrawWorldGF3Diffuse(lightcmd_t *lightCmds) {
 
 	int command, num, i;
 	int lightPos = 0;
@@ -349,10 +349,10 @@ void R_DrawWorldGF3Diffuse(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -378,7 +378,10 @@ void R_DrawWorldGF3Diffuse(int *lightCmds) {
 			lightPos+=2;
 
 			qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
-			qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB,(float *)(&lightCmds[lightPos]));
+			qglMultiTexCoord3fARB(GL_TEXTURE1_ARB,
+					      lightCmds[lightPos++].asFloat,
+					      lightCmds[lightPos++].asFloat,
+					      lightCmds[lightPos++].asFloat);
 			lightPos+=3;
 			//qglMultiTexCoord2fARB(GL_TEXTURE2_ARB, v[3], v[4]);
 			//qglMultiTexCoord3fvARB(GL_TEXTURE3_ARB,&v[0]);
@@ -390,7 +393,7 @@ void R_DrawWorldGF3Diffuse(int *lightCmds) {
 	GL_SelectTexture(GL_TEXTURE0_ARB);
 }
 
-void R_DrawWorldGF3Specular(int *lightCmds) {
+void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 
 	int command, num, i;
 	int lightPos = 0;
@@ -406,10 +409,10 @@ void R_DrawWorldGF3Specular(int *lightCmds) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 
 		if (surf->visframe != r_framecount) {
 			lightPos+=(4+surf->polys->numverts*(2+3));
@@ -432,8 +435,10 @@ void R_DrawWorldGF3Specular(int *lightCmds) {
 		v = surf->polys->verts[0];
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
-			lightP = (float *)(&lightCmds[lightPos]);
-			VectorCopy(lightP,lightDir);
+			lightP = lightCmds[lightPos++].asVec;
+			lightP = lightCmds[lightPos++].asVec;
+			lightP = lightCmds[lightPos++].asVec;
+
 			VectorNormalize(lightDir);
 			lightPos+=3;
 
@@ -562,9 +567,9 @@ void R_DrawAliasFrameGF3Diffuse (aliashdr_t *paliashdr, aliasframeinstant_t *ins
 	anim = (int)(cl.time*10) & 3;
 
 	GL_SelectTexture(GL_TEXTURE0_ARB);
-    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]+1);
+	GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]+1);
 	GL_SelectTexture(GL_TEXTURE2_ARB);
-    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
+	GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
 	
 	indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
 

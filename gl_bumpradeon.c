@@ -755,7 +755,7 @@ void GL_DisableAttentShaderRadeon()
     glEnable(GL_TEXTURE_2D);
 }
 
-void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds) 
+void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds) 
 {
     int command, num, i;
     int lightPos = 0;
@@ -765,6 +765,7 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
     float *lightP;
     vec3_t lightDir;
     vec3_t tsH,H;
+    float  
 	texture_t	*t;//XYZ
 
     //support flickering lights
@@ -772,10 +773,10 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
 
     while (1)
     {
-        command = lightCmds[lightPos++];
+        command = lightCmds[lightPos++].asInt;
         if (command == 0) break; //end of list
 
-        surf = (void *)lightCmds[lightPos++];
+        surf = (void *)lightCmds[lightPos++].asVoid;
 
         if (surf->visframe != r_framecount) {
             lightPos+=(4+surf->polys->numverts*(2+3));
@@ -800,8 +801,10 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
             //skip attent texture coord.
             lightPos+=2;
 
-            lightP = (float *)(&lightCmds[lightPos]);
-            VectorCopy(lightP,lightDir);
+            lightP[0] = lightCmds[lightPos++].asVec;
+            lightP[1] = lightCmds[lightPos++].asVec;
+            lightP[2] = lightCmds[lightPos++].asVec;
+
             VectorNormalize(lightDir);
 
             //calculate local H vector and put it into tangent space
@@ -827,7 +830,11 @@ void R_DrawWorldRadeonDiffuseSpecular(int *lightCmds)
 
             // diffuse
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
-            qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB,(float *)(&lightCmds[lightPos]));
+	    
+            qglMultiTexCoord3fARB(GL_TEXTURE1_ARB,
+				  lightCmds[lightPos++]
+				  lightCmds[lightPos++],
+				  lightCmds[lightPos++]);
             // half vector for specular
             qglMultiTexCoord3fvARB(GL_TEXTURE2_ARB,&tsH[0]);
 
