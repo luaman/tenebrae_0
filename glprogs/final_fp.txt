@@ -1,0 +1,32 @@
+!!ARBfp1.0
+OPTION ARB_precision_hint_fastest;
+
+PARAM lumiConst = { 0.333, 0.333, 0.333, 0 };
+PARAM noContrast = { 0.5, 0.5, 0.5, 0 };
+PARAM glareInfo = program.env[0];
+PARAM postInfo = program.local[0];
+TEMP   r0, r1, r2;
+
+TEX r0, fragment.texcoord[0], texture[0], 2D; #normal frame buffer
+TEX r1, fragment.texcoord[1], texture[1], 2D; #blurred with alpha containing glare scale
+MAD r1.a, glareInfo.a, r1.a, postInfo.a; # setup contribution of blurred image
+MUL r1, r1, r1.a;
+MAD r0, r0, glareInfo.z, r1; # r0 is final color
+DP3 r1, r0, lumiConst;	     # r1 is grayscale version
+
+# after saturation in r2
+SUB r2, r0, r1;
+MAD r2, postInfo.x, r2, r1;
+
+# after constrast in r1
+SUB r1, r2, noContrast;
+MAD r1, postInfo.y, r1, noContrast;
+
+# brightness
+MUL result.color, r1, postInfo.z;
+
+# screen flashy stuff
+#SUB r2, fragment.color, r1;
+#MAD result.color, fragment.color.a, r2, fragment.color;
+
+END

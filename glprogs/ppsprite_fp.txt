@@ -1,0 +1,17 @@
+!!ARBfp1.0
+OPTION ARB_precision_hint_fastest;
+
+TEMP   r0, r1, r2;
+
+TEX r0, fragment.texcoord[0], texture[0], 2D;
+RCP r1.x, fragment.texcoord[1].w;
+MUL r1, fragment.texcoord[1], r1.x;
+MUL r2, 0.02, fragment.color.x;	# particle fade out factor
+MUL r2, r2, r0.a; 		# alpha fade factor
+MAD r1, r0, r2, r1; 
+
+#assemble this in a register first, ati goes crazy if you assemble in result.color
+TEX r2, r1, texture[1], 2D;
+MOV r2.a, 1;
+MOV result.color, r2;
+END

@@ -1,0 +1,16 @@
+!!ARBvp1.0
+OPTION ARB_position_invariant;
+
+PARAM  projMatrix[4] = { state.matrix.texture[1] };
+PARAM  texMatrix[4] = { state.matrix.texture[0] };
+
+DP4   result.texcoord[1].x, projMatrix[0], vertex.position;
+DP4   result.texcoord[1].y, projMatrix[1], vertex.position;
+DP4   result.texcoord[1].z, projMatrix[2], vertex.position;
+DP4   result.texcoord[1].w, projMatrix[3], vertex.position;
+
+DP4   result.texcoord[0].x, texMatrix[0], vertex.texcoord[0];
+DP4   result.texcoord[0].y, texMatrix[1], vertex.texcoord[0];
+MOV   result.color, vertex.color;
+
+END

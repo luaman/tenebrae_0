@@ -1,0 +1,30 @@
+!!ARBvp1.0
+OPTION ARB_position_invariant;
+ATTRIB iPos         = vertex.position;
+ATTRIB iNormal      = vertex.normal;
+ATTRIB iColor       = vertex.color;
+ATTRIB iTex0        = vertex.texcoord[0];
+ATTRIB iTex1        = vertex.texcoord[1];
+ATTRIB iTex2        = vertex.texcoord[2];
+PARAM  texMatrix[4] = { state.matrix.texture[2] };
+PARAM  texMatrix2[4]= { state.matrix.texture[3] };
+OUTPUT oColor       = result.color;
+OUTPUT oTex0        = result.texcoord[0];
+OUTPUT oTex1        = result.texcoord[1];
+OUTPUT oTex2        = result.texcoord[2];
+OUTPUT oTex3        = result.texcoord[3];
+OUTPUT oTex4        = result.texcoord[4];
+OUTPUT oFog         = result.fogcoord;
+DP4   oTex3.x, texMatrix[0], iPos;
+DP4   oTex3.y, texMatrix[1], iPos;
+DP4   oTex3.z, texMatrix[2], iPos;
+DP4   oTex3.w, texMatrix[3], iPos;
+DP4   oTex4.x, texMatrix2[0], iPos;
+DP4   oTex4.y, texMatrix2[1], iPos;
+DP4   oTex4.z, texMatrix2[2], iPos;
+DP4   oTex4.w, texMatrix2[3], iPos;
+MOV   oTex0, iTex0;
+MOV   oTex1, iTex1;
+MOV   oTex2, iTex2;
+MOV   oColor, iColor;
+END

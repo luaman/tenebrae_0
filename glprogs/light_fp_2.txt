@@ -1,0 +1,34 @@
+!!ARBfp1.0
+OPTION ARB_precision_hint_fastest;
+ATTRIB tex0 = fragment.texcoord[0];
+ATTRIB tex1 = fragment.texcoord[1];
+ATTRIB tex2 = fragment.texcoord[2];
+ATTRIB tex3 = fragment.texcoord[3];
+ATTRIB tex4 = fragment.texcoord[4];
+ATTRIB col = fragment.color.primary;
+PARAM scaler = { 16, 8, 2, -1 };
+OUTPUT outColor = result.color;
+TEMP normalmap, lightvec, halfvec, colormap, atten;
+TEMP diffdot, specdot, selfshadow, filter;
+TEX normalmap, tex0, texture[0], 2D;
+MAD normalmap.rgb, normalmap, scaler.b, scaler.a;
+DP3 lightvec.x, tex1, tex1;
+RSQ lightvec.x, lightvec.x;
+MUL lightvec, tex1, lightvec.x;
+TEX colormap, tex0, texture[1], 2D;
+DP3 halfvec.x, tex2, tex2;
+RSQ halfvec.x, halfvec.x;
+MUL halfvec, tex2, halfvec.x;
+TEX atten, tex3, texture[2], 3D;
+DP3_SAT diffdot, normalmap, lightvec;
+MUL_SAT selfshadow.r, lightvec.z, scaler.g;
+DP3_SAT specdot.a, normalmap, halfvec;
+MUL diffdot, diffdot, colormap;
+POW specdot.a, specdot.a, scaler.r;
+TEX filter, tex4, texture[3], CUBE;
+MUL specdot.a, specdot.a, normalmap.a;
+MUL atten, atten, filter;
+MAD diffdot, diffdot, selfshadow.r, specdot.a;
+MUL atten, col, atten;
+MUL_SAT outColor, diffdot, atten;
+END

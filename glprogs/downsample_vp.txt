@@ -1,0 +1,16 @@
+!!ARBvp1.0
+OPTION ARB_position_invariant;
+
+PARAM  frameTexelSize = program.env[0];
+PARAM  smallTexelSize = program.env[1];
+PARAM  frameScale = program.env[2];
+PARAM  smallScale = program.env[3];
+
+TEMP   r0;
+
+MOV	result.color, vertex.color;
+MOV	r0, vertex.texcoord[0];
+MUL	r0, r0, frameScale;			# account for rounding to nearest pow of 2
+MUL	r0, r0, 4;				# downsample 4 times
+MOV	result.texcoord[0], r0;			# write result
+END

@@ -1,0 +1,19 @@
+!!ARBfp1.0
+OPTION ARB_precision_hint_fastest;
+
+TEMP   r0, final;
+
+MOV final, 0;
+TEX r0, fragment.texcoord[0], texture[0], 2D;
+MAD final, r0, 0.2, final;
+TEX r0, fragment.texcoord[1], texture[0], 2D;
+MAD final, r0, 0.2, final;
+TEX r0, fragment.texcoord[2], texture[0], 2D;
+MAD final, r0, 0.2, final;
+TEX r0, fragment.texcoord[3], texture[0], 2D;
+MAD final, r0, 0.2, final;
+TEX r0, fragment.texcoord[4], texture[0], 2D;
+MAD final, r0, 0.1, final;
+TEX r0, fragment.texcoord[5], texture[0], 2D;
+MAD result.color, r0, 0.1, final;
+END

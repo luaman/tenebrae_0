@@ -1,0 +1,16 @@
+!!ARBfp1.0
+OPTION ARB_precision_hint_fastest;
+
+PARAM lumiConst = { 0.333, 0.333, 0.333, 0 };
+PARAM glareInfo = program.env[0];
+TEMP   r0, lumi;
+
+
+TEX r0, fragment.texcoord[0], texture[0], 2D;
+DP3 lumi, r0, lumiConst;
+SUB_SAT lumi, lumi, glareInfo.x;
+MUL_SAT lumi, lumi, glareInfo.y;
+MOV r0.a, lumi.x;
+MOV result.color, r0; 
+
+END

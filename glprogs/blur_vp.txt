@@ -1,0 +1,28 @@
+!!ARBvp1.0
+OPTION ARB_position_invariant;
+
+PARAM  frameTexelSize = program.env[0];
+PARAM  smallTexelSize = program.env[1];
+PARAM  frameScale = program.env[2];
+PARAM  smallScale = program.env[3];
+PARAM  smallWriteScale = program.env[4];
+PARAM  axis = program.local[0];
+
+TEMP   texel, halfTexel, base, r0;
+
+MOV	result.color, vertex.color;
+MUL	texel, smallTexelSize, axis;
+MUL	halfTexel, texel, 0.5;
+MUL	base, vertex.texcoord[0], smallScale;
+MUL	base, base, 4;
+
+ADD	result.texcoord[0], base, halfTexel;
+ADD	result.texcoord[1], base, -halfTexel;
+MAD	r0, texel, 2, halfTexel;
+ADD	result.texcoord[2], base, r0;
+ADD	result.texcoord[3], base, -r0;
+MAD	r0, texel, 4, halfTexel;
+ADD	result.texcoord[4], base, r0;
+ADD	result.texcoord[5], base, -r0;
+
+END
