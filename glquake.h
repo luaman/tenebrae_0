@@ -263,6 +263,7 @@ extern  cvar_t  sh_worldshadows;
 extern  cvar_t  sh_showlightnum;
 extern  cvar_t  sh_glows;
 extern	cvar_t  sh_fps;	// set for running times - muff
+extern	cvar_t  sh_debuginfo;
 extern	cvar_t	sh_norevis; //PENTA: no recalculating the vis for light positions
 extern	cvar_t	sh_nosvbsp; //PENTA: no shadow bsp
 extern	cvar_t	sh_noeclip; //PENTA: no entity/leaf clipping for shadows

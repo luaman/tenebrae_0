@@ -186,6 +186,7 @@ void SCR_DrawCenterString (void)
 			if (start[l] == '\n' || !start[l])
 				break;
 		x = (vid.width - l*8)/2;
+
 		for (j=0 ; j<l ; j++, x+=8)
 		{
 			Draw_Character (x, y, start[j]);	
@@ -508,7 +509,7 @@ void SCR_DrawFPS (void)
 	int x, y;
 	char st[80];
 
-	if (!sh_fps.value)
+	if (!sh_fps.value & !sh_debuginfo.value)
 		return;
 
 	t = Sys_FloatTime ();
@@ -518,10 +519,23 @@ void SCR_DrawFPS (void)
 		lastframetime = t;
 	}
 
-	sprintf(st, "FPS: %d NumLights: %d ClearsSaved %d\n", lastfps,numUsedShadowLights,numClearsSaved);
-	x = 16;
-	y = 0 ;
-	Draw_String(x, y, st);
+	if (sh_debuginfo.value)
+	{
+		sprintf(st, "FPS: %d NumLights: %d ClearsSaved %d\n", lastfps,numUsedShadowLights,numClearsSaved);
+		x = 16;
+		y = 0 ;
+		Draw_String(x, y, st);
+	}
+	else
+	{
+		sprintf(st, "FPS: %d \n", lastfps);
+		x = 16;
+		y = 0 ;
+		Draw_String(x, y, st);
+	}
+
+	if (!sh_debuginfo.value) //Only display the rest in debug info (willi reques) - Eradicator
+		return;
 
 	sprintf(st, "Alias Cache: %d Requests, %d Full Hits,  %d Partial Hits\n", aliasCacheRequests,aliasFullCacheHits,aliasPartialCacheHits);
 	x = 16;

@@ -236,6 +236,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_showlightnum);
 	Cvar_RegisterVariable (&sh_glows);
 	Cvar_RegisterVariable (&sh_fps); // muff
+	Cvar_RegisterVariable (&sh_debuginfo);
 	Cvar_RegisterVariable (&sh_norevis);
 	Cvar_RegisterVariable (&sh_nosvbsp);
 	Cvar_RegisterVariable (&sh_noeclip);
