@@ -29,6 +29,7 @@ All lights require 1 pass:
 
 #include "quakedef.h"
 
+#ifndef GL_ATI_pn_triangles
 // PN_triangles_ATI
 #define GL_PN_TRIANGLES_ATI                       0x87F0
 #define GL_MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI 0x87F1
@@ -42,6 +43,7 @@ All lights require 1 pass:
 
 typedef void (APIENTRY *PFNGLPNTRIANGLESIATIPROC)(GLenum pname, GLint param);
 typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
+#endif
 
 // actually in gl_bumpradeon (duh...)
 extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
