@@ -221,7 +221,7 @@ void R_AddEffectsScript(const char *filename) {
 					break;
 					case TOK_BLENDFUNC:
 						str = SC_ParseIdent();
-						if ( !strcmpi(str, "postprocess" ) ) {
+						if ( !Q_strcasecmp(str, "postprocess" ) ) {
 							effect->isPostProcess = true;
 							effect->srcblend = GL_SRC_ALPHA;
 							effect->dstblend = GL_ONE_MINUS_SRC_ALPHA;

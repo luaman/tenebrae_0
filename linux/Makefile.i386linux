@@ -18,7 +18,7 @@ NOARCH=noarch
 
 MOUNT_DIR     = ../
 
-MASTER_DIR    = /usr/local/share/games/quake
+MASTER_DIR    = /usr/share/games/quake-data
 
 BUILD_DEBUG_DIR = debug$(ARCH)$(GLIBC)
 BUILD_RELEASE_DIR = release$(ARCH)$(GLIBC)
@@ -100,6 +100,7 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/gl_draw.o \
 	$(BUILDDIR)/glquake/gl_decals.o \
 	$(BUILDDIR)/glquake/gl_glare.o \
+	$(BUILDDIR)/glquake/gl_postprocess.o \
 	$(BUILDDIR)/glquake/gl_md3.o \
 	$(BUILDDIR)/glquake/gl_mesh.o \
 	$(BUILDDIR)/glquake/gl_model.o \
@@ -140,6 +141,7 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/wad.o \
 	$(BUILDDIR)/glquake/world.o \
 	$(BUILDDIR)/glquake/cd_linux.o \
+	$(BUILDDIR)/glquake/sys_dosa.o \
 	$(BUILDDIR)/glquake/sys_linux.o \
 	$(BUILDDIR)/glquake/sys_uxfindfirst.o \
 	$(BUILDDIR)/glquake/snd_dma.o \
@@ -150,10 +152,10 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/math.o \
 	$(BUILDDIR)/glquake/worlda.o \
 	$(BUILDDIR)/glquake/snd_mixa.o \
-	$(BUILDDIR)/glquake/sys_dosa.o \
 	\
 	$(BUILDDIR)/glquake/lex.yy.o \
 	$(BUILDDIR)/glquake/te_scripts.o 
+
 
 
 $(BUILDDIR)/bin/tenebrae.run : $(GLQUAKE_OBJS)
@@ -232,6 +234,9 @@ $(BUILDDIR)/glquake/gl_decals.o :      $(MOUNT_DIR)/gl_decals.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_glare.o :      $(MOUNT_DIR)/gl_glare.c
+	$(DO_GL_CC)
+
+$(BUILDDIR)/glquake/gl_postprocess.o :      $(MOUNT_DIR)/gl_postprocess.c
 	$(DO_GL_CC)
 
 $(BUILDDIR)/glquake/gl_mesh.o :      $(MOUNT_DIR)/gl_mesh.c
