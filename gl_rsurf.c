@@ -575,7 +575,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 
 		t = R_TextureAnimation (s->texinfo->texture);
 		GL_Bind (t->gl_texturenum);
-		glBegin (GL_POLYGON);
+		glBegin (GL_TRIANGLEFAN);
 		v = p->verts[0];
 		for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 		{
@@ -586,7 +586,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 
 		GL_Bind (lightmap_textures + s->lightmaptexturenum);
 		glEnable (GL_BLEND);
-		glBegin (GL_POLYGON);
+		glBegin (GL_TRIANGLEFAN);
 		v = p->verts[0];
 		for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 		{
@@ -697,7 +697,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 				theRect->w = 0;
 			}
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-			glBegin(GL_POLYGON);
+			glBegin(GL_TRIANGLE_FAN);
 			//v = p->verts[0];
 			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
@@ -713,7 +713,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 
 			t = R_TextureAnimation (s->texinfo->texture);
 			GL_Bind (t->gl_texturenum);
-			glBegin (GL_POLYGON);
+			glBegin (GL_TRIANGLE_FAN);
 			//v = p->verts[0];
 			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
@@ -725,7 +725,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 
 			GL_Bind (lightmap_textures + s->lightmaptexturenum);
 			glEnable (GL_BLEND);
-			glBegin (GL_POLYGON);
+			glBegin (GL_TRIANGLE_FAN);
 			//v = p->verts[0];
 			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
@@ -843,7 +843,7 @@ void DrawGLPoly (glpoly_t *p)
 	int		i;
 	float	*v;
 
-	glBegin (GL_POLYGON);
+	glBegin (GL_TRIANGLE_FAN);
 	//v = p->verts[0];
 	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
@@ -906,7 +906,7 @@ void R_BlendLightmaps (void)
 		//draw all polygons that use this lightmap
 		for( ; p ; p=p->chain)
 		{
-			glBegin (GL_POLYGON);
+			glBegin (GL_TRIANGLE_FAN);
 			//v = p->verts[0];
 			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (j=0 ; j<p->numverts ; j++, v+= VERTEXSIZE)
@@ -976,7 +976,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 	}
 
 	p = fa->polys;
-	glBegin (GL_POLYGON);
+	glBegin (GL_TRIANGLE_FAN);
 	//v = p->verts[0];
 	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
@@ -1012,7 +1012,7 @@ void R_RenderBrushPolyLuma (msurface_t *fa)
 
 	GL_Bind (t->gl_lumitex);
 
-	glBegin (GL_POLYGON);
+	glBegin (GL_TRIANGLE_FAN);
 	p = fa->polys;
 	//v = p->verts[0];
 	v = (float *)(&globalVertexTable[p->firstvertex]);
@@ -1060,7 +1060,7 @@ void R_RenderBrushPolyLightmap (msurface_t *fa)
 
 	GL_Bind (lightmap_textures+fa->lightmaptexturenum);
 
-	glBegin (GL_POLYGON);
+	glBegin (GL_TRIANGLE_FAN);
 
 	p = fa->polys;
 
@@ -1087,7 +1087,7 @@ void R_RenderBrushPolyCaustics (msurface_t *fa)
 	float	*v;
 	glpoly_t *p;
 
-	glBegin (GL_POLYGON);
+	glBegin (GL_TRIANGLE_FAN);
 	p = fa->polys;
 	//v = p->verts[0];
 	v = (float *)(&globalVertexTable[p->firstvertex]);
@@ -1564,7 +1564,8 @@ void R_DrawCaustics(void) {
 		switch (currententity->model->type)
 		{
 		case mod_alias:
-			R_DrawAliasModel (currententity,1.0);
+			R_DrawAliasModel (1.0);
+			break;
 
 		case mod_brush:
 			R_DrawBrushModelCaustics(currententity);
@@ -1592,126 +1593,153 @@ PENTA: Modifications
 */
 void R_DrawBrushModel (entity_t *e)
 {
-	vec3_t		mins, maxs;
-	int			i;
-	msurface_t	*psurf;
-	mplane_t	*pplane;
-	model_t		*clmodel;
-	qboolean	rotated;
+    vec3_t		mins, maxs;
+    int			i;
+    msurface_t	*psurf;
+    mplane_t	*pplane;
+    model_t		*clmodel;
+    qboolean	rotated;
+    texture_t *t;
 
-	//bright = 1;
+    //bright = 1;
 
-	currententity = e;
-	currenttexture = -1;
+    currententity = e;
+    currenttexture = -1;
 
-	clmodel = e->model;
+    clmodel = e->model;
 
-	if (e->angles[0] || e->angles[1] || e->angles[2])
+    if (e->angles[0] || e->angles[1] || e->angles[2])
+    {
+	rotated = true;
+	for (i=0 ; i<3 ; i++)
 	{
-		rotated = true;
-		for (i=0 ; i<3 ; i++)
-		{
-			mins[i] = e->origin[i] - clmodel->radius;
-			maxs[i] = e->origin[i] + clmodel->radius;
-		}
+	    mins[i] = e->origin[i] - clmodel->radius;
+	    maxs[i] = e->origin[i] + clmodel->radius;
 	}
-	else
-	{
-		rotated = false;
-		VectorAdd (e->origin, clmodel->mins, mins);
-		VectorAdd (e->origin, clmodel->maxs, maxs);
-	}
+    }
+    else
+    {
+	rotated = false;
+	VectorAdd (e->origin, clmodel->mins, mins);
+	VectorAdd (e->origin, clmodel->maxs, maxs);
+    }
 
-	if (R_CullBox (mins, maxs))
-		return;
+    if (R_CullBox (mins, maxs))
+	return;
 
-	memset (lightmap_polys, 0, sizeof(lightmap_polys));
+    memset (lightmap_polys, 0, sizeof(lightmap_polys));
 
-	VectorSubtract (r_refdef.vieworg, e->origin, modelorg);
-	if (rotated)
-	{
-		vec3_t	temp;
-		vec3_t	forward, right, up;
+    VectorSubtract (r_refdef.vieworg, e->origin, modelorg);
+    if (rotated)
+    {
+	vec3_t	temp;
+	vec3_t	forward, right, up;
 
-		VectorCopy (modelorg, temp);
-		AngleVectors (e->angles, forward, right, up);
-		modelorg[0] = DotProduct (temp, forward);
-		modelorg[1] = -DotProduct (temp, right);
-		modelorg[2] = DotProduct (temp, up);
-	}
+	VectorCopy (modelorg, temp);
+	AngleVectors (e->angles, forward, right, up);
+	modelorg[0] = DotProduct (temp, forward);
+	modelorg[1] = -DotProduct (temp, right);
+	modelorg[2] = DotProduct (temp, up);
+    }
 
-	psurf = &clmodel->surfaces[clmodel->firstmodelsurface];
+    psurf = &clmodel->surfaces[clmodel->firstmodelsurface];
 
     glPushMatrix ();
-e->angles[0] = -e->angles[0];	// stupid quake bug
-	R_RotateForEntity (e);
-e->angles[0] = -e->angles[0];	// stupid quake bug
+    e->angles[0] = -e->angles[0];	// stupid quake bug
+    R_RotateForEntity (e);
+    e->angles[0] = -e->angles[0];	// stupid quake bug
 
-	//Draw model with specified ambient color
-	GL_DisableMultitexture();
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    //Draw model with specified ambient color
+    GL_DisableMultitexture();
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-	if (!busy_caustics) {
-		glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
+    if (!busy_caustics) {
+	glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
 
-		GL_EnableMultitexture();
-		if (sh_colormaps.value) {
-			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		} else {
-			//No colormaps: Color maps are bound on tmu 0 so disable it
-			//and let tu1 modulate itself with the light map brightness
-			glDisable(GL_REGISTER_COMBINERS_NV);
-			GL_SelectTexture(GL_TEXTURE0_ARB);		
-			glDisable(GL_TEXTURE_2D);
-			GL_SelectTexture(GL_TEXTURE1_ARB);
-			glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-			glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PRIMARY_COLOR_ARB);
-			glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-			glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
-		}
+	GL_EnableMultitexture();
+	if (sh_colormaps.value) {
+	    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	} else {
-		glColor3f(1,1,1);
+	    //No colormaps: Color maps are bound on tmu 0 so disable it
+	    //and let tu1 modulate itself with the light map brightness
+	    glDisable(GL_REGISTER_COMBINERS_NV);
+	    GL_SelectTexture(GL_TEXTURE0_ARB);		
+	    glDisable(GL_TEXTURE_2D);
+	    GL_SelectTexture(GL_TEXTURE1_ARB);
+	    glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+	    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PRIMARY_COLOR_ARB);
+	    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+	    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
 	}
+    } else {
+	glColor3f(1,1,1);
+    }
 
 
 
-	//XYZ
+    //XYZ
 
-	if (gl_wireframe.value) {
+    if (gl_wireframe.value) {
 
-		GL_SelectTexture(GL_TEXTURE0_ARB);		
+	GL_SelectTexture(GL_TEXTURE0_ARB);		
 
-		glDisable(GL_TEXTURE_2D);
+	glDisable(GL_TEXTURE_2D);
 
-		GL_SelectTexture(GL_TEXTURE1_ARB);
+	GL_SelectTexture(GL_TEXTURE1_ARB);
 
-		glDisable(GL_TEXTURE_2D);
+	glDisable(GL_TEXTURE_2D);
 
-	}
+    }
 
 
-	c_brush_polys += clmodel->nummodelsurfaces;
-	//
-	// draw texture
-	//
-	for (i=0 ; i<clmodel->nummodelsurfaces ; i++, psurf++)
-	{
+    c_brush_polys += clmodel->nummodelsurfaces;
+    //
+    // draw texture
+    //
+    for (i=0 ; i<clmodel->nummodelsurfaces ; i++, psurf++)
+    {
 	// find which side of the node we are on
-		pplane = psurf->plane;
+	pplane = psurf->plane;
 
-		//dot = DotProduct (modelorg, pplane->normal) - pplane->dist;
+	//dot = DotProduct (modelorg, pplane->normal) - pplane->dist;
 
 	// draw the polygon
-		//if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
-		//	(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
-		//{
-			R_RenderBrushPoly (psurf);
-		//}
-	}
+	//if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
+	//	(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
+	//{
+	R_RenderBrushPoly (psurf);
+	//}
+    }
 
-	GL_DisableMultitexture();
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glPopMatrix ();
+    // if luma, draw it too
+    psurf = &clmodel->surfaces[clmodel->firstmodelsurface];
+    //vec3_t color_black = {0.0, 0.0, 0.0};
+    glFogfv(GL_FOG_COLOR, color_black);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    GL_SelectTexture(GL_TEXTURE1_ARB);
+    glDisable(GL_TEXTURE_2D);
+    GL_SelectTexture(GL_TEXTURE0_ARB);
+    glColor3f(1, 1, 1);
+
+    for (i=0 ; i<clmodel->nummodelsurfaces ; i++, psurf++)
+    {
+	t = R_TextureAnimation (psurf->texinfo->texture);
+	if ( t->gl_lumitex )
+	    R_RenderBrushPolyLuma (psurf);
+    }
+
+    glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
+    GL_SelectTexture(GL_TEXTURE1_ARB);
+    glEnable(GL_TEXTURE_2D);
+    GL_SelectTexture(GL_TEXTURE0_ARB);
+    GL_SelectTexture(GL_TEXTURE1_ARB);
+    glDisable(GL_BLEND);
+    glFogfv(GL_FOG_COLOR, fog_color);
+
+    GL_DisableMultitexture();
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glPopMatrix ();
 }
 
 /*
