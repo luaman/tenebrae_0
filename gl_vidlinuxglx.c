@@ -877,11 +877,25 @@ void CheckARBFragmentExtensions(void)
 
 void CheckAnisotropicExtension(void)
 {
-	if (strstr(gl_extensions, "GL_EXT_texture_filter_anisotropic") &&
-				(COM_CheckParm ("-anisotropic"))) {
-		Con_Printf("Anisotropic texture filter used\n");
-		gl_texturefilteranisotropic = true;
-	}
+    if (strstr(gl_extensions, "GL_EXT_texture_filter_anisotropic") &&
+        ( COM_CheckParm ("-anisotropic") || COM_CheckParm ("-anisotropy")) )
+    {
+        GLfloat maxanisotropy;
+
+	if ( COM_CheckParm ("-anisotropy"))
+	    gl_textureanisotropylevel = Q_atoi(com_argv[COM_CheckParm("-anisotropy")+1]);
+        
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxanisotropy);
+        if ( gl_textureanisotropylevel >  maxanisotropy )
+            gl_textureanisotropylevel = maxanisotropy;
+
+        if ( gl_textureanisotropylevel < 1.0f )
+            gl_textureanisotropylevel = 1.0f;
+
+	Con_Printf("Anisotropic texture filter level %.0f\n", 
+		   gl_textureanisotropylevel);
+	gl_texturefilteranisotropic = true;
+    }
 }
 
 void CheckTextureCompressionExtension(void)
