@@ -966,7 +966,7 @@ COM_FileExtension
 */
 char *COM_FileExtension (char *in)
 {
-	static char exten[8];
+	static char exten[30];
 	int             i;
 
 
@@ -975,7 +975,7 @@ char *COM_FileExtension (char *in)
 	if (!*in)
 		return "";
 	in++;
-	for (i=0 ; i<7 && *in ; i++,in++)
+	for (i=0 ; i<29 && *in ; i++,in++)
 		exten[i] = *in;
 	exten[i] = 0;
 	return exten;
@@ -987,9 +987,10 @@ char *COM_FileExtension (char *in)
 COM_FileBase
 ============
 */
-void COM_FileBase (char *in, char *out)
+void COM_FileBase (const char *in, char *out)
 {
-	char *s, *s2;
+	const char *s2;
+	const char *s;
 	
 	s = in + strlen(in) - 1;
 	
@@ -1595,7 +1596,7 @@ Finds the file in the search path.
 Sets com_filesize and one of handle or file
 ===========
 */
-int COM_FindFile (char *filename, int *handle, FILE **file)
+int COM_FindFile (const char *filename, int *handle, FILE **file)
 {
 	searchpath_t    *search;
 	char            netpath[MAX_OSPATH];
@@ -1653,12 +1654,25 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 	// check a file in the directory tree
 			if (!static_registered)
 			{       // if not a registered version, don't ever go beyond base
-				if ( strchr (filename, '/') || strchr (filename,'\\'))
+				if ( strchr (filename, '\\') || strchr (filename,'/'))
 					continue;
 			}
-			
-			sprintf (netpath, "%s/%s",search->filename, filename);
-			
+		
+			//see if the filename is already an absolute path
+			//if it is don't reexpand it
+			//Are absolute paths prefixed with / on mac also???
+#if defined(_WIN32)		
+			if (filename[1] != ':') // c:\something
+#else
+			if (filename[0] != '/') // /blah/
+#endif			
+				//expand filename to absolute path
+				sprintf (netpath, "%s/%s",search->filename, filename);
+			else { 
+				//already absolute just copy it
+				strcpy(netpath,filename);
+			}
+
 			findtime = Sys_FileTime (netpath);
 			if (findtime == -1)
 				continue;
@@ -1711,7 +1725,70 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 }
 
 
+/*
+===========
+COM_FindAllExt
 
+Finds all files with the given extension, and calls the callback for every found file.
+Extensions are up to 8 chars WITHOUT the "."
+===========
+*/
+
+void COM_FindAllExt (char *filedir, char *fileext, void (*callback)(const char *))
+{
+	searchpath_t    *search;
+	char            netpath[MAX_OSPATH];
+	char            cachepath[MAX_OSPATH];
+	char            relpath[MAX_OSPATH];
+	char			sysfileext[32];
+	pack_t          *pak;
+	int                     i, dirlength;
+	int                     findtime, cachetime;
+	dirdata_t				dirdata;
+
+	dirlength = Q_strlen(filedir);
+//
+// search through the path, one element at a time
+//
+	search = com_searchpaths;
+	for ( ; search ; search = search->next)
+	{
+	// is the element a pak file?
+		if (search->pack)
+		{
+		// look through all the pak file elements
+			pak = search->pack;
+			for (i=0 ; i<pak->numfiles ; i++)
+				if (!Q_strncmp (pak->files[i].name, filedir, dirlength) &&
+					!Q_strcmp(COM_FileExtension(pak->files[i].name),fileext))
+				{   //found one
+					//Con_Printf(COM_FileExtension(pak->files[i].name));
+					callback(pak->files[i].name);
+				}
+		}
+		else
+		{               
+			sprintf (netpath, "%s/%s",search->filename,filedir);
+			sprintf (sysfileext, "*.%s",fileext);
+			
+#if defined(_WIN32)
+			for (i=0; i<strlen(netpath); i++) {
+				if (netpath[i] == '/') netpath[i] = '\\';
+			}
+#endif
+			//Con_Printf("try %s %s\n",netpath,sysfileext);
+
+			if (Sys_Findfirst(netpath,sysfileext,&dirdata))
+			{
+				do
+				{
+					callback(dirdata.entry);
+                } while (Sys_Findnext( &dirdata ) != NULL);
+			}
+		}
+		
+	}
+}
 
 /*
 ===========
@@ -1723,11 +1800,10 @@ returns a handle and a length
 it may actually be inside a pak file
 ===========
 */
-int COM_OpenFile (char *filename, int *handle)
+int COM_OpenFile (const char *filename, int *handle)
 {
 	return COM_FindFile (filename, handle, NULL);
 }
-
 
 /*
 ===========
@@ -1738,7 +1814,7 @@ If the requested file is inside a packfile, a new FILE * will be opened
 into the file.
 ===========
 */
-int COM_FOpenFile (char *filename, FILE **file)
+int COM_FOpenFile (const char *filename, FILE **file)
 {
 	return COM_FindFile (filename, NULL, file);
 }
@@ -1778,7 +1854,7 @@ Allways appends a 0 byte.
 cache_user_t *loadcache;
 byte    *loadbuf;
 int             loadsize;
-byte *COM_LoadFile (char *path, int usehunk)
+byte *COM_LoadFile (const char *path, int usehunk)
 {
 	int             h;
 	byte    *buf;
@@ -1832,19 +1908,19 @@ byte *COM_LoadFile (char *path, int usehunk)
 }
 
 
-byte *COM_LoadHunkFile (char *path)
+byte *COM_LoadHunkFile (const char *path)
 {
 	return COM_LoadFile (path, 1);
 }
 
 
-byte *COM_LoadTempFile (char *path)
+byte *COM_LoadTempFile (const char *path)
 {
 	return COM_LoadFile (path, 2);
 }
 
 
-void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
+void COM_LoadCacheFile (const char *path, struct cache_user_s *cu)
 {
 	loadcache = cu;
 	COM_LoadFile (path, 3);
@@ -1852,7 +1928,7 @@ void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
 
 
 // uses temp hunk if larger than bufsize
-byte *COM_LoadStackFile (char *path, void *buffer, int bufsize)
+byte *COM_LoadStackFile (const char *path, void *buffer, int bufsize)
 {
 	byte    *buf;
 	
