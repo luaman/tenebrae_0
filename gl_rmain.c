@@ -2628,7 +2628,6 @@ void R_DrawMirrorSurfaces()
 
 			glPopMatrix();
         		if (mir_detail.value == 0) {
-				glPopMatrix();
 				glDisable(GL_TEXTURE_GEN_S);
 				glDisable(GL_TEXTURE_GEN_T);
 			}
