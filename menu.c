@@ -3261,7 +3261,7 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f);
 }
 
-
+extern cvar_t con_spiral;
 void M_Draw (void)
 {
 	if (m_state == m_none || key_dest != key_menu)
@@ -3273,7 +3273,10 @@ void M_Draw (void)
 
 		if (scr_con_current)
 		{
-			Draw_ConsoleBackground (vid.height);
+			if (con_spiral.value) //Console Spiral - Eradicator
+				Draw_SpiralConsoleBackground (vid.height);
+			else
+				Draw_ConsoleBackground (vid.height);
 			VID_UnlockBuffer ();
 			S_ExtraUpdate ();
 			VID_LockBuffer ();

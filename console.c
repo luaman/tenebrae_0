@@ -42,6 +42,7 @@ int			con_x;				// offset in current line for next print
 char		*con_text=0;
 
 cvar_t		con_notifytime = {"con_notifytime","3"};		//seconds
+cvar_t		con_spiral = {"con_spiral","0", true}; //Console Spiral - Eradicator
 
 #define	NUM_CON_TIMES 4
 float		con_times[NUM_CON_TIMES];	// realtime time the line was generated
@@ -245,6 +246,7 @@ void Con_Init (void)
 // register our commands
 //
     Cvar_RegisterVariable (&con_notifytime);
+	Cvar_RegisterVariable (&con_spiral);
 
     Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
     Cmd_AddCommand ("messagemode", Con_MessageMode_f);
@@ -616,7 +618,10 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 	return;
 
 // draw the background
-    Draw_ConsoleBackground (lines);
+	if (con_spiral.value) //Spiral Console - Eradicator
+		Draw_SpiralConsoleBackground (lines);
+	else
+		Draw_ConsoleBackground (lines);
 
 // draw the text
     con_vislines = lines;
