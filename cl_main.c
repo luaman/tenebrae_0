@@ -523,13 +523,15 @@ void CL_RelinkEntities (void)
 		}
 		else
 		{	// if the delta is large, assume a teleport and don't lerp
+			f = frac;
+
 			if (f >= 1)
 			{
 				ent->frame_start_time     = 0;
 				ent->translate_start_time = 0;
 				ent->rotate_start_time    = 0;
 			}
-			f = frac;
+
 			for (j=0 ; j<3 ; j++)
 			{
 				delta[j] = ent->msg_origins[0][j] - ent->msg_origins[1][j];
