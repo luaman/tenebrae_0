@@ -680,7 +680,13 @@ void R_DrawAliasShadowVolume (entity_t *e)
 		return;
 	}
 
-	paliashdr = ((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr;
+	paliashdr = Mod_Extradata (e->model);//((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr;
+
+	if (paliashdr != ((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr) {
+		//Sys_Error("Cache trashed");
+		r_cache_thrash = true;
+		((aliasframeinstant_t *)e->aliasframeinstant)->paliashdr = paliashdr;
+	}
 
 	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
 	{
@@ -839,7 +845,9 @@ void R_DrawAliasModel (entity_t *e, float bright)
 	//
 	if (!currententity->aliasframeinstant) return;
 
-	paliashdr = ((aliasframeinstant_t *)currententity->aliasframeinstant)->paliashdr;
+
+	paliashdr = Mod_Extradata (e->model);
+	//((aliasframeinstant_t *)currententity->aliasframeinstant)->paliashdr;
 
 	//
 	// draw all the triangles

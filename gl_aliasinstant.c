@@ -722,7 +722,9 @@ void R_SetupInstantForLight(entity_t *e)
 	//PENTA: guard agains model removed from cache
 	test = (aliashdr_t *)Mod_Extradata (e->model);
 	if (test != aliasframeinstant->paliashdr) {
-		Sys_Error("Cache Trashed");
+		//Sys_Error("Cache trashed");
+		r_cache_thrash = true;
+		aliasframeinstant->paliashdr = test;
 	}
 
 	aliaslightinstant = R_AllocateLightInstant(e);
