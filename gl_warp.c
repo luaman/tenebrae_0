@@ -460,12 +460,13 @@ void EmitBothSkyLayers (msurface_t *fa)
 //	glDisable (GL_BLEND);
 }
 
-#ifndef QUAKE2
+//#ifndef QUAKE2
 /*
 =================
 R_DrawSkyChain
 =================
 */
+/*
 void R_DrawSkyChain (msurface_t *s)
 {
 	msurface_t	*fa;
@@ -496,6 +497,7 @@ void R_DrawSkyChain (msurface_t *s)
 }
 
 #endif
+*/
 
 /*
 =================================================================
@@ -1078,7 +1080,7 @@ int EasyTgaLoad(char *filename) {
 
 	LoadTGA (f);
 	
-	glTexImage2D (GL_TEXTURE_2D, 0, gl_solid_format, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
+	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
 	free (targa_rgba);
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1088,37 +1090,50 @@ int EasyTgaLoad(char *filename) {
 	return texture_extension_number-1;
 }
 
-#ifdef QUAKE2
+//#ifdef QUAKE2 PENTA: enable skyboxes again
+
+#define SKY_TEX 10000
+
+char	skybox_name[64];
+float skybox_cloudspeed;
+qboolean skybox_hasclouds;
+
 /*
 ==================
 R_LoadSkys
 ==================
 */
-char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
+char	*suf[7] = {"rt", "bk", "lf", "ft", "up", "dn","tile"};
 void R_LoadSkys (void)
 {
 	int		i;
 	FILE	*f;
 	char	name[64];
 
-	for (i=0 ; i<6 ; i++)
+	skybox_hasclouds = true;
+
+	for (i=0 ; i<7 ; i++)
 	{
+		sprintf (name, "env/%s%s.tga", skybox_name, suf[i]);
+		Con_Printf("Loading file: %s\n",name);
+
 		GL_Bind (SKY_TEX + i);
-		sprintf (name, "gfx/env/bkgtst%s.tga", suf[i]);
 		COM_FOpenFile (name, &f);
 		if (!f)
 		{
-			Con_Printf ("Couldn't load %s\n", name);
+			if (i == 6) {
+				skybox_hasclouds = false;
+			} else {
+				Con_Printf ("Couldn't load %s\n", name);
+			}
 			continue;
 		}
-		LoadTGA (f);
-//		LoadPCX (f);
 
-		glTexImage2D (GL_TEXTURE_2D, 0, gl_solid_format, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
-//		glTexImage2D (GL_TEXTURE_2D, 0, gl_solid_format, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, pcx_rgb);
+		LoadTGA (f);
+
+		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, targa_header.width, targa_header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, targa_rgba);
 
 		free (targa_rgba);
-//		free (pcx_rgb);
 
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1397,9 +1412,9 @@ void MakeSkyVec (float s, float t, int axis)
 	vec3_t		v, b;
 	int			j, k;
 
-	b[0] = s*2048;
-	b[1] = t*2048;
-	b[2] = 2048;
+	b[0] = s*1024;
+	b[1] = t*1024;
+	b[2] = 1024;
 
 	for (j=0 ; j<3 ; j++)
 	{
@@ -1441,25 +1456,31 @@ void R_DrawSkyBox (void)
 	vec3_t	v;
 	float	s, t;
 
-#if 0
-glEnable (GL_BLEND);
-glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-glColor4f (1,1,1,0.5);
-glDisable (GL_DEPTH_TEST);
-#endif
+	if (skytexturenum >= 0) {
+		//	glColor3f(1,1,1);
+		if (!cl.worldmodel->textures[skytexturenum]->texturechain) return;
+	//	R_DrawSkyChain (cl.worldmodel->textures[skytexturenum]->texturechain);
+		cl.worldmodel->textures[skytexturenum]->texturechain = NULL;
+	}
+
+	glDepthMask(0);
+
+	if (fog_enabled.value) glDisable(GL_FOG);
+
 	for (i=0 ; i<6 ; i++)
 	{
+		/*
 		if (skymins[0][i] >= skymaxs[0][i]
 		|| skymins[1][i] >= skymaxs[1][i])
 			continue;
-
+		*/
 		GL_Bind (SKY_TEX+skytexorder[i]);
-#if 0
-skymins[0][i] = -1;
-skymins[1][i] = -1;
-skymaxs[0][i] = 1;
-skymaxs[1][i] = 1;
-#endif
+
+		skymins[0][i] = -1;
+		skymins[1][i] = -1;
+		skymaxs[0][i] = 1;
+		skymaxs[1][i] = 1;
+
 		glBegin (GL_QUADS);
 		MakeSkyVec (skymins[0][i], skymins[1][i], i);
 		MakeSkyVec (skymins[0][i], skymaxs[1][i], i);
@@ -1467,16 +1488,71 @@ skymaxs[1][i] = 1;
 		MakeSkyVec (skymaxs[0][i], skymins[1][i], i);
 		glEnd ();
 	}
-#if 0
-glDisable (GL_BLEND);
-glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-glColor4f (1,1,1,0.5);
-glEnable (GL_DEPTH_TEST);
-#endif
+
+	if (fog_enabled.value) glEnable(GL_FOG);
+
+	if (!skybox_hasclouds) {
+		glDepthMask(1);		
+		return;
+	}
+
+    GL_Bind (SKY_TEX+6);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+
+    glMatrixMode(GL_TEXTURE);
+    glPushMatrix();
+    glTranslatef(cl.time*skybox_cloudspeed,0,0);
+    glColor4ub(255,255,255,255);
+    glBegin(GL_POLYGON);
+      glTexCoord2f(0,0);
+      glVertex3f(-800.0 + r_origin[0], -800.0 + r_origin[1], 20.0 + r_origin[2]);
+		
+      glTexCoord2f(0,40);
+      glVertex3f(800.0 + r_origin[0], -800.0 + r_origin[1], 20.0 + r_origin[2]);
+
+      glTexCoord2f(40,40);
+      glVertex3f(800.0 + r_origin[0], 800.0 + r_origin[1], 20.0 + r_origin[2]);
+
+      glTexCoord2f(40,0);
+      glVertex3f(-800.0 + r_origin[0], 800.0 + r_origin[1], 20.0 + r_origin[2]);
+
+    glEnd();
+    glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	for (i=0 ; i<6 ; i++)
+	{
+		/*
+		if (skymins[0][i] >= skymaxs[0][i]
+		|| skymins[1][i] >= skymaxs[1][i])
+			continue;
+		*/
+		GL_Bind (SKY_TEX+skytexorder[i]);
+
+
+		skymins[0][i] = -1;
+		skymins[1][i] = -1;
+		skymaxs[0][i] = 1;
+		skymaxs[1][i] = 1;
+
+		glBegin (GL_QUADS);
+		MakeSkyVec (skymins[0][i], skymins[1][i], i);
+		MakeSkyVec (skymins[0][i], skymaxs[1][i], i);
+		MakeSkyVec (skymaxs[0][i], skymaxs[1][i], i);
+		MakeSkyVec (skymaxs[0][i], skymins[1][i], i);
+		glEnd ();
+	}
+
+	glDisable(GL_BLEND);
+	glDepthMask(1);
 }
 
 
-#endif
+//#endif
 
 //===============================================================
 
