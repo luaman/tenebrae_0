@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <time.h>
 #include "io.h" //Any Pak File - Eradicator
 
-#define MINIMUM_WIN_MEMORY		0x0880000
-#define MAXIMUM_WIN_MEMORY		0x2000000 //PENTA: Allow quake to allocate more memory by default
+#define MINIMUM_WIN_MEMORY		0x4000000 //and 64 meg minimum
+#define MAXIMUM_WIN_MEMORY		0x40000000 //PENTA: Allow quake to allocate 1 gig at max
 
 #define CONSOLE_ERROR_TIMEOUT	60.0	// # of seconds to wait on Sys_Error running
 										//  dedicated before exiting
@@ -840,15 +840,22 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	}
 
 // take the greater of all the available memory or half the total memory,
-// but at least 8 Mb and no more than 16 Mb, unless they explicitly
+// but at least 64 Mb and no more than 1 Gb, unless they explicitly
 // request otherwise
 	parms.memsize = lpBuffer.dwAvailPhys;
 
+
+	//on some systems dwAvailPhys seems to return all physical mem
+	//not only the avail..
+	if (lpBuffer.dwAvailPhys >= (int)(lpBuffer.dwTotalPhys * 0.9)) {
+		parms.memsize = (int)(lpBuffer.dwTotalPhys*0.75);
+	}
+	
 	if (parms.memsize < MINIMUM_WIN_MEMORY)
 		parms.memsize = MINIMUM_WIN_MEMORY;
 
 	if (parms.memsize < (lpBuffer.dwTotalPhys >> 1))
-		parms.memsize = lpBuffer.dwTotalPhys >> 1;
+		parms.memsize = (lpBuffer.dwTotalPhys >> 1);
 
 	if (parms.memsize > MAXIMUM_WIN_MEMORY)
 		parms.memsize = MAXIMUM_WIN_MEMORY;
