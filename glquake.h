@@ -36,6 +36,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <GL/glu.h>
 #endif /* __APPLE__ ||ÊMACOSX */
 
+/* use the correct dynamic function address binder */  
+#if defined (SDL)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) SDL_GL_GetProcAddress (name)
+#elif defined (__glx__)
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) glXGetProcAddressARB (name)
+#else
+#define SAFE_GET_PROC( func, type, name)     \
+   func = (type) wglGetProcAddress( name)
+#endif
+
+
 // - DC -
 #if defined (SDL) 
 #include <SDL/SDL_opengl.h>

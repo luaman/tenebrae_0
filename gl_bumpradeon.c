@@ -97,17 +97,6 @@ PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI = NULL;
 static unsigned int fragment_shaders;
 static unsigned int vertex_shaders;
 
-#if defined (SDL)
-#define SAFE_GET_PROC( func, type, name)     \
-   func = (type) SDL_GL_GetProcAddress (name);
-#elif defined (__glx__)
-#define SAFE_GET_PROC( func, type, name)     \
-   func = (type) glXGetProcAddressARB (name);
-#else
-#define SAFE_GET_PROC( func, type, name)     \
-   func = (type) wglGetProcAddress( name);
-#endif
-
 //#define RADEONDEBUG
 
 #ifdef RADEONDEBUG

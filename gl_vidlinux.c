@@ -41,10 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static fxMesaContext fc = NULL;
 #define stringify(m) { #m, m }
 
-unsigned short	d_8to16table[256];
-unsigned	d_8to24table[256];
-unsigned char d_15to8table[65536];
-
 int num_shades=32;
 
 struct
@@ -96,35 +92,6 @@ int		mx, my;
 cvar_t	m_filter = {"m_filter","1"};
 
 int scr_width, scr_height;
-
-/*-----------------------------------------------------------------------*/
-
-//int		texture_mode = GL_NEAREST;
-//int		texture_mode = GL_NEAREST_MIPMAP_NEAREST;
-//int		texture_mode = GL_NEAREST_MIPMAP_LINEAR;
-int		texture_mode = GL_LINEAR;
-//int		texture_mode = GL_LINEAR_MIPMAP_NEAREST;
-//int		texture_mode = GL_LINEAR_MIPMAP_LINEAR;
-
-int		texture_extension_number = 1;
-
-float		gldepthmin, gldepthmax;
-
-//cvar_t	gl_ztrick = {"gl_ztrick","1"}; PENTA: Removed
-
-const char *gl_vendor;
-const char *gl_renderer;
-const char *gl_version;
-const char *gl_extensions;
-
-void (*qgl3DfxSetPaletteEXT) (GLuint *);
-void (*qglColorTableEXT) (int, int, int, int, int, const void *);
-
-static float vid_gamma = 1.0;
-
-qboolean is8bit = false;
-qboolean isPermedia = false;
-qboolean gl_mtexable = false;
 
 /*-----------------------------------------------------------------------*/
 void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)
@@ -204,135 +171,6 @@ void InitSig(void)
 	signal(SIGFPE, signal_handler);
 	signal(SIGSEGV, signal_handler);
 	signal(SIGTERM, signal_handler);
-}
-
-void VID_ShiftPalette(unsigned char *p)
-{
-//	VID_SetPalette(p);
-}
-
-void	VID_SetPalette (unsigned char *palette)
-{
-	byte	*pal;
-	unsigned r,g,b;
-	unsigned v;
-	int     r1,g1,b1;
-	int		j,k,l,m;
-	unsigned short i;
-	unsigned	*table;
-	FILE *f;
-	char s[255];
-	int dist, bestdist;
-	static qboolean palflag = false;
-
-//
-// 8 8 8 encoding
-//
-	pal = palette;
-	table = d_8to24table;
-	for (i=0 ; i<256 ; i++)
-	{
-		r = pal[0];
-		g = pal[1];
-		b = pal[2];
-		pal += 3;
-		
-		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
-		*table++ = v;
-	}
-	d_8to24table[255] &= 0xffffff;	// 255 is transparent
-
-	// JACK: 3D distance calcs - k is last closest, l is the distance.
-	for (i=0; i < (1<<15); i++) {
-		/* Maps
-		000000000000000
-		000000000011111 = Red  = 0x1F
-		000001111100000 = Blue = 0x03E0
-		111110000000000 = Grn  = 0x7C00
-		*/
-		r = ((i & 0x1F) << 3)+4;
-		g = ((i & 0x03E0) >> 2)+4;
-		b = ((i & 0x7C00) >> 7)+4;
-		pal = (unsigned char *)d_8to24table;
-		for (v=0,k=0,bestdist=10000*10000; v<256; v++,pal+=4) {
-			r1 = (int)r - (int)pal[0];
-			g1 = (int)g - (int)pal[1];
-			b1 = (int)b - (int)pal[2];
-			dist = (r1*r1)+(g1*g1)+(b1*b1);
-			if (dist < bestdist) {
-				k=v;
-				bestdist = dist;
-			}
-		}
-		d_15to8table[i]=k;
-	}
-}
-
-void CheckMultiTextureExtensions(void) 
-{
-	void *prjobj;
-
-	if (strstr(gl_extensions, "GL_SGIS_multitexture ") && !COM_CheckParm("-nomtex")) {
-		Con_Printf("Found GL_SGIS_multitexture...\n");
-
-		if ((prjobj = dlopen(NULL, RTLD_LAZY)) == NULL) {
-			Con_Printf("Unable to open symbol list for main program.\n");
-			return;
-		}
-
-		qglMTexCoord2fSGIS = (void *) dlsym(prjobj, "glMTexCoord2fSGIS");
-		qglSelectTextureSGIS = (void *) dlsym(prjobj, "glSelectTextureSGIS");
-
-		if (qglMTexCoord2fSGIS && qglSelectTextureSGIS) {
-			Con_Printf("Multitexture extensions found.\n");
-			gl_mtexable = true;
-		} else
-			Con_Printf("Symbol not found, disabled.\n");
-
-		dlclose(prjobj);
-	}
-}
-
-/*
-===============
-GL_Init
-===============
-*/
-void GL_Init (void)
-{
-	gl_vendor = glGetString (GL_VENDOR);
-	Con_Printf ("GL_VENDOR: %s\n", gl_vendor);
-	gl_renderer = glGetString (GL_RENDERER);
-	Con_Printf ("GL_RENDERER: %s\n", gl_renderer);
-
-	gl_version = glGetString (GL_VERSION);
-	Con_Printf ("GL_VERSION: %s\n", gl_version);
-	gl_extensions = glGetString (GL_EXTENSIONS);
-	Con_Printf ("GL_EXTENSIONS: %s\n", gl_extensions);
-
-//	Con_Printf ("%s %s\n", gl_renderer, gl_version);
-
-	CheckMultiTextureExtensions ();
-
-	glClearColor (1,0,0,0);
-	glCullFace(GL_FRONT);
-	glEnable(GL_TEXTURE_2D);
-
-	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER, 0.666);
-
-	glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	glShadeModel (GL_FLAT);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-//	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 }
 
 /*
@@ -514,66 +352,6 @@ int findres(int *width, int *height)
 	*width = 640;
 	*height = 480;
 	return GR_RESOLUTION_640x480;
-}
-
-qboolean VID_Is8bit(void)
-{
-	return is8bit;
-}
-
-void VID_Init8bitPalette(void) 
-{
-	// Check for 8bit Extensions and initialize them.
-	int i;
-	void *prjobj;
-
-	if (COM_CheckParm("-no8bit"))
-		return;
-
-	if ((prjobj = dlopen(NULL, RTLD_LAZY)) == NULL) {
-		Con_Printf("Unable to open symbol list for main program.\n");
-		return;
-	}
-
-	if (strstr(gl_extensions, "3DFX_set_global_palette") &&
-		(qgl3DfxSetPaletteEXT = dlsym(prjobj, "gl3DfxSetPaletteEXT")) != NULL) {
-		GLubyte table[256][4];
-		char *oldpal;
-
-		Con_SafePrintf("... Using 3DFX_set_global_palette\n");
-		glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
-		oldpal = (char *) d_8to24table; //d_8to24table3dfx;
-		for (i=0;i<256;i++) {
-			table[i][2] = *oldpal++;
-			table[i][1] = *oldpal++;
-			table[i][0] = *oldpal++;
-			table[i][3] = 255;
-			oldpal++;
-		}
-		qgl3DfxSetPaletteEXT((GLuint *)table);
-		is8bit = true;
-
-	} else if (strstr(gl_extensions, "GL_EXT_shared_texture_palette") &&
-		(qglColorTableEXT = dlsym(prjobj, "glColorTableEXT")) != NULL) {
-		char thePalette[256*3];
-		char *oldPalette, *newPalette;
-
-		Con_SafePrintf("... Using GL_EXT_shared_texture_palette\n");
-		glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
-		oldPalette = (char *) d_8to24table; //d_8to24table3dfx;
-		newPalette = thePalette;
-		for (i=0;i<256;i++) {
-			*newPalette++ = *oldPalette++;
-			*newPalette++ = *oldPalette++;
-			*newPalette++ = *oldPalette++;
-			oldPalette++;
-		}
-		qglColorTableEXT(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE, (void *) thePalette);
-		is8bit = true;
-	
-	}
-
-	dlclose(prjobj);
 }
 
 static void Check_Gamma (unsigned char *pal)
