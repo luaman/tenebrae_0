@@ -852,18 +852,17 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	if (parms.memsize > MAXIMUM_WIN_MEMORY)
 		parms.memsize = MAXIMUM_WIN_MEMORY;
 
-	if (COM_CheckParm ("-heapsize"))
-	{
-		t = COM_CheckParm("-heapsize") + 1;
+	j = COM_CheckParm ("-heapsize");
+	if (j)
+		mb_mem_size =
+			(int) (Q_atof (com_argv[j + 1]));
 
-		if (t < com_argc)
-			parms.memsize = Q_atoi (com_argv[t]) * 1024;
-	}
-
+	parms.memsize = mb_mem_size*1024*1024;
 	parms.membase = malloc (parms.memsize);
-
-	if (!parms.membase)
-		Sys_Error ("Not enough memory free; check disk space\n");
+	// not enough memory !!
+	if (!parms.membase){
+	  Sys_Error("Not enough memory - asked for %d - change with -heapsize <value in Mb> - check disk space\n",mb_mem_size);
+	}
 
 	Sys_PageIn (parms.membase, parms.memsize);
 
