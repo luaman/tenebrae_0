@@ -849,13 +849,20 @@ void R_SetupInstantForLight(entity_t *e)
 	for (i=0;i<maxnumsurf;++i){
              
 		paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
-             
+	
 		if (!aliasframeinstant) {
-
+	
 			Con_Printf("R_SetupInstantForLight: missing instant for %s\n",e->model->name); 
 			//r_cache_thrash = true; 
 			return;                  
 		}
+
+		if (aliasframeinstant->paliashdr != paliashdr) {
+			Con_Printf("R_SetupInstantForLight: Model was moved during frame, this is caused by not having enough heap memory.\n");
+			aliasframeinstant->paliashdr = paliashdr;
+		}
+
+
 		R_SetupSurfaceInstantForLight(e, paliashdr, aliasframeinstant);
 		aliasframeinstant = aliasframeinstant->_next;
 	}    
