@@ -403,11 +403,14 @@ SCR_DrawRam
 */
 void SCR_DrawRam (void)
 {
+	/*
 	if (!scr_showram.value)
 		return;
-
+	*/
 	if (!r_cache_thrash)
 		return;
+
+	Con_Printf("Thrash cache\n");
 
 	Draw_Pic (scr_vrect.x+32, scr_vrect.y, scr_ram);
 }
