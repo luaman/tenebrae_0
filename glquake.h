@@ -277,7 +277,7 @@ extern	cvar_t	sh_nocache;
 extern	cvar_t	sh_glares;
 extern	cvar_t	sh_noefrags;
 extern  cvar_t  sh_showtangent;
-
+extern  cvar_t	sh_noshadowpopping;
 extern	cvar_t	fog_waterfog;
 extern	cvar_t	gl_caustics;
 extern	cvar_t	gl_truform;
