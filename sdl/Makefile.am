@@ -260,6 +260,7 @@ GL_TENEBRAE_SRCS =		\
 	$(MASTER_DIR)/gl_brushinstant.c	\
 	$(MASTER_DIR)/gl_bumpdriver.c		\
 	$(MASTER_DIR)/gl_bumparb.c		\
+	$(MASTER_DIR)/gl_bumpnv3x.c		\
 	$(MASTER_DIR)/gl_bumpgf.c		\
 	$(MASTER_DIR)/gl_bumpmap.c		\
 	$(MASTER_DIR)/gl_bumpparhelia.c		\
