@@ -1070,7 +1070,7 @@ void R_DrawParticles (void)
 			glColor3ubv ((byte *)&d_8to24table[(int)p->color]);
 		}
 
-		glBindTexture(GL_TEXTURE_2D,p->texture);
+		GL_Bind(p->texture);
 
 		if ((p->texture ==  particletexture_smoke) ||
 		   (p->texture ==  particletexture_blood) ) scale = 50;
