@@ -925,12 +925,7 @@ void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_
 //	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
 	}
 
-	if (gl_smoothmodels.value)
-		glShadeModel (GL_SMOOTH);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-	if (gl_affinemodels.value)
-		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
 	glColor3f(bright, bright, bright);
 	//if (busy_caustics)
@@ -970,11 +965,6 @@ void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_
              R_DrawAliasTangent(paliashdr, instant);
 		glEnable(GL_TEXTURE_2D);
 	}
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-	glShadeModel (GL_FLAT);
-	if (gl_affinemodels.value)
-		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 	c_alias_polys += paliashdr->numtris;
 
@@ -994,13 +984,13 @@ R_DrawAliasModel
 =================
 */
 
-
+/*
 void R_PrepareEntityForDraw (float bright)
 {
 	float		an;
 
   
-/*
+
 	model_t		*clmodel;
 
 	clmodel = currententity->model;
@@ -1011,7 +1001,7 @@ void R_PrepareEntityForDraw (float bright)
 	if (R_CullBox (mins, maxs))
 		return;
 
-*/
+
 	VectorCopy (currententity->origin, r_entorigin);
 	VectorSubtract (r_origin, r_entorigin, modelorg);
 
@@ -1024,7 +1014,7 @@ void R_PrepareEntityForDraw (float bright)
 	VectorNormalize (shadevector);
    
 }
-
+*/
 
 void R_DrawAliasModel (float bright)
 {
@@ -1033,7 +1023,7 @@ void R_DrawAliasModel (float bright)
         aliasframeinstant_t *aliasframeinstant;
         alias3data_t *data;
 
-        R_PrepareEntityForDraw (bright);
+        //R_PrepareEntityForDraw (bright);
 
         GL_DisableMultitexture();
 
@@ -1046,6 +1036,13 @@ void R_DrawAliasModel (float bright)
 
         aliasframeinstant = currententity->aliasframeinstant;
         
+	if (gl_smoothmodels.value)
+		glShadeModel (GL_SMOOTH);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+	if (gl_affinemodels.value)
+		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+
         for (i=0;i<maxnumsurf;++i){
              
              paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
@@ -1059,6 +1056,14 @@ void R_DrawAliasModel (float bright)
              R_DrawAliasSurface (paliashdr, bright, aliasframeinstant);                          
              aliasframeinstant = aliasframeinstant->_next; 
         }
+
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+	glShadeModel (GL_FLAT);
+
+	if (gl_affinemodels.value)
+		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
 	glPopMatrix ();
         
 }
