@@ -143,7 +143,7 @@ cvar_t	sh_nocache = {"sh_nocache","0"};
 cvar_t	sh_glares = {"sh_glares","0",true};
 cvar_t	sh_noefrags = {"sh_noefrags","0",true};
 cvar_t	sh_showtangent = {"sh_showtangent","0"};
-
+cvar_t	sh_noshadowpopping = {"sh_noshadowpopping","1"};
 
 cvar_t	mir_detail = {"mir_detail","1",true};
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
@@ -1197,11 +1197,14 @@ void R_MarkEntitiesOnList (void)
 		}
 	}
 
-	R_SetupInstantForLight(&cl.viewent);
+	if (cl.viewent.model)
+		R_SetupInstantForLight(&cl.viewent);
 	//for player Hack: Dont let it rotate when player looks up/down this looks
 	//very unrealistic
 
 	if (mirror) return;
+	if (!cl_entities[cl.viewentity].model) return;
+
 	angle = cl_entities[cl.viewentity].angles[0];
 	cl_entities[cl.viewentity].angles[0] = 0;
 	R_SetupInstantForLight(&cl_entities[cl.viewentity]);
