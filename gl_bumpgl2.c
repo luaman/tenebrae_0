@@ -444,7 +444,7 @@ void GL_CreateShadersGL2()
 	}
 
 	len = strlen(shader);
-	qglShaderSourceARB(vertex_shaders[i], 1, &shader, &len);
+        qglShaderSourceARB(vertex_shaders[i], 1, (const GLcharARB**)&shader, &len);
 	checkerror();
 
         shader = COM_LoadTempFile(fragment_programs[i]);
@@ -454,7 +454,7 @@ void GL_CreateShadersGL2()
 		Sys_Error("GL2: %s not found\n", fragment_programs[i]);
 	}
 	len = strlen(shader);
-	qglShaderSourceARB(fragment_shaders[i], 1, &shader, &len);
+	qglShaderSourceARB(fragment_shaders[i], 1, (const GLcharARB**)&shader, &len);
 	checkerror();
     
 	qglCompileShaderARB(vertex_shaders[i]);

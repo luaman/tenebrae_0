@@ -476,17 +476,6 @@ void GL_Bind (int texnum);
 // ARB_texture_compression defines
 #define GL_COMPRESSED_RGBA_ARB                0x84EE
 
-#define GL_STENCIL_BACK_FUNC_ATI                    0x8800
-#define GL_STENCIL_BACK_FAIL_ATI                    0x8801
-#define GL_STENCIL_BACK_PASS_DEPTH_FAIL_ATI         0x8802
-#define GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI         0x8803
-
-typedef void (APIENTRY *PFNGLSTENCILOPSEPARATEATIPROC)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
-typedef void (APIENTRY *PFNGLSTENCILFUNCSEPARATEATIPROC)(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
-
-extern PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
-extern PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
-
 #endif /* !__APPLE__ && !MACOSX */
 
 #ifndef GL_VERSION_1_3 
@@ -732,17 +721,17 @@ extern PFNGLDEPTHBOUNDSNV qglDepthBoundsNV;
 
 // EXT_stencil_two_side
 #ifndef GL_EXT_stencil_two_side
+#define GL_EXT_stencil_two_side 1
+
 #define GL_STENCIL_TEST_TWO_SIDE_EXT      0x8910
 #define GL_ACTIVE_STENCIL_FACE_EXT        0x8911
-#endif
-
-#ifndef GL_EXT_stencil_two_side
-#define GL_EXT_stencil_two_side 1
 typedef void (APIENTRY * PFNGLACTIVESTENCILFACEEXTPROC) (GLenum face);
 #endif
 extern PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
 
 // ATI_separate_stencil
+#ifndef GL_ATI_separate_stencil
+#define GL_ATI_separate_stencil 1
 #define GL_STENCIL_BACK_FUNC_ATI                    0x8800
 #define GL_STENCIL_BACK_FAIL_ATI                    0x8801
 #define GL_STENCIL_BACK_PASS_DEPTH_FAIL_ATI         0x8802
@@ -750,6 +739,7 @@ extern PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
 
 typedef void (APIENTRY *PFNGLSTENCILOPSEPARATEATIPROC)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
 typedef void (APIENTRY *PFNGLSTENCILFUNCSEPARATEATIPROC)(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
+#endif
 
 extern PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
 extern PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
@@ -1164,9 +1154,11 @@ extern PFNGLVERTEXATTRIBS4UBVNVPROC qglVertexAttribs4ubvNV ;
 // <AWE> There are some diffs with the function parameters. wgl stuff not present with MacOS X. -DC- and SDL 
 #if defined (__APPLE__) || defined (MACOSX) || defined(SDL) || defined (__glx__)
 
-typedef void (APIENTRY * PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC) (GLsizei length, const GLvoid *pointer);
-typedef void (APIENTRY * PFNGLVERTEXARRAYRANGEAPPLEPROC) (GLsizei size, const GLvoid *pointer);
-
+#ifndef GL_APPLE_vertex_array_range
+#define GL_APPLE_vertex_array_range 1
+typedef void (APIENTRY * PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC) (GLsizei length, GLvoid *pointer);
+typedef void (APIENTRY * PFNGLVERTEXARRAYRANGEAPPLEPROC) (GLsizei size, GLvoid *pointer);
+#endif
 extern PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC qglFlushVertexArrayRangeAPPLE;
 extern PFNGLVERTEXARRAYRANGEAPPLEPROC qglVertexArrayRangeAPPLE;
 
