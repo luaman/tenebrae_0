@@ -113,13 +113,15 @@ void	VID_UnlockBuffer (void);
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
 
-#define	MAX_MSGLEN		8000		// max length of a reliable message
-#define	MAX_DATAGRAM	1024		// max length of unreliable message
+#define	MAX_MSGLEN		64000 //Later Packet Overflow
+#define	MAX_DATAGRAM	16384
+//#define	MAX_MSGLEN		8000		// max length of a reliable message
+//#define	MAX_DATAGRAM	1024		// max length of unreliable message
 
 //
 // per-level limits
 //
-#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
+#define	MAX_EDICTS		2048			// FIXME: ouch! ouch! ouch! ////Upped Limits (once 600)- Eradicator
 #define	MAX_LIGHTSTYLES	64
 #define	MAX_MODELS		256			// these are sent over the net as bytes
 #define	MAX_SOUNDS		256			// so they cannot be blindly increased
@@ -215,7 +217,7 @@ void	VID_UnlockBuffer (void);
 
 //===========================================
 
-#define	MAX_SCOREBOARD		16
+#define	MAX_SCOREBOARD		64 //Increased player limit (once 16) - Eradicator
 #define	MAX_SCOREBOARDNAME	32
 
 #define	SOUND_CHANNELS		8
