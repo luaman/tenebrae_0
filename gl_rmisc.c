@@ -247,12 +247,22 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_playershadow);
 	Cvar_RegisterVariable (&sh_nocache);
 	Cvar_RegisterVariable (&sh_glares);
+	Cvar_RegisterVariable (&sh_noefrags);
 
 	Cvar_RegisterVariable (&mir_detail);
 	Cvar_RegisterVariable (&mir_frameskip);
 	Cvar_RegisterVariable (&mir_forcewater);
 	Cvar_RegisterVariable (&gl_wireframe);
 
+	Cvar_RegisterVariable (&fog_r);
+	Cvar_RegisterVariable (&fog_g);
+	Cvar_RegisterVariable (&fog_b);
+	Cvar_RegisterVariable (&fog_start);
+	Cvar_RegisterVariable (&fog_end);
+	Cvar_RegisterVariable (&fog_enabled);
+
+	Cvar_RegisterVariable (&fog_waterfog);
+	Cvar_RegisterVariable (&gl_caustics);
 	R_InitParticles ();
 	R_InitParticleTexture ();
 
@@ -457,9 +467,12 @@ void R_NewMap (void)
 		//Con_Printf("No sky texture found");
 	}
 
-#ifdef QUAKE2
-	R_LoadSkys ();
-#endif
+
+	strcpy(skybox_name,"default");
+	skybox_cloudspeed = 1.0;
+//#ifdef QUAKE2
+
+//#endif
 
 	//PENTA: Clear lights
 	// PENTA: Delete all static lights
