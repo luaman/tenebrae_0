@@ -96,6 +96,15 @@ typedef struct {
 } md3St_t;
 
 
+typedef struct md3tag_s
+{
+     char		name[MAX_QPATH];	// supported names : weapon
+     vec3_t		origin;			// pretty much self explanatory
+     vec3_t		axis[3];		// no ?
+     
+} md3tag_t;
+
+
 int findneighbourmd3_old(int index, int edgei, int numtris, mtriangle_t *triangles) {
 	int i, j;
 	mtriangle_t *current = &triangles[index];
@@ -216,15 +225,11 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 Mod_LoadMd3Model
 
 PENTA: Very similar to LoadAliasModel
+DC: added multiple surface -> alias3data_t 
 =================
 */
-#define	LL(x) x=LittleLong(x)
 
-// <AWE> added following macros
-#if defined (__APPLE__) || defined (MACOSX)
-#define min(A,B)	((A) < (B) ? (A) : (B))
-#define max(A,B)	((A) > (B) ? (A) : (B))
-#endif /* __APPLE__ || MACOSX */
+#define	LL(x) x=LittleLong(x)
 
 void Mod_LoadMd3Model (model_t *mod, void *buffer)
 {
@@ -233,6 +238,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	int					size;
 	int					start, end, total;
 	md3Surface_t		*surf;
+	md3tag_t			*tag;
 	vec3_t				md3scale = {MD3_XYZ_SCALE, 	MD3_XYZ_SCALE, 	MD3_XYZ_SCALE};
 	vec3_t				md3origin = {0.0f, 0.0f, 0.0f};
 	ftrivertx_t			*verts, *v;
@@ -250,6 +256,9 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	md3Shader_t			*shader;
 	byte				fake[16];
 	char				shadername[MAX_QPATH];
+        alias3data_t			*palias3;
+        int				surfcount;
+        
 
 	start = Hunk_LowMark ();
 
@@ -283,6 +292,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	Con_Printf("NumFrames: %i\n",pinmodel->numFrames);
 	Con_Printf("NumSurfaces: %i\n",pinmodel->numSurfaces);
 	Con_Printf("NumSkins: %i\n",pinmodel->numSkins);
+        Con_Printf("NumTags: %i\n",surf->numTags);
 #endif
 
 	if ( pinmodel->numFrames < 1 ) {
@@ -380,10 +390,27 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 // We have now a working version of the md3 in the "*buffer" now convert that to an "alias" model
 // this conversion is not to bad sice the I changed the way alias models work to make them more
 // quake3 friendly, the only thing that remains is that we only use the first surface of the  model.
+// - DC -
+// added multiple surfaces.
+// multiples surfaces : the cached data (alias3data_t) hold an aliashdr_t for each surface
 //
+
+        size = sizeof (alias3data_t);
+        palias3 = Hunk_AllocName (size, mod->name);
+        palias3->numSurfaces = pinmodel->numSurfaces;
+        
+        // allocate header offset array
+        size = sizeof (aliashdr_t *) * (pinmodel->numSurfaces - 1);
+        if (size)
+             Hunk_Alloc (size);
+
+        for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
+             
 	//Alocate hunk mem for the header and the frame info (not the actual frame vertices)
 	size = 	sizeof (aliashdr_t) + (pinmodel->numFrames-1) * sizeof (maliasframedesc_t);
-	pheader = Hunk_AllocName (size, mod->name);
+             pheader = Hunk_Alloc (size);
+             // store alias offset
+             palias3->ofsSurfaces[surfcount] = (int)((char*)pheader - (char*)palias3);
 	Q_memset(pheader,0,sizeof(aliashdr_t));
 
 	//Convert the header to the old header
@@ -476,7 +503,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 			}
 		}
 
-	//Calculate plane equatations
+             //Calculate plane equations
 	norms = Hunk_Alloc (pheader->numtris * pheader->numposes * sizeof(plane_t));
 	pheader->planes = (byte *)norms - (byte *)pheader;
 	for (i=0; i<pheader->numposes; i++) {
@@ -575,9 +602,42 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	pheader->gl_texturenum[0][1] =
 	pheader->gl_texturenum[0][2] =
 	pheader->gl_texturenum[0][3] = GL_LoadTexture (shadername, 4, 4, &fake[0], true, false, true);
+
+	pheader->gl_lumatex[0][0] =
+	pheader->gl_lumatex[0][1] =
+	pheader->gl_lumatex[0][2] =
+	pheader->gl_lumatex[0][3] = GL_LoadLuma(shadername, true);
 #ifdef MD3DEBUG
 	Con_Printf("Load shader %s\n",shadername);
 #endif
+             // next surface
+             surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
+        } /* for numsurf */
+
+        
+        /* monster or player models only ? */
+        /* tags */
+        tag = (md3tag_t *)( (byte *)pinmodel + pinmodel->ofsTags );
+
+        for (i = 0; i< pinmodel->numTags; ++i){
+
+             Con_Printf("Tag %s\n",tag[i].name);
+
+             // swap everything first 
+             for ( j = 0 ; j < 3 ; j++ ) {
+                  tag[i].origin[j] = LittleFloat( tag[i].origin[j] );
+                  tag[i].axis[0][j] = LittleFloat( tag[i].axis[0][j] );
+                  tag[i].axis[1][j] = LittleFloat( tag[i].axis[1][j] );
+                  tag[i].axis[2][j] = LittleFloat( tag[i].axis[2][j] );
+             }
+             // then look for supported tags
+             // weapon tag ?
+             if (!strcmp(tag[i].name,"tag_weapon")){
+                  // for weapon, we only need origin, as the weapon 
+                  // follows the player look
+                  VectorCopy(palias3->weaponTag.origin,tag[i].origin);
+             }
+        }
 
 
 	if (!strcmp (mod->name, "progs/g_shot.mdl") || //Hack to give .md3 files renamed to .mdl rotate effects - Eradicator
@@ -656,7 +716,10 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	Cache_Alloc (&mod->cache, total, loadname);
 	if (!mod->cache.data)
 		return;
-	memcpy (mod->cache.data, pheader, total);
+	memcpy (mod->cache.data, palias3, total);        
+
+        
 
 	Hunk_FreeToLowMark (start);
+
 }

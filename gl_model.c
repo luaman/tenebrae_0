@@ -308,6 +308,18 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 	return mod;
 }
 
+
+void Mod_OverrideMd3 (char *name, char *target)
+{
+
+     if (!strcmp(name,"progs/player.mdl"))
+//          strcpy (target,"model/player");
+          strcpy (target,name);     
+     else 
+          strcpy (target,name);     
+}
+
+
 /*
 ==================
 Mod_ForName
@@ -318,8 +330,12 @@ Loads in a model for the given name
 model_t *Mod_ForName (char *name, qboolean crash)
 {
 	model_t	*mod;
+     char target[MAX_OSPATH];
 	
-	mod = Mod_FindName (name);
+     // override mdl for md3 if possible
+     Mod_OverrideMd3 (name,target);        
+     
+     mod = Mod_FindName (target);
 	
 	return Mod_LoadModel (mod, crash);
 }
@@ -1321,12 +1337,6 @@ Mod_LoadAliasFrame
 =================
 */
 
-// <AWE> added following macros
-#if defined (__APPLE__) || defined (MACOSX)
-#define min(A,B)	((A) < (B) ? (A) : (B))
-#define max(A,B)	((A) > (B) ? (A) : (B))
-#endif /* __APPLE__ || MACOSX */
-
 void * Mod_LoadAliasFrame (void * pin, maliasframedesc_t *frame)
 {
 	trivertx_t		*pinframe;
@@ -1495,72 +1505,80 @@ Mod_LoadAllSkins
 */
 void *Mod_LoadAllSkins (int numskins, daliasskintype_t *pskintype)
 {
-	int		i, j, k;
-	char	name[32];
-	int		s;
-	byte	*skin;
-	byte	*texels;
-	daliasskingroup_t		*pinskingroup;
-	int		groupskins;
-	daliasskininterval_t	*pinskinintervals;
+    int		i, j, k;
+    char	name[32];
+    int		s;
+    byte	*skin;
+    byte	*texels;
+    daliasskingroup_t		*pinskingroup;
+    int		groupskins;
+    daliasskininterval_t	*pinskinintervals;
 	
-	skin = (byte *)(pskintype + 1);
+    skin = (byte *)(pskintype + 1);
 
-	if (numskins < 1 || numskins > MAX_SKINS)
-		Sys_Error ("Mod_LoadAliasModel: Invalid # of skins: %d\n", numskins);
+    if (numskins < 1 || numskins > MAX_SKINS)
+	Sys_Error ("Mod_LoadAliasModel: Invalid # of skins: %d\n", numskins);
 
-	s = pheader->skinwidth * pheader->skinheight;
+    s = pheader->skinwidth * pheader->skinheight;
 
-	for (i=0 ; i<numskins ; i++)
-	{
-		if (pskintype->type == ALIAS_SKIN_SINGLE) {
-			Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
+    for (i=0 ; i<numskins ; i++)
+    {
+	if (pskintype->type == ALIAS_SKIN_SINGLE) {
+	    Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
 
-			// save 8 bit texels for the player model to remap
-	//		if (!strcmp(loadmodel->name,"progs/player.mdl")) {
-				texels = Hunk_AllocName(s, loadname);
-				pheader->texels[i] = texels - (byte *)pheader;
-				memcpy (texels, (byte *)(pskintype + 1), s);
-	//		}
-			sprintf (name, "%s_%i", loadmodel->name, i);
-			pheader->gl_texturenum[i][0] =
-			pheader->gl_texturenum[i][1] =
-			pheader->gl_texturenum[i][2] =
-			pheader->gl_texturenum[i][3] =
-				GL_LoadTexture (name, pheader->skinwidth, 
+	    // save 8 bit texels for the player model to remap
+	    //		if (!strcmp(loadmodel->name,"progs/player.mdl")) {
+	    texels = Hunk_AllocName(s, loadname);
+	    pheader->texels[i] = texels - (byte *)pheader;
+	    memcpy (texels, (byte *)(pskintype + 1), s);
+	    //		}
+	    sprintf (name, "%s_%i", loadmodel->name, i);
+	    pheader->gl_texturenum[i][0] =
+		pheader->gl_texturenum[i][1] =
+		pheader->gl_texturenum[i][2] =
+		pheader->gl_texturenum[i][3] =
+		GL_LoadTexture (name, pheader->skinwidth, 
 				pheader->skinheight, (byte *)(pskintype + 1), true, false, true);
-			pskintype = (daliasskintype_t *)((byte *)(pskintype+1) + s);
-		} else {
-			// animating skin group.  yuck.
-			pskintype++;
-			pinskingroup = (daliasskingroup_t *)pskintype;
-			groupskins = LittleLong (pinskingroup->numskins);
-			pinskinintervals = (daliasskininterval_t *)(pinskingroup + 1);
+	    pheader->gl_lumatex[i][0] =
+		pheader->gl_lumatex[i][1] =
+		pheader->gl_lumatex[i][2] =
+		pheader->gl_lumatex[i][3] =
+		GL_LoadLuma (name, true);
 
-			pskintype = (void *)(pinskinintervals + groupskins);
+	    pskintype = (daliasskintype_t *)((byte *)(pskintype+1) + s);
+	} else {
+	    // animating skin group.  yuck.
+	    pskintype++;
+	    pinskingroup = (daliasskingroup_t *)pskintype;
+	    groupskins = LittleLong (pinskingroup->numskins);
+	    pinskinintervals = (daliasskininterval_t *)(pinskingroup + 1);
 
-			for (j=0 ; j<groupskins ; j++)
-			{
-					Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
-					if (j == 0) {
-						texels = Hunk_AllocName(s, loadname);
-						pheader->texels[i] = texels - (byte *)pheader;
-						memcpy (texels, (byte *)(pskintype), s);
-					}
-					sprintf (name, "%s_%i_%i", loadmodel->name, i,j);
-					pheader->gl_texturenum[i][j&3] = 
-						GL_LoadTexture (name, pheader->skinwidth, 
-						pheader->skinheight, (byte *)(pskintype), true, false, true);
-					pskintype = (daliasskintype_t *)((byte *)(pskintype) + s);
-			}
-			k = j;
-			for (/* */; j < 4; j++)
-				pheader->gl_texturenum[i][j&3] = 
-				pheader->gl_texturenum[i][j - k]; 
+	    pskintype = (void *)(pinskinintervals + groupskins);
+
+	    for (j=0 ; j<groupskins ; j++)
+	    {
+		Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
+		if (j == 0) {
+		    texels = Hunk_AllocName(s, loadname);
+		    pheader->texels[i] = texels - (byte *)pheader;
+		    memcpy (texels, (byte *)(pskintype), s);
 		}
-	}
+		sprintf (name, "%s_%i_%i", loadmodel->name, i,j);
+		pheader->gl_texturenum[i][j&3] = 
+		    GL_LoadTexture (name, pheader->skinwidth, 
+				    pheader->skinheight, (byte *)(pskintype), true, false, true);
+		pheader->gl_lumatex[i][j&3] = GL_LoadLuma(name, true);
 
-	return (void *)pskintype;
+		pskintype = (daliasskintype_t *)((byte *)(pskintype) + s);
+	    }
+	    k = j;
+	    for (/* */; j < 4; j++)
+		pheader->gl_texturenum[i][j&3] = 
+		    pheader->gl_texturenum[i][j - k]; 
+	}
+    }
+
+    return (void *)pskintype;
 }
 
 //=========================================================================
@@ -1581,6 +1599,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	daliasframetype_t	*pframetype;
 	daliasskintype_t	*pskintype;
 	int					start, end, total;
+        alias3data_t			*palias3;
 	
 	start = Hunk_LowMark ();
 
@@ -1591,6 +1610,11 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		Sys_Error ("%s has wrong version number (%i should be %i)",
 				 mod->name, version, ALIAS_VERSION);
 
+
+        size = sizeof (alias3data_t);
+        palias3 = Hunk_AllocName (size, loadname);
+        palias3->numSurfaces = 1;        
+        
 //
 // allocate space for a working header, plus all the data except the frames,
 // skin and group info
@@ -1600,11 +1624,14 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 			sizeof (pheader->frames[0]);
 	pheader = Hunk_AllocName (size, loadname);
 	
+        palias3->ofsSurfaces[0] = (int)((char*)pheader - (char*)palias3);        
+	
 	mod->flags = LittleLong (pinmodel->flags);
 
 //
 // endian-adjust and copy the data, starting with the alias model header
 //
+        pheader->ident = MD3_IDENT;
 	pheader->boundingradius = LittleFloat (pinmodel->boundingradius);
 	pheader->numskins = LittleLong (pinmodel->numskins);
 	pheader->skinwidth = LittleLong (pinmodel->skinwidth);
@@ -1727,6 +1754,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		|| !strcmp (mod->name, "progs/flame.mdl") 
 		|| !strcmp (mod->name, "progs/lavaball.mdl")
 		|| !strcmp (mod->name, "progs/laser.mdl")
+                || !strcmp (mod->name, "progs/k_spike.mdl")
 		|| !strcmp (mod->name, "progs/bolt.mdl")
 		|| !strcmp (mod->name, "progs/bolt2.mdl")
 		|| !strcmp (mod->name, "progs/bolt3.mdl"))
@@ -1753,7 +1781,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	Cache_Alloc (&mod->cache, total, loadname);
 	if (!mod->cache.data)
 		return;
-	memcpy (mod->cache.data, pheader, total);
+	memcpy (mod->cache.data, palias3, total);
 
 	Hunk_FreeToLowMark (start);
 }

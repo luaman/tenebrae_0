@@ -58,28 +58,15 @@ int aliasCacheRequests, aliasFullCacheHits, aliasPartialCacheHits;
 /*
 R_AllocateInstant
 */
-aliasframeinstant_t *R_AllocateInstant(entity_t *e) {
+aliasframeinstant_t *R_AllocateInstant(entity_t *e, aliasframeinstant_t *frameinstant, aliashdr_t *paliashdr) {
 
 	int i, oldest, oindex;
-	/*
-	if (InstantsUsed < NUM_ALIAS_INSTANTS ) {
-		return &InstantCache[InstantsUsed++];
-	} else {
-		return NULL;
-	}
-	*/
 	
-	//try to reclaim an instant that was previously used for this entity
-	/*
-	for (i=0; i<NUM_ALIAS_INSTANTS; i++) {
-		if (InstantCache[i].lastent == e)
-			return &InstantCache[i];
-	}
-	*/
-
-	if (e->aliasframeinstant)
-		if (((aliasframeinstant_t *)(e->aliasframeinstant))->lastent == e)
-			return (aliasframeinstant_t *)(e->aliasframeinstant);
+        /* is this frameinstant ok ? */
+        if (frameinstant)
+             if ((frameinstant->paliashdr == paliashdr)
+                 && (frameinstant->lastent == e))
+                  return frameinstant;        
 
 	//none found, bacause we don't want to destroy the reclaiming of other ents
 	//we use the oldest used instant
@@ -114,7 +101,7 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 	}
 	*/
 	
-	//try to reclaim an instant that was previously used for this entity and this light
+	//try to reclaim an instant that was previously used for this surface and this light
 	for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
 		if ((LightInstantCache[i].lastent == e) && (LightInstantCache[i].lastlight == currentshadowlight))
 			return &LightInstantCache[i];
@@ -156,6 +143,7 @@ void R_ClearInstantCaches() {
 	for (i=0; i<NUM_ALIAS_INSTANTS; i++) {
 		InstantCache[i].lockframe = 0;
 		InstantCache[i].lastent = NULL;
+		InstantCache[i].paliashdr = NULL;
 	}
 
 	for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
@@ -172,7 +160,7 @@ R_SetupInstants
 =============
 */
 
-void R_SetupInstants (void)
+void R_SetupInstants ()
 {
 	int		i;
 
@@ -193,14 +181,10 @@ void R_SetupInstants (void)
 	//interpolate gun also
 	if (cl.viewent.model)
 		R_SetupInstantForFrame(&cl.viewent,true);
-	else
-		cl.viewent.aliasframeinstant = NULL;
 
 	//for player
 	if (cl_entities[cl.viewentity].model)
 		R_SetupInstantForFrame(&cl_entities[cl.viewentity],true);
-	else
-		cl_entities[cl.viewentity].aliasframeinstant = NULL;
 
 }
 
@@ -278,6 +262,7 @@ void R_InterpolateNormals(aliashdr_t *paliashdr, aliasframeinstant_t *instant, i
 		instant->normals[i][0] = norm1[0] * blend1 + norm2[0] * blend;
 		instant->normals[i][1] = norm1[1] * blend1 + norm2[1] * blend;
 		instant->normals[i][2] = norm1[2] * blend1 + norm2[2] * blend;
+                VectorNormalize(instant->normals[i]);
 	}
 }
 
@@ -438,20 +423,10 @@ qboolean CheckUpdate(entity_t *e, aliasframeinstant_t *ins) {
 	//return true;
 }
 
-void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
+
+void R_SetupAliasInstantForFrame(entity_t *e, qboolean forcevis, aliashdr_t *paliashdr, aliasframeinstant_t *aliasframeinstant)
 {
-	aliashdr_t *paliashdr;
 	vec3_t mins, maxs;
-	aliasframeinstant_t *aliasframeinstant;
-	
-	paliashdr = (aliashdr_t *)Mod_Extradata (e->model);
-
-	e->aliasframeinstant = aliasframeinstant = R_AllocateInstant(e);
-
-	if (!e->aliasframeinstant) {
-		Con_Printf("Could Not Allocate Instant\n");
-		return;
-	}
 
 	if (!forcevis) {
 
@@ -486,7 +461,7 @@ void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
 			R_InterpolateTangents(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
 			R_InterpolateBinomials(paliashdr, aliasframeinstant);
 		}
-		R_InterpolateTriPlanes(paliashdr, e->aliasframeinstant, e->pose1, e->pose2, e->blend);
+          R_InterpolateTriPlanes(paliashdr, aliasframeinstant, e->pose1, e->pose2, e->blend);
 		aliasframeinstant->updateframe = r_framecount;
 
 		//make sure that we can compare the next frame
@@ -500,9 +475,59 @@ void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
 
 	//lock it for this frame
 	aliasframeinstant->lockframe = r_framecount;
-
-
 }
+
+
+void R_SetupInstantForFrame(entity_t *e, qboolean forcevis)
+{
+     alias3data_t *data;
+     aliashdr_t *paliashdr;
+     aliasframeinstant_t *aliasframeinstant;
+     aliasframeinstant_t *nextframeinstant;
+     aliasframeinstant_t *prevframeinstant;
+     int numsurf,maxnumsurf;
+
+
+     data = (alias3data_t *)Mod_Extradata (e->model);
+     maxnumsurf = data->numSurfaces;     
+
+     /* first surface */
+
+     paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[0]);
+     e->aliasframeinstant = prevframeinstant = aliasframeinstant = R_AllocateInstant (e,e->aliasframeinstant,paliashdr);
+
+     if (aliasframeinstant)
+          R_SetupAliasInstantForFrame(e,forcevis,paliashdr,aliasframeinstant);
+     else 
+          Con_Printf("Could Not Allocate Instant\n");
+
+
+     /* the other surfaces */
+     for (numsurf=1;numsurf < maxnumsurf ; ++numsurf){
+          
+          paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[numsurf]);
+          // follow the instant chain
+          if (aliasframeinstant)
+               nextframeinstant = aliasframeinstant->_next;
+
+          aliasframeinstant = R_AllocateInstant (e,aliasframeinstant,paliashdr);
+
+          if (!aliasframeinstant) {
+               Con_Printf("Could Not Allocate Instant\n");
+               continue;
+          }
+          prevframeinstant->_next = aliasframeinstant;
+          prevframeinstant = aliasframeinstant;
+
+          R_SetupAliasInstantForFrame(e,forcevis,paliashdr,aliasframeinstant);
+
+          aliasframeinstant = nextframeinstant;
+
+     } /* for paliashdr */
+
+     //prevframeinstant->_next = NULL;      
+}
+
 
 /*************************
 
@@ -694,7 +719,7 @@ float dist(vec3_t v1, vec3_t v2) {
 	return Length(diff);
 }
 
-qboolean CheckLightUpdate(entity_t *e, aliaslightinstant_t *ins) {
+qboolean CheckLightUpdate(entity_t *e, aliashdr_t *paliashdr, aliaslightinstant_t *ins, aliasframeinstant_t *aliasframeinstant) {
 
 	if (sh_nocache.value) return true;
 
@@ -704,8 +729,8 @@ qboolean CheckLightUpdate(entity_t *e, aliaslightinstant_t *ins) {
 		(dist(ins->lasteorg,e->origin) < DIST_DELTA) &&
 		(dist(ins->lasteangles,e->angles) < ANG_DELTA) &&
 		(abs(ins->lastlradius - currentshadowlight->radius) <= RADIUS_DELTA) &&
-		(ins->lastframeinstant == e->aliasframeinstant) &&
-		(((aliasframeinstant_t *)e->aliasframeinstant)->updateframe != r_framecount))
+		(ins->lastframeinstant == aliasframeinstant) &&
+		(aliasframeinstant->updateframe != r_framecount))
 	{
 		return false;
 	} else {
@@ -723,47 +748,24 @@ qboolean CheckHalfAngle(aliaslightinstant_t *ins)
 	}
 }
 
-void R_SetupInstantForLight(entity_t *e)
+
+void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframeinstant_t *aliasframeinstant)
 {
-	qboolean update;
-	aliasframeinstant_t *aliasframeinstant;
 	aliaslightinstant_t *aliaslightinstant;
-	aliashdr_t * test;
-
-	if (!e->aliasframeinstant) {
-		//no error here error was already printed in SetupInstantForFrame
-		return;
-	}
-	aliasframeinstant = (aliasframeinstant_t *)e->aliasframeinstant;
-
-//PENTA: Make sure we aren't referencing any other null models :)
-	if (!e->model) {
-		Sys_Error("Null model in SetupInstantForLight\n");
-		return;
-	}
-
-//PENTA: guard against model removed from cache
-	
-	test = (aliashdr_t *)Mod_Extradata (e->model);
-	if (test != aliasframeinstant->paliashdr) {
-		//Sys_Error("Cache Trashed"); 
-		r_cache_thrash = true; 
-		aliasframeinstant->paliashdr = test; 
-	} 
-	
+	qboolean update;
 
 	aliaslightinstant = R_AllocateLightInstant(e);
 	aliasframeinstant->lightinstant = aliaslightinstant;
 
 	R_SetupObjectSpace(e, aliaslightinstant);	
 	
-	update = CheckLightUpdate(e, aliaslightinstant);
+	update = CheckLightUpdate(e,paliashdr, aliaslightinstant,aliasframeinstant);
 	if  (update)
 	{
 		R_CalcVolumeVerts(e, aliasframeinstant, aliaslightinstant);
 
 		if (!aliasframeinstant->shadowonly) {
-			if (!gl_geforce3 && !gl_radeon) {//PA:
+			if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
 				R_CalcAttenColors(e,  aliasframeinstant, aliaslightinstant);
 			}
 			R_CalcIndeciesForLight(e,  aliasframeinstant, aliaslightinstant);
@@ -774,7 +776,7 @@ void R_SetupInstantForLight(entity_t *e)
 			VectorCopy(e->angles, aliaslightinstant->lasteangles);
 			aliaslightinstant->lastlradius = currentshadowlight->radius;
 			aliaslightinstant->lastlight = currentshadowlight;
-			aliaslightinstant->lastframeinstant = e->aliasframeinstant;
+			aliaslightinstant->lastframeinstant = aliasframeinstant;
 			aliaslightinstant->lastent = e;
 		}
 	}
@@ -795,4 +797,35 @@ void R_SetupInstantForLight(entity_t *e)
 
 	//lock it for this frame
 	aliaslightinstant->lockframe = r_framecount;
+}
+
+
+void R_SetupInstantForLight(entity_t *e)
+{
+	aliasframeinstant_t *aliasframeinstant;
+        alias3data_t *data;
+	aliashdr_t * paliashdr;
+        int i,maxnumsurf;
+        
+
+//PENTA: guard against model removed from cache
+	
+	data = (alias3data_t *)Mod_Extradata (e->model);
+        maxnumsurf = data->numSurfaces;        
+        aliasframeinstant = e->aliasframeinstant;
+
+        for (i=0;i<maxnumsurf;++i){
+             
+             paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+             
+             if (!aliasframeinstant) {
+
+                  Con_Printf("R_SetupInstantForLight: missing instant for %s\n",e->model->name); 
+                  //r_cache_thrash = true; 
+                  return;                  
+             }
+             R_SetupSurfaceInstantForLight(e, paliashdr, aliasframeinstant);
+             aliasframeinstant = aliasframeinstant->_next;
+        }
+        
 }
