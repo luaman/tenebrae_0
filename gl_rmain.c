@@ -227,7 +227,6 @@ void R_RotateForEntity (entity_t *e)
 	vec3_t d;
 	int i;
 
-
 	//Hack to stop t lerping view models and player - Eradicator 
     if ((!strcmp (e->model->name, "progs/v_shot.mdl")) || (!strcmp (e->model->name, "progs/v_shot2.mdl")) 
 		|| (!strcmp (e->model->name, "progs/v_nail.mdl")) || (!strcmp (e->model->name, "progs/v_nail2.mdl")) 
@@ -825,15 +824,15 @@ void R_DrawAliasShadowVolume (entity_t *e)
     clmodel = currententity->model;
 
     /* no shadows casting for these */
-    if (clmodel->flags && EF_NOSHADOW)
-	return;
+    if (clmodel->flags & EF_NOSHADOW)
+		return;
 
     //
     // locate the proper data
     //
     if (!e->aliasframeinstant) {
-	Con_Printf("no instant for ent %s\n", clmodel->name);	
-	return;
+		Con_Printf("no instant for ent %s\n", clmodel->name);	
+		return;
     }
 
     /*
