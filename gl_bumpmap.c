@@ -50,7 +50,6 @@ void GL_EnableDiffuseShader () {
     glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
 	
 	GL_EnableMultitexture();
-	GL_Bind(bump_texture_object);
 	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
     glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
     glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
@@ -74,7 +73,6 @@ void GL_EnableSpecularShader () {
 		//GL_Bind(normcube_texture_object);
 		glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
 		GL_EnableMultitexture();
-		GL_Bind(bump_texture_object);
 
 		//setup and enable the register combiners
 		qglCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, 2);

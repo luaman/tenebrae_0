@@ -69,7 +69,6 @@ extern	TEXSUBIMAGEPTR TexSubImage2DFunc;
 extern	int texture_extension_number;
 extern	int		texture_mode;
 extern	int	glow_texture_object;	//PENTA: gl texture object of the glow texture
-extern	int bump_texture_object;	//PENTA: gl texture object of the bump texture
 extern	int normcube_texture_object;//PENTA: gl texture object of the normalization cubemap 
 extern	int halo_texture_object;	//PENTA: Halo light texture
 extern  int	atten1d_texture_object;

@@ -43,7 +43,6 @@ qpic_t		*draw_backtile;
 int			translate_texture;
 int			char_texture;
 int			glow_texture_object;	//PENTA: gl texture object of the glow texture
-int			bump_texture_object;	//PENTA: default bump map
 int			normcube_texture_object; //PENTA: normalization cubemap
 int			atten1d_texture_object;
 int			atten2d_texture_object;
@@ -525,8 +524,7 @@ void Draw_Init (void)
 	//PENTA: load fallof glow
 	glow_texture_object = GL_Load2DAttenTexture();
 	atten3d_texture_object = GL_Load3DAttenTexture();
-	//Load a default bump map
-	bump_texture_object = GL_LoadBumpTexture();
+
 	//Load nomalization cube map
 	normcube_texture_object = GL_LoadNormalizationCubemap();
 
@@ -2349,34 +2347,6 @@ int GL_Load3DAttenTexture(void)
 		Con_Printf("%s",gluErrorString(err));
 	}
 
-	return texture_extension_number-1;
-}
-
-int GL_LoadBumpTexture(void)
-{
-
-	byte *data;
-
-	data = (byte *)COM_LoadTempFile ("penta/bumpmap.raw");	
-
-	if (!data) {
-		//return the default gl texture
-		Con_Printf("Glow texture not found");
-		return 0;
-	}
-
-	//this is only an alpha map since we write it to the destination alpha for multing afterwards
-	GL_Bind(texture_extension_number);
-	//if (sh_bump.value) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	//} else {
-	//	glTexImage2D(GL_TEXTURE_2D, 0, 1, 128, 128, 0, GL_LUMINANCE,GL_UNSIGNED_BYTE, data);
-	//}
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	
-	texture_extension_number++;
 	return texture_extension_number-1;
 }
 
