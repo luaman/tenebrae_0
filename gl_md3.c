@@ -209,6 +209,8 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 	res[2] = dirv[2]-t*tz[2];
 }
 
+//#define MD3DEBUG
+
 /*
 =================
 Mod_LoadMd3Model
@@ -276,6 +278,13 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	LL(pinmodel->ofsSurfaces);
 	LL(pinmodel->ofsEnd);
 
+#ifdef MD3DEBUG
+	Con_Printf("Statistics for model %s\n",loadname);
+	Con_Printf("NumFrames: %i\n",pinmodel->numFrames);
+	Con_Printf("NumSurfaces: %i\n",pinmodel->numSurfaces);
+	Con_Printf("NumSkins: %i\n",pinmodel->numSkins);
+#endif
+
 	if ( pinmodel->numFrames < 1 ) {
 		Con_Printf( "LoadMd3Model: %s has no frames\n", mod->name );
 		return;
@@ -316,7 +325,14 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
         LL(surf->ofsSt);
         LL(surf->ofsXyzNormals);
         LL(surf->ofsEnd);
-		
+	
+#ifdef MD3DEBUG		
+		Con_Printf("->surface %i\n",i);
+		Con_Printf("  NumTriangles: %i\n",surf->numTriangles);
+		Con_Printf("  NumVertices: %i\n",surf->numVerts);
+		Con_Printf("  NumFrames: %i\n",surf->numFrames);
+		Con_Printf("  NumShaders: %i\n",surf->numShaders);
+#endif
 		if ( surf->numVerts > MAXALIASVERTS)
 			Sys_Error ("LoadMd3Model: %s has too many vertices",mod->name);
 
@@ -368,6 +384,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	//Alocate hunk mem for the header and the frame info (not the actual frame vertices)
 	size = 	sizeof (aliashdr_t) + (pinmodel->numFrames-1) * sizeof (maliasframedesc_t);
 	pheader = Hunk_AllocName (size, mod->name);
+	Q_memset(pheader,0,sizeof(aliashdr_t));
 
 	//Convert the header to the old header
 	pheader->ident = pinmodel->ident;
@@ -377,8 +394,8 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	pheader->boundingradius = 100; //This seems not used anymore by quake
 	VectorCopy(md3origin,pheader->eyeposition);//This seems not used anymore by quake
 	pheader->numskins = 1; //Hacked value
-	pheader->skinwidth = 255;//Hacked value
-	pheader->skinheight = 255;//Hacked value
+	pheader->skinwidth = 4;//Hacked value
+	pheader->skinheight = 4;//Hacked value
 	pheader->numverts = surf->numVerts;
 	pheader->numtris = surf->numTriangles;
 	pheader->numframes = pinmodel->numFrames;
@@ -544,15 +561,23 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 
 
 	//Load skins
-	fake[0] = 0;
+	for (i=0; i<16; i++)
+		fake[i] = 254;
+
 	shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
+
+	if (!shader->name[0]) {
+		Q_strcpy(shader->name,"unnamed");
+	}
+
 	COM_FileBase (shader->name, shadername);
 	pheader->gl_texturenum[0][0] =
 	pheader->gl_texturenum[0][1] =
 	pheader->gl_texturenum[0][2] =
 	pheader->gl_texturenum[0][3] = GL_LoadTexture (shadername, 4, 4, &fake[0], true, false, true);
-	//Con_Printf("Load shader %s\n",shader->name);
-
+#ifdef MD3DEBUG
+	Con_Printf("Load shader %s\n",shadername);
+#endif
 
 //
 // move the complete, relocatable alias model to the cache
