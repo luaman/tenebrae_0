@@ -927,6 +927,14 @@ void CL_ParseServerMessage (void)
 			R_ParseParticleEffect ();
 			break;
 
+		case svc_basicemitter:
+			R_ParseBasicEmitter ();
+			break;
+
+		case svc_extendedemitter:
+			R_ParseExtendedEmitter ();
+			break;
+
 		case svc_spawnbaseline:
 			i = MSG_ReadShort ();
 			// must use CL_EntityNum() to force cl.num_entities up
