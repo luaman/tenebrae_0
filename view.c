@@ -494,8 +494,8 @@ void V_CalcBlend (void)
 		if (!gl_cshiftpercent.value)
 			continue;
 
-		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) * 0.01) * 0.0039215686; //Speedup - Eradicator
-		//a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) / 100.0) / 255.0;
+                a2 = (cl.cshifts[j].percent * gl_cshiftpercent.value) * 0.000039215686; //Speedup - Eradicator
+//		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) / 100.0) / 255.0;
 
 //		a2 = cl.cshifts[j].percent/255.0;
 		if (!a2)
@@ -508,7 +508,7 @@ void V_CalcBlend (void)
 		b = b*(1-a2) + cl.cshifts[j].destcolor[2]*a2;
 	}
 
-	/*v_blend[0] = r/255.0;
+        /*v_blend[0] = r/255.0;
 	v_blend[1] = g/255.0;
 	v_blend[2] = b/255.0;*/
 
@@ -901,9 +901,9 @@ void V_CalcRefdef (void)
 // never let it sit exactly on a node line, because a water plane can
 // dissapear when viewed with the eye exactly on it.
 // the server protocol only specifies to 1/16 pixel, so add 1/32 in each axis
-	r_refdef.vieworg[0] += 0.03125;	//Slight Speedup - Eradicator
-	r_refdef.vieworg[1] += 0.03125;
-	r_refdef.vieworg[2] += 0.03125;
+	r_refdef.vieworg[0] += 1.0/32;
+	r_refdef.vieworg[1] += 1.0/32;
+	r_refdef.vieworg[2] += 1.0/32;
 
 	VectorCopy (cl.viewangles, r_refdef.viewangles);
 	V_CalcViewRoll ();
