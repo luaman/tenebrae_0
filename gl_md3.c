@@ -26,6 +26,8 @@ PENTA: the whole file is freakin penta...
 #define MD3_VERSION			15
 #define	MD3_XYZ_SCALE		(1.0/64)
 
+//#define MD3DEBUG
+
 typedef struct md3Frame_s {
 	vec3_t		bounds[2];
 	vec3_t		localOrigin;
@@ -164,7 +166,7 @@ int findneighbourmd3(int index, int edgei, int numtris, mtriangle_t *triangles) 
 		return found;
 	}
 	//naughty egde let no-one have the neighbour
-	Con_Printf("%s: warning: open edge added\n",loadname);
+	//Con_Printf("%s: warning: open edge added\n",loadname);
 	return -1;
 }
 
@@ -193,7 +195,7 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 	vec2[2] = *v[2][2] - *v[0][2];
 	delta2 = st[2][0] - st[0][0];
 
-	if  ((!delta1) && (!delta2)) Con_Printf("%s: warning: Degenerate tangent space\n",loadname);
+	//if  ((!delta1) && (!delta2)) Con_Printf("%s: warning: Degenerate tangent space\n",loadname);
 
 
 	dirv[0] = (delta1 * vec2[0] - vec1[0] * delta2);
@@ -208,8 +210,6 @@ void TangentForTrimd3(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert
 	res[1] = dirv[1]-t*tz[1];
 	res[2] = dirv[2]-t*tz[2];
 }
-
-//#define MD3DEBUG
 
 /*
 =================
@@ -334,7 +334,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 		Con_Printf("  NumShaders: %i\n",surf->numShaders);
 #endif
 		if ( surf->numVerts > MAXALIASVERTS)
-			Sys_Error ("LoadMd3Model: %s has too many vertices",mod->name);
+			Sys_Error ("LoadMd3Model: %s has too many vertices (%i)%i",mod->name,surf->numVerts,surf->numTriangles);
 
 		if (surf->numTriangles <= 0)
 			Sys_Error ("LoadMd3Model: %s has no triangles", mod->name);
