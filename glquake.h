@@ -1123,7 +1123,7 @@ typedef struct aliaslightinstant_s {
 	vec3_t	tslights[MAXALIASVERTS]; //per vertex tangent space light vector
 	vec3_t	tshalfangles[MAXALIASVERTS]; //per vertex half angle vector
 	vec3_t	colors[MAXALIASVERTS]; //per vertex attenuation for non gf3 cards
-	qboolean triangleVis[MAXALIASVERTS]; //triangle facingness for lights
+	qboolean triangleVis[MAXALIASTRIS]; //triangle facingness for lights
 	
 	int		indecies[MAXALIASTRIS*3];//light visibility list
 	int numtris;
