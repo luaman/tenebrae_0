@@ -734,48 +734,49 @@ R_DrawAliasShadowVolume
 
 void R_DrawAliasSurfaceShadowVolume (aliashdr_t	*paliashdr, aliasframeinstant_t *aliasframeinstant)
 {
-	switch(gl_twosidedstencil)
-	{
-	    case 0:
-			//
-			//Pass 1 increase
-			//
-			glCullFace(GL_FRONT);
-			glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
+    switch(gl_twosidedstencil)
+    {
+    case 0:
+	//
+	//Pass 1 increase
+	//
+	glCullFace(GL_FRONT);
+	glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
 
-			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
 
-			//
-			// Second Pass. Decrease Stencil Value In The Shadow
-			//
-			glCullFace(GL_BACK);
-			glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
-			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
-			break;
-		case 1:
-			// EXT_stencil_two_side
-	        glDisable(GL_CULL_FACE);
-			qglActiveStencilFaceEXT(GL_BACK);
-			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-			glStencilFunc(GL_ALWAYS, 0, ~0);
-			qglActiveStencilFaceEXT(GL_FRONT);
-			glStencilOp(GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
-			glStencilFunc(GL_ALWAYS, 0, ~0);
-			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
-			glEnable(GL_CULL_FACE);
-			break;
+	//
+	// Second Pass. Decrease Stencil Value In The Shadow
+	//
+	glCullFace(GL_BACK);
+	glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+	break;
+    case 1:
+	// EXT_stencil_two_side
+	glDisable(GL_CULL_FACE);
+	qglActiveStencilFaceEXT(GL_BACK);
+	glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+	glStencilFunc(GL_ALWAYS, 0, ~0);
+	qglActiveStencilFaceEXT(GL_FRONT);
+	glStencilOp(GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+	glStencilFunc(GL_ALWAYS, 0, ~0);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+	glEnable(GL_CULL_FACE);
+	qglActiveStencilFaceEXT(GL_FRONT_AND_BACK);
+	break;
 
-		case 2:
-			// ATI_separate_stencil
-	        glDisable(GL_CULL_FACE);
-			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-			qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
-			qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
-			qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
-			glEnable(GL_CULL_FACE);
-			break;
-	}
+    case 2:
+	// ATI_separate_stencil
+	glDisable(GL_CULL_FACE);
+	glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+	qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
+	qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+	qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+	glEnable(GL_CULL_FACE);
+	break;
+    }
 }
 
 
@@ -2282,11 +2283,14 @@ void R_RenderScene (void)
 		R_MarkEntitiesOnList();
 
 		//Shadow casting is on by default
-		if (l->castShadow) {
-			//Calculate the shadow volume (does nothing when static)
-			R_ConstructShadowVolume(l);
+		if (l->castShadow)
+		{
+		    //Calculate the shadow volume (does nothing when static)
+		    R_ConstructShadowVolume(l);
 
-#if 1
+		    switch(gl_twosidedstencil)
+		    {
+		    case 0:
 			//Pass 1 increase
 			glCullFace(GL_BACK);
 			glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
@@ -2307,36 +2311,49 @@ void R_RenderScene (void)
 			glCullFace(GL_FRONT);
 			glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
 			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
+			break;
+		    case 1:
+			// EXT_stencil_two_side
+			glDisable(GL_CULL_FACE);
+			qglActiveStencilFaceEXT(GL_BACK);
+			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+			glStencilFunc(GL_ALWAYS, 0, ~0);
+			qglActiveStencilFaceEXT(GL_FRONT);
+			glStencilOp(GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+			glStencilFunc(GL_ALWAYS, 0, ~0);
+			if (sh_worldshadows.value) R_DrawShadowVolume(l);
 
-#else
-//                        glCullFace(GL_FRONT_AND_BACK);
-                        glDisable(GL_CULL_FACE);
-                        checkerror();
-    	                glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-                        checkerror();
-	                qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
-                        checkerror();
-	                qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
-                        checkerror();
-	                qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-                        checkerror();
+			//PENTA: we could do the same thing for brushes as for aliasses
+			//Pass 1 increase
+			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
+			glEnable(GL_CULL_FACE);
+			qglActiveStencilFaceEXT(GL_FRONT_AND_BACK);
+			break;
+
+		    case 2:
+			// ATI_separate_stencil
+			glDisable(GL_CULL_FACE);
+			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+			qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
+			qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+			qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
 
 			if (sh_worldshadows.value) R_DrawShadowVolume(l);
 
-                        //PENTA: we could do the same thing for brushes as for aliasses
+			//PENTA: we could do the same thing for brushes as for aliasses
 			//Pass 1 increase
 			if (sh_entityshadows.value) R_DrawEntitiesShadowVolumes(mod_brush);
+			glEnable(GL_CULL_FACE);
+			break;
+		    }
+		    if (sh_entityshadows.value)
+			R_DrawEntitiesShadowVolumes(mod_alias);
 
-                        glEnable(GL_CULL_FACE);
-#endif
-			if (sh_entityshadows.value)
-			    R_DrawEntitiesShadowVolumes(mod_alias);
-
-			//Reenable drawing
-			glCullFace(GL_FRONT);
- 			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-			glDepthFunc(GL_LEQUAL);
-			glStencilFunc(GL_EQUAL, 0, 0xffffffff);
+		    //Reenable drawing
+		    glCullFace(GL_FRONT);
+		    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+		    glDepthFunc(GL_LEQUAL);
+		    glStencilFunc(GL_EQUAL, 0, 0xffffffff);
 		}
 		if (!sh_visiblevolumes.value) {
 			R_DrawWorldBumped();
