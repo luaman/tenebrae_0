@@ -311,7 +311,7 @@ void R_SplitEntityOnNodePenta (entity_t *ent, mnode_t *node)
 	if ( node->contents < 0)
 	{
 		if (ent->numleafs == MAX_CLIENT_ENT_LEAFS) {
-			Con_Printf("Max ent leafs reached\n");
+			//Con_Printf("Max ent leafs reached\n");
 			return;
 		}
 
