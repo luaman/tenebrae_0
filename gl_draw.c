@@ -34,6 +34,7 @@ cvar_t		gl_picmip = {"gl_picmip", "0"};
 cvar_t          gl_gloss = {"gl_gloss", "0.5"};
 cvar_t          gl_compress_textures = {"gl_compress_textures", "0"};
 cvar_t          willi_gray_colormaps = {"willi_gray_colormaps", "0"};
+cvar_t          con_clock = {"con_clock", "1", true};
 
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
@@ -417,6 +418,7 @@ void Draw_Init (void)
 	Cvar_RegisterVariable (&gl_gloss);
 	Cvar_RegisterVariable (&gl_compress_textures);
 	Cvar_RegisterVariable (&willi_gray_colormaps);
+	Cvar_RegisterVariable (&con_clock);
 
 	// 3dfx can only handle 256 wide textures
 	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
@@ -770,11 +772,14 @@ void Draw_ConsoleBackground (int lines)
 	else
 		Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y);
 
-	y = lines-14; 
-    sprintf (tl, "Time %s",timebuf); //Console Clock - Eradicator
-    x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
-    for (i=0 ; i < strlen(tl) ; i++) 
-       Draw_Character (x + i * 8, y, tl[i] | 0x80);
+	if ( con_clock.value )
+	{
+		y = lines-14; 
+		sprintf (tl, "Time: %s",timebuf); //Console Clock - Eradicator
+		x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+		for (i=0 ; i < strlen(tl) ; i++) 
+		   Draw_Character (x + i * 8, y, tl[i] | 0x80);
+	}
 }
 
 void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
@@ -807,11 +812,14 @@ void Draw_SpiralConsoleBackground (int lines) //Spiral Console - Eradicator
    glMatrixMode(GL_MODELVIEW); 
    glPopMatrix(); 
 
-	y = lines-14; 
-    sprintf (tl, "Time %s",timebuf); //Console Clock - Eradicator
-    x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
-    for (i=0 ; i < strlen(tl) ; i++) 
-       Draw_Character (x + i * 8, y, tl[i] | 0x80);
+   	if ( con_clock.value )
+	{
+		y = lines-14; 
+		sprintf (tl, "Time: %s",timebuf); //Console Clock - Eradicator
+		x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
+		for (i=0 ; i < strlen(tl) ; i++) 
+			Draw_Character (x + i * 8, y, tl[i] | 0x80);
+	}
 }
 
 
@@ -1923,7 +1931,10 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 
 	texture_extension_number++;
 
-	if (!COM_CheckParm("-nobumpmaps")) //Disable Bumpmapping Parameter - Eradicator
+	//Disable Bumpmapping parameter and now bumpmap cvar slightly
+	//works. this only prevents textures from loading, but if it
+	//has already loaded bumpmaps will not turn off) - Eradicator
+	if (!COM_CheckParm("-nobumpmaps") && ( sh_bumpmaps.value )) 
 	{
 	    //upload bump map (if any)
 	    if (bump) {
