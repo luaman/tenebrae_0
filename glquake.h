@@ -718,6 +718,13 @@ typedef void (APIENTRY * PFNGLTEXIMAGE3DEXT)(GLenum target, GLint level, GLenum 
 											 const GLvoid* pixels);
 extern PFNGLTEXIMAGE3DEXT qglTexImage3DEXT;
 
+//gldepthbounds stuff
+typedef void (APIENTRY * PFNGLDEPTHBOUNDSNV)(GLclampd zmin, GLclampd zmax);
+
+extern PFNGLDEPTHBOUNDSNV qglDepthBoundsNV;
+
+
+
 // <AWE> : NV_vertex_program will never be supported under any other OS than Windows, because it got
 //	   replaced by the official ARB spec "ARB_vertex_program".
 //
@@ -1462,8 +1469,8 @@ void		EmitMirrorWaterPolys (msurface_t *fa);
 void		EmitSkyPolys (msurface_t *fa);
 void		EmitWaterPolys (msurface_t *fa);
 void		InitShaderTex (void);
-void 		LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height);
-void		LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height);
+void 		LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char *fname);
+void		LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height, char *fname);
 int             LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* height);
 void            LoadTGA (FILE *fin);
 qboolean	OverrideFluidTex (char *name);

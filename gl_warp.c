@@ -714,6 +714,8 @@ int LoadTexture(char* filename, int size)
 
         png_set_gamma(png_ptr, 1.0, 1.0);
 
+
+
         if ( size == 4 )
 	{
             if ( color_type & PNG_COLOR_MASK_PALETTE )
@@ -736,6 +738,7 @@ int LoadTexture(char* filename, int size)
             if ( color_type & PNG_COLOR_MASK_PALETTE )
             {
                 png_set_palette_to_rgb(png_ptr);   
+
             }
 
             if ( color_type & PNG_COLOR_MASK_COLOR )
@@ -823,6 +826,8 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 
         png_set_gamma(png_ptr, 1.0, 1.0);
 
+
+
         if ( size == 4 )
 	{
             if ( color_type & PNG_COLOR_MASK_PALETTE )
@@ -845,6 +850,7 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
             if ( color_type & PNG_COLOR_MASK_PALETTE )
             {
                 png_set_palette_to_rgb(png_ptr);   
+
             }
 
             if ( color_type & PNG_COLOR_MASK_COLOR )
@@ -873,9 +879,9 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
 	return 0;
     }
     if ( size == 4 )
-	LoadColorTGA(f, mem, width, height);
+	LoadColorTGA(f, mem, width, height, argh);
     else
-	LoadGrayTGA(f, mem, width, height);
+	LoadGrayTGA(f, mem, width, height, argh);
     return 1;
 }
 
@@ -1039,7 +1045,7 @@ PENTA: loads a color tga (rgb/rgba/or quake palette)
 returns width & height in the references.
 =============
 */
-void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height)
+void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height, char* fname)
 {
     int				columns, rows, numPixels;
     byte			*pixbuf;
@@ -1061,7 +1067,7 @@ void LoadColorTGA (FILE *fin, byte *pixels, int *width, int *height)
 
     if (targa_header.image_type!=2 
 	&& targa_header.image_type!=10 && targa_header.image_type!=1) 
-	Sys_Error ("LoadTGA: Only type 1, 2 and 10 targa images supported\n");
+	Sys_Error ("LoadTGA: Only type 1, 2 and 10 targa images supported\n%s\n",fname);
 
     /*
       if (targa_header.colormap_type !=0 
@@ -1230,7 +1236,7 @@ PENTA: Load a grayscale tga for bump maps
 Copies the result to pixbuf (bytes not rgb) and puts the width & height in the references.
 =============
 */
-void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height)
+void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height, char *fname)
 {
     int				columns, rows, numPixels;
     int				row, column;
@@ -1252,7 +1258,7 @@ void LoadGrayTGA (FILE *fin,byte *pixels,int *width, int *height)
 
     if (targa_header.image_type!=1 
 	&& targa_header.image_type!=3) 
-	Sys_Error ("LoadGrayTGA: Only type 1 and 3 targa images supported for bump maps.\n");
+	Sys_Error ("LoadGrayTGA: Only type 1 and 3 targa images supported for bump maps.\n%s\n",fname);
 
     if (targa_header.image_type==1 && targa_header.pixel_size != 8 && 
 	targa_header.colormap_size != 24 && targa_header.colormap_length != 256)
@@ -1351,6 +1357,8 @@ int EasyTgaLoad(char *filename)
 
         png_set_gamma(png_ptr, 1.0, 1.0);
 
+
+
         if ( color_type & PNG_COLOR_MASK_PALETTE )
             png_set_palette_to_rgb(png_ptr);
 
@@ -1362,6 +1370,7 @@ int EasyTgaLoad(char *filename)
 
         if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
             png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+
 
 	for ( i = 0; i < height; i++ )
 	{
