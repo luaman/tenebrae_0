@@ -154,6 +154,7 @@ cvar_t  gl_wireframe = {"gl_wireframe","0"};
 cvar_t  gl_caustics = {"gl_caustics","1"};
 cvar_t  gl_truform = {"gl_truform","0"};
 cvar_t  gl_truform_tesselation = {"gl_truform_tesselation","4"};
+cvar_t	gl_transformlerp = {"gl_transformlerp","0",true};//Erad - transform interpolation cvar (off by default due to bugs)
 
 cvar_t	fog_r = {"fog_r","0.2"};
 cvar_t	fog_g = {"fog_g","0.1"};
@@ -210,7 +211,93 @@ qboolean R_CullBox (vec3_t mins, vec3_t maxs)
 }
 
 
+/*
+=============
+R_RotateForEntity
+
+Erad - transform interpolation
+=============
+*/
 void R_RotateForEntity (entity_t *e)
+{
+	float timepassed;
+	float blend;
+	vec3_t d;
+	int i;
+
+	if (!gl_transformlerp.value)
+	{
+		R_UnlerpedRotateForEntity(e);
+		return;
+	}
+
+	timepassed = realtime - e->translate_start_time; 
+
+	if (e->translate_start_time == 0 || timepassed > 1)
+	{
+		e->translate_start_time = realtime;
+		VectorCopy (e->origin, e->origin1);
+		VectorCopy (e->origin, e->origin2);
+	}
+
+	if (!VectorCompare (e->origin, e->origin2))
+	{
+		e->translate_start_time = realtime;
+		VectorCopy (e->origin2, e->origin1);
+		VectorCopy (e->origin,  e->origin2);
+		blend = 0;
+	}
+	else
+	{
+		blend =  timepassed / 0.1;
+
+		if (cl.paused || blend > 1) blend = 1;
+        }
+			VectorSubtract (e->origin2, e->origin1, d);
+
+            glTranslatef (
+                e->origin1[0] + (blend * d[0]),
+                e->origin1[1] + (blend * d[1]),
+                e->origin1[2] + (blend * d[2]));
+             timepassed = realtime - e->rotate_start_time; 
+
+             if (e->rotate_start_time == 0 || timepassed > 1)
+             {
+                 e->rotate_start_time = realtime;
+                 VectorCopy (e->angles, e->angles1);
+                 VectorCopy (e->angles, e->angles2);
+             }
+             if (!VectorCompare (e->angles, e->angles2))
+             {
+                 e->rotate_start_time = realtime;
+                 VectorCopy (e->angles2, e->angles1);
+                 VectorCopy (e->angles,  e->angles2);
+                 blend = 0;
+             }
+             else
+             {
+                 blend = timepassed / 0.1;
+                 if (cl.paused || blend > 1) blend = 1;
+             }
+        VectorSubtract (e->angles2, e->angles1, d);
+		for (i = 0; i < 3; i++) 
+		{
+			if (d[i] > 180)
+		{
+			d[i] -= 360;
+		}
+		else if (d[i] < -180)
+		{
+			d[i] += 360;
+        }
+    }
+	glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
+	glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
+	glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
+}
+
+
+void R_UnlerpedRotateForEntity (entity_t *e)
 {
     glTranslatef (e->origin[0],  e->origin[1],  e->origin[2]);
 
@@ -1497,7 +1584,15 @@ void R_DrawViewModel (void)
 							  //but they don't poke into walls) - Eradicator
 		glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
 
-	R_DrawAliasModel (0.1);
+	//Erad - don't want to lerp view models (disable this to see why ;)
+	if (gl_transformlerp.value)
+	{
+		gl_transformlerp.value = 0;
+		R_DrawAliasModel (0.1);
+		gl_transformlerp.value = 1;
+	}
+	else
+		R_DrawAliasModel (0.1);
 
 	if ( gl_calcdepth.value ) //Calc Depth - Eradicator
 		glDepthRange (gldepthmin, gldepthmax);

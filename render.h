@@ -90,6 +90,15 @@ typedef struct entity_s
 	//PENTA:
 	int			numleafs;
 	short		leafnums[MAX_CLIENT_ENT_LEAFS];
+
+	//Erad - t lerp variables
+	float                   translate_start_time;
+    vec3_t                  origin1;
+    vec3_t                  origin2;
+    float                   rotate_start_time;
+    vec3_t                  angles1;
+    vec3_t                  angles2;
+
 } entity_t;
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!

@@ -505,6 +505,10 @@ void CL_RelinkEntities (void)
 		if (ent->msgtime != cl.mtime[0])
 		{
 			ent->model = NULL;
+			//Erad - dont lerp either
+			ent->frame_start_time     = 0;
+			ent->translate_start_time = 0;
+			ent->rotate_start_time    = 0;
 			continue;
 		}
 
@@ -519,6 +523,12 @@ void CL_RelinkEntities (void)
 		}
 		else
 		{	// if the delta is large, assume a teleport and don't lerp
+			if (f >= 1)
+			{
+				ent->frame_start_time     = 0;
+				ent->translate_start_time = 0;
+				ent->rotate_start_time    = 0;
+			}
 			f = frac;
 			for (j=0 ; j<3 ; j++)
 			{

@@ -371,6 +371,7 @@ extern	cvar_t	fog_waterfog;
 extern	cvar_t	gl_caustics;
 extern	cvar_t	gl_truform;
 extern	cvar_t	gl_truform_tesselation;
+extern	cvar_t	gl_transformlerp;
 extern	cvar_t	gl_compress_textures;
 extern  cvar_t	scr_fov;	// 10 - 170
 extern	cvar_t	mir_detail; //PENTA: mirror detail level
@@ -1442,6 +1443,7 @@ void		R_ParticleGunHits (vec3_t org, int type);
 void		R_RenderGlow (shadowlight_t *light);
 void		R_RenderScene (void);
 void		R_RotateForEntity (entity_t *e);
+void		R_UnlerpedRotateForEntity (entity_t *e);
 void		R_SetTotalRect (void);
 void		R_SetupBrushInstantForLight(entity_t *e);
 void		R_SetupInstantForLight(entity_t *e);

@@ -257,6 +257,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&gl_caustics);
 	Cvar_RegisterVariable (&gl_truform);
 	Cvar_RegisterVariable (&gl_truform_tesselation);
+	Cvar_RegisterVariable (&gl_transformlerp);
 
 	R_InitParticleEffects();
 	R_InitParticles ();
