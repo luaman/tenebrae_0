@@ -1064,6 +1064,14 @@ typedef struct screenrect_s {
 } screenrect_t;
 
 
+typedef union lightcmd_u {
+  int asInt;
+  float asFloat;
+  vec_t asVec;
+  void *asVoid;
+} lightcmd_t;
+
+
 typedef struct shadowlight_s {
 	vec3_t	origin;		//position of light source
 	vec3_t	baseColor, color;		//light color, animated color
@@ -1081,7 +1089,7 @@ typedef struct shadowlight_s {
 	int		*volumeCmds;  //gl commands to draw the shadow volume
 	float	*volumeVerts;
 	int		numVolumeVerts;
-	int		*lightCmds;	//gl commands to draw the cap/lighted volumes
+	lightcmd_t	*lightCmds;	//gl commands to draw the cap/lighted volumes
 	int		 numVisSurf;
 	int		style;
 	entity_t *owner;
@@ -1178,7 +1186,7 @@ extern float frustumPlanes[6][4];
 #define MAX_VOLUME_COMMANDS 131072 //Thats 0.5 meg storage for commands, insane
 #define MAX_VOLUME_VERTS 87381 //1 Meg storage for vertices
 #define MAX_LIGHT_COMMANDS 65536 //0.25 meg for light commands
-extern int	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
+extern lightcmd_t	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
 
 //XYZ
 extern int	numNormals[MAXALIASTRIS]; //Used during tangent space calc
@@ -1275,7 +1283,7 @@ void		R_DrawWorldBumpedGEN (void);
 void 		R_DrawWorldBumpedGF (void);
 void		R_DrawWorldBumpedGF3 (void);
 void		R_DrawWorldBumpedRadeon (void);
-void		R_DrawWorldWV (int *lightCmds);
+void		R_DrawWorldWV (lightcmd_t *lightCmds);
 qboolean	R_FillShadowChain (shadowlight_t *light);
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity);
 void		R_Glare (void);

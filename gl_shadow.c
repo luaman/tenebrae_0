@@ -35,7 +35,7 @@ shadowlight_t *currentshadowlight;
 
 int volumeCmdsBuff[MAX_VOLUME_COMMANDS+128]; //Hack protect against slight overflows
 float volumeVertsBuff[MAX_VOLUME_VERTS+128];
-int	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
+lightcmd_t	lightCmdsBuff[MAX_LIGHT_COMMANDS+128];
 int numVolumeCmds;
 int numLightCmds;
 int numVolumeVerts;
@@ -49,10 +49,10 @@ vec3_t volumevertices[MAX_VOLUME_VERTICES];//buffer for the vertices of the shad
 int usedvolumevertices;
 */
 
-void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts);
-void DrawAttentFromCmds(int *lightCmds);
-void DrawBumpFromCmds(int *lightCmds);
-void DrawSpecularBumpFromCmds(int *lightCmds);
+void DrawVolumeFromCmds(int *volumeCmds, lightcmd_t *lightCmds, float *volumeVerts);
+void DrawAttentFromCmds(lightcmd_t *lightCmds);
+void DrawBumpFromCmds(lightcmd_t *lightCmds);
+void DrawSpecularBumpFromCmds(lightcmd_t *lightCmds);
 void PrecalcVolumesForLight(model_t *model);
 int getVertexIndexFromSurf(msurface_t *surf, int index, model_t *model);
 qboolean R_ContributeFrame(shadowlight_t *light);
@@ -1174,7 +1174,7 @@ void PrecalcVolumesForLight(model_t *model) {
 	msurface_t *surf;
 
 	int *volumeCmds = &volumeCmdsBuff[0];
-	int *lightCmds = &lightCmdsBuff[0];
+	lightcmd_t *lightCmds = &lightCmdsBuff[0];
 	float *volumeVerts = &volumeVertsBuff[0];
 	int volumePos = 0;
 	int lightPos = 0;
@@ -1334,13 +1334,13 @@ void PrecalcVolumesForLight(model_t *model) {
 
 			if (colorscale <0) colorscale = 0;
 
-			lightCmds[lightPos++] = GL_POLYGON;
+			lightCmds[lightPos++].asInt = GL_POLYGON;
 
-			(void *)lightCmds[lightPos++] = surf;
-			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[0]*colorscale; 
-			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[1]*colorscale;
-			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[2]*colorscale;
-			*(float *)(lightCmds+lightPos++) = colorscale;
+			lightCmds[lightPos++].asVoid = surf;
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[0]*colorscale; 
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[1]*colorscale;
+			lightCmds[lightPos++].asFloat = currentshadowlight->color[2]*colorscale;
+			lightCmds[lightPos++].asFloat = colorscale;
 
 			v = poly->verts[0];
 			for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
@@ -1349,8 +1349,8 @@ void PrecalcVolumesForLight(model_t *model) {
 				VectorSubtract (v, nearPt, nearToVert);
 
 				// Get our texture coordinates, transform into tangent plane
-				*(float *)(lightCmds+lightPos++) = DotProduct (nearToVert, (*s)) * scale + 0.5;
-				*(float *)(lightCmds+lightPos++) = DotProduct (nearToVert, (*t)) * scale + 0.5;
+				lightCmds[lightPos++].asVec = DotProduct (nearToVert, (*s)) * scale + 0.5;
+				lightCmds[lightPos++].asVec = DotProduct (nearToVert, (*t)) * scale + 0.5;
 				
 				//calculate local light vector and put it into tangent space
 				{
@@ -1366,9 +1366,9 @@ void PrecalcVolumesForLight(model_t *model) {
 
 					tsLightDir[1] = -DotProduct(lightDir,(*t));
 					tsLightDir[0] = DotProduct(lightDir,(*s));
-					*(float *)(lightCmds+lightPos++) = tsLightDir[0];
-					*(float *)(lightCmds+lightPos++) = tsLightDir[1];
-					*(float *)(lightCmds+lightPos++) = tsLightDir[2];
+					lightCmds[lightPos++].asVec = tsLightDir[0];
+					lightCmds[lightPos++].asVec = tsLightDir[1];
+					lightCmds[lightPos++].asVec = tsLightDir[2];
 				}
 			}
 		if (lightPos >  MAX_LIGHT_COMMANDS) {
@@ -1381,7 +1381,7 @@ void PrecalcVolumesForLight(model_t *model) {
 
 	//Con_Printf("used %i\n",volumePos);
 	//finish them off with 0
-	lightCmds[lightPos++] = 0;
+	lightCmds[lightPos++].asInt = 0;
 	volumeCmds[volumePos++] = 0;
 
 	numLightCmds = lightPos;
@@ -1395,7 +1395,7 @@ DrawVolumeFromCmds
 Draws the generated commands as shadow volumes
 =============
 */
-void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts) {
+void DrawVolumeFromCmds(int *volumeCmds, lightcmd_t *lightCmds, float *volumeVerts) {
 
 	int command, num, i;
 	int volumePos = 0;
@@ -1446,10 +1446,10 @@ void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts) {
 
 	while (1) {
 		
-		command = lightCmds[lightPos++];
+		command = lightCmds[lightPos++].asInt;
 		if (command == 0) break; //end of list
 
-		surf = (void *)lightCmds[lightPos++];
+		surf = lightCmds[lightPos++].asVoid;
 		lightPos+=4;  //skip color
 		num = surf->polys->numverts; 
 
