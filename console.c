@@ -253,6 +253,8 @@ Con_Linefeed
 */
 void Con_Linefeed (void)
 {
+// - DC - imported from sdlquake
+ 	if ( ! con_initialized ) return;
 	con_x = 0;
 	con_current++;
 	Q_memset (&con_text[(con_current%con_totallines)*con_linewidth]
@@ -275,6 +277,8 @@ void Con_Print (char *txt)
 	static int	cr;
 	int		mask;
 	
+// - DC - imported from sdlquake
+ 	if ( ! con_initialized ) return;
 	con_backscroll = 0;
 
 	if (txt[0] == 1)

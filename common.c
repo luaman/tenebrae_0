@@ -431,7 +431,15 @@ float Q_atof (char *str)
 ============================================================================
 */
 
+
+// - DC - imported from sdlquake
+#ifdef SDL
+#include "SDL_byteorder.h"
+#endif
+
 qboolean        bigendien;
+
+
 
 short   (*BigShort) (short l);
 short   (*LittleShort) (short l);
@@ -1140,7 +1148,13 @@ void COM_Init (char *basedir)
 	byte    swaptest[2] = {1,0};
 
 // set the byte swapping variables in a portable manner 
+// -DC - imported from sdlquake
+#ifdef SDL
+ 	// This is necessary because egcs 1.1.1 mis-compiles swaptest with -O2
+	if ( SDL_BYTEORDER == SDL_LIL_ENDIAN )
+#else
 	if ( *(short *)swaptest == 1)
+#endif
 	{
 		bigendien = false;
 		BigShort = ShortSwap;
