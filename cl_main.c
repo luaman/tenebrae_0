@@ -211,7 +211,7 @@ Con_DPrintf ("CL_SignonReply: %i\n", cls.signon);
 		SCR_EndLoadingPlaque ();		// allow normal screen updates
 		//PENTA:  Is this the right place to call stuff like this?
 		R_AutomaticLightPos();
-
+		R_LoadSkys();
 		break;
 	}
 }
@@ -513,6 +513,7 @@ void CL_RelinkEntities (void)
 			// so move to the final spot
 			VectorCopy (ent->msg_origins[0], ent->origin);
 			VectorCopy (ent->msg_angles[0], ent->angles);
+			R_FillEntityLeafs (ent);
 		}
 		else
 		{	// if the delta is large, assume a teleport and don't lerp
@@ -536,7 +537,7 @@ void CL_RelinkEntities (void)
 					d += 360;
 				ent->angles[j] = ent->msg_angles[1][j] + f*d;
 			}
-			
+			R_FillEntityLeafs (ent);
 		}
 
 // rotate binary objects locally

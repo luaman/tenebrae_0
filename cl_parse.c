@@ -376,6 +376,7 @@ if (bits&(1<<i))
 		modnum = MSG_ReadByte ();
 		if (modnum >= MAX_MODELS)
 			Host_Error ("CL_ParseModel: bad modnum");
+		//Relink ent based on new model
 	}
 	else
 		modnum = ent->baseline.modelindex;
@@ -399,6 +400,7 @@ if (bits&(1<<i))
 		if (num > 0 && num <= cl.maxclients)
 			R_TranslatePlayerSkin (num - 1);
 #endif
+		R_FillEntityLeafs (ent);
 	}
 	
 	if (bits & U_FRAME)
@@ -536,7 +538,12 @@ void CL_ParseBaseline (entity_t *ent)
 		ent->baseline.origin[i] = MSG_ReadCoord ();
 		ent->baseline.angles[i] = MSG_ReadAngle ();
 		ent->baseline.color[i] = MSG_ReadByte () / 255.0;
-	}	
+	}
+
+	VectorCopy(ent->baseline.origin,ent->origin);
+	ent->model = cl.model_precache[ent->baseline.modelindex];
+		//setup nodes
+	R_FillEntityLeafs (ent);	
 }
 
 
@@ -729,6 +736,8 @@ void CL_ParseStatic (void)
 	VectorCopy (ent->baseline.angles, ent->angles);	
 	R_AddEfrags (ent);
 	R_CalcSvBsp(ent);
+
+	R_FillEntityLeafs (ent);
 }
 
 void CL_ParseLight (void)
