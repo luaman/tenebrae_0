@@ -1037,6 +1037,91 @@ void VID_DescribeMode_f (void)
 	leavecurrentmode = t;
 }
 
+/*
+qboolean VID_SetFullDIBMode (int modenum)
+{
+	HDC				hdc;
+	int				lastmodestate, width, height;
+	RECT			rect;
+
+	if (!leavecurrentmode)
+	{
+*/
+
+/*
+=================
+VID_ChangeMode_f
+PENTA: Experiment with run time mode changing
+		This assumes we have a correctly set up window.
+=================
+*/
+
+extern qpic_t	*conback;
+
+void VID_ChangeMode_f (void)
+{
+	RECT			rect;
+	int width, height;
+	int modenum = Q_atoi (Cmd_Argv(1));
+
+	if ((windowed && (modenum != 0)) ||
+		(!windowed && (modenum < 1)) ||
+		(!windowed && (modenum >= nummodes)))
+	{
+		Con_Printf ("Bad video mode\n");
+		return;
+	}
+
+	ReleaseDC(dibwindow, maindc);
+
+	if (!windowed) {
+		gdevmode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+		gdevmode.dmBitsPerPel = modelist[modenum].bpp;
+		gdevmode.dmPelsWidth = modelist[modenum].width <<
+								  modelist[modenum].halfscreen;
+		gdevmode.dmPelsHeight = modelist[modenum].height;
+		gdevmode.dmSize = sizeof (gdevmode);
+
+		if (ChangeDisplaySettings (&gdevmode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+			Sys_Error ("Couldn't set fullscreen DIB mode");
+
+		//lastmodestate = modestate;
+		modestate = MS_FULLDIB;
+	} else {
+		modestate = MS_WINDOWED;
+	}
+
+	WindowRect.top = WindowRect.left = 0;
+
+	WindowRect.right = modelist[modenum].width;
+	WindowRect.bottom = modelist[modenum].height;
+
+	DIBWidth = modelist[modenum].width;
+	DIBHeight = modelist[modenum].height;
+
+	rect = WindowRect;
+	width = rect.right - rect.left;
+	height = rect.bottom - rect.top;
+
+	SetWindowPos(mainwindow, HWND_TOP, WindowRect.top, WindowRect.left, width, height, 0);
+
+	vid.conheight = modelist[modenum].height;
+	vid.conwidth = modelist[modenum].width;
+	vid.width = vid.conwidth;
+	vid.height = vid.conheight;
+
+	//Hacky normaly the conback is resized according to the screen rez.
+	if (conback) {
+		conback->width = vid.width;
+		conback->height = vid.height;
+	}
+
+	vid.numpages = 2;
+	
+	maindc = GetDC(mainwindow);
+	wglMakeCurrent( maindc, baseRC );
+}
+
 
 /*
 =================
@@ -1324,6 +1409,8 @@ void	VID_Init (unsigned char *palette)
 	Cmd_AddCommand ("vid_describecurrentmode", VID_DescribeCurrentMode_f);
 	Cmd_AddCommand ("vid_describemode", VID_DescribeMode_f);
 	Cmd_AddCommand ("vid_describemodes", VID_DescribeModes_f);
+	Cmd_AddCommand("vid_changemode", VID_ChangeMode_f);
+
 
 	hIcon = LoadIcon (global_hInstance, MAKEINTRESOURCE (IDI_ICON2));
 
