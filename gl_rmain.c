@@ -140,7 +140,7 @@ cvar_t	sh_nocache = {"sh_nocache","0"};
 cvar_t	sh_glares = {"sh_glares","0"};
 cvar_t	sh_noefrags = {"sh_noefrags","0"};
 
-cvar_t	mir_detail = {"mir_detail","1",true};//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
+cvar_t	mir_detail = {"mir_detail","1",true};
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
 cvar_t	mir_forcewater = {"mir_forcewater","0"};
 cvar_t  gl_wireframe = {"gl_wireframe","0"}; 
@@ -1197,7 +1197,7 @@ void R_DrawEntitiesShadowVolumes (int type)
 	//during intermissions the viewent model is nil
 	if (currententity->model) 
 		if ((currententity->model->type == type) && (currententity->model->type == mod_alias)
-			 && (sh_playershadow.value)) {
+			&& (sh_playershadow.value) && (!chase_active.value)) { //Fix for two player shadows in chase cam - Eradicator
 			//for lights cast by the player don't add the player's shadow
 			if (currentshadowlight->owner != currententity) {
 				//HACK: only horizontal angle this looks better
