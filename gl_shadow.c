@@ -1100,7 +1100,7 @@ void R_DrawBrushModelVolumes(entity_t *e) {
 		}
 
 		//Draw near light cap
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		for (j=0; j<surf->numedges ; j++)
 		{
 			//glVertex3fv(&poly->verts[j][0]);
@@ -1109,7 +1109,7 @@ void R_DrawBrushModelVolumes(entity_t *e) {
 		glEnd();
 
 		//Draw extruded cap
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		for (j=surf->numedges-1; j>=0 ; j--)
 		{
 			glVertex3fv(&ins->extvertices[count+j][0]);
@@ -1212,7 +1212,8 @@ void PrecalcVolumesForLight(model_t *model) {
 	
 		
 		//a. far cap
-		volumeCmds[volumePos++] = GL_POLYGON;
+//		volumeCmds[volumePos++] = GL_POLYGON;
+		volumeCmds[volumePos++] = GL_TRIANGLE_FAN;
 		volumeCmds[volumePos++] = surf->numedges;
 
 		startVerts = (int)vertPos/3;

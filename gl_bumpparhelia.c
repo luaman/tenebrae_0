@@ -1151,7 +1151,7 @@ void R_DrawBrushParheliaDiffuse(entity_t *e)
 	GL_SelectTexture(GL_TEXTURE2_ARB);
 	GL_Bind(t->gl_texturenum);
 
-	glBegin(GL_POLYGON);
+	glBegin(GL_TRIANGLE_FAN);
 	//v = poly->verts[0];
 	v = (float *)(&globalVertexTable[poly->firstvertex]);
 	for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
@@ -1192,7 +1192,7 @@ void R_DrawBrushParheliaSpecular(entity_t *e)
 	GL_SelectTexture(GL_TEXTURE2_ARB);
 	GL_Bind(t->gl_texturenum);
 
-	glBegin(GL_POLYGON);
+	glBegin(GL_TRIANGLE_FAN);
 	//v = poly->verts[0];
 	v = (float *)(&globalVertexTable[poly->firstvertex]);
 	for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
