@@ -1065,6 +1065,31 @@ void VID_CreateWindow(XVisualInfo *visinfo)
 	if ((i = COM_CheckParm("-height")) != 0)
 		height = atoi(com_argv[i+1]);
 
+	if ((i = COM_CheckParm("-winsize")) != 0){             
+		width = atoi(com_argv[i+1]);
+		height = atoi(com_argv[i+2]);
+        }
+
+        if ((i = COM_CheckParm("-geometry")) != 0){
+             char *h = com_argv[i+1];
+             char *w = h;
+             
+             while (*h!='\0'){
+                  if (*h=='x' || *h=='X'){
+                       *h='\0';                       
+                       h++;                                         
+                       break;                  
+                  }
+                  h++;
+             }             
+             if (*w!='\0' && *h!='\0'){
+                  Con_Printf("width %s and height %s\n",w,h);
+                  
+                  width = atoi (w);
+                  height = atoi (h);
+             }
+        }        
+
 	if ((i = COM_CheckParm("-conwidth")) != 0)
 		vid.conwidth = Q_atoi(com_argv[i+1]);
 	else
