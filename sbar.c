@@ -933,6 +933,8 @@ void Sbar_Draw (void)
 	if (sb_updates >= vid.numpages && sbar_updateperframe.value == 0)
 		return;
 
+	glEnable(GL_BLEND);
+
 	scr_copyeverything = 1;
 
 	sb_updates++;
@@ -1043,6 +1045,7 @@ void Sbar_Draw (void)
 		if (cl.gametype == GAME_DEATHMATCH)
 			Sbar_MiniDeathmatchOverlay ();
 	}
+	glDisable(GL_BLEND);
 }
 
 //=============================================================================
