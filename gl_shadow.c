@@ -1089,9 +1089,11 @@ void R_DrawBrushModelVolumes(entity_t *e) {
 		{
 			if (ins->neighbourVis[count+j]) {
 				glBegin(GL_QUAD_STRIP);
-					glVertex3fv(&poly->verts[j][0]);
+					//glVertex3fv(&poly->verts[j][0]);
+					glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+j]));
 					glVertex3fv(&ins->extvertices[count+j][0]);
-					glVertex3fv(&poly->verts[((j+1)% poly->numverts)][0]);
+					//glVertex3fv(&poly->verts[((j+1)% poly->numverts)][0]);
+					glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+((j+1)% poly->numverts)]));
 					glVertex3fv(&ins->extvertices[count+((j+1)% poly->numverts) ][0]);
 				glEnd();			
 			}
@@ -1101,7 +1103,8 @@ void R_DrawBrushModelVolumes(entity_t *e) {
 		glBegin(GL_POLYGON);
 		for (j=0; j<surf->numedges ; j++)
 		{
-			glVertex3fv(&poly->verts[j][0]);
+			//glVertex3fv(&poly->verts[j][0]);
+			glVertex3fv((float *)(&globalVertexTable[surf->polys->firstvertex+j]));
 		}
 		glEnd();
 
@@ -1215,7 +1218,8 @@ void PrecalcVolumesForLight(model_t *model) {
 		startVerts = (int)vertPos/3;
 		for (i=0 ; i<surf->numedges ; i++)
 		{
-			v2 = (vec3_t *)&poly->verts[i];
+			//v2 = (vec3_t *)&poly->verts[i];
+			v2 = (vec3_t *)(&globalVertexTable[surf->polys->firstvertex+i]);
 			VectorSubtract ( (*v2), currentshadowlight->origin, v1);
 
 			scale = Length (v1);
@@ -1240,7 +1244,8 @@ void PrecalcVolumesForLight(model_t *model) {
 		startNearVerts = (int)vertPos/3;
 		for (i=0 ; i<surf->numedges ; i++)
 		{
-			v2 = (vec3_t *)&poly->verts[i];
+			//v2 = (vec3_t *)&poly->verts[i];
+			v2 = (vec3_t *)(&globalVertexTable[surf->polys->firstvertex+i]);
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[0];	// <AWE> lvalue cast. what da...?
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[1];	// <AWE> a float is a float is a...
 			/*(float)*/volumeVerts[vertPos++] = (*v2)[2];
@@ -1342,7 +1347,8 @@ void PrecalcVolumesForLight(model_t *model) {
 			lightCmds[lightPos++].asFloat = currentshadowlight->color[2]*colorscale;
 			lightCmds[lightPos++].asFloat = colorscale;
 
-			v = poly->verts[0];
+			//v = poly->verts[0];
+			v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 			for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
 			{
 				// Project the light image onto the face
@@ -1454,7 +1460,8 @@ void DrawVolumeFromCmds(int *volumeCmds, lightcmd_t *lightCmds, float *volumeVer
 		num = surf->polys->numverts; 
 
 		glBegin(command);
-		v = surf->polys->verts[0];
+		//v = surf->polys->verts[0];
+		v = (float *)(&globalVertexTable[surf->polys->firstvertex]);
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			//skip attent texture coord.
 			lightPos+=2;
@@ -1723,7 +1730,7 @@ void AddToShadowBsp(msurface_t *surf) {
 	surf->visframe = 0;
 	//Make temp copy of suface polygon
 	numsurfvects = surf->numedges;
-	for (i=0, v=surf->polys->verts[0]; i<numsurfvects; i++, v+=VERTEXSIZE) {
+	for (i=0, v=(float *)(&globalVertexTable[surf->polys->firstvertex]); i<numsurfvects; i++, v+=VERTEXSIZE) {
 		VectorCopy(v,surfvects[i]);
 	}
 
@@ -1901,6 +1908,12 @@ void R_CalcSvBsp(entity_t *ent) {
 		//Create a light and make it static
 		R_ShadowFromEntity(ent);
 		numStaticShadowLights++;
+
+		if (numShadowLights >= MAXSHADOWLIGHTS)  {
+			Con_Printf("R_CalcSvBsp: More than MAXSHADOWLIGHTS lights");
+			return;
+		}
+
 		currentshadowlight = &shadowlights[numShadowLights-1];
 
 		//Hack: support quake light_* entities
@@ -1916,11 +1929,6 @@ void R_CalcSvBsp(entity_t *ent) {
 			currentshadowlight->baseColor[0] = 1;
 			currentshadowlight->baseColor[1] = 0.9;
 			currentshadowlight->baseColor[2] = 0.75;
-		}
-
-		if (numShadowLights == MAXSHADOWLIGHTS)  {
-			Con_Printf("R_CalcSvBsp: More than MAXSHADOWLIGHTS lights");
-			return;
 		}
 
 		currentshadowlight->isStatic = true;
@@ -1993,7 +2001,7 @@ void R_CalcSvBsp(entity_t *ent) {
 
 		currentshadowlight->lightCmds = Hunk_Alloc(4*numLightCmds);
 		Q_memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, 4*numLightCmds);
-		//Con_Printf("light done");
+		//Con_Printf("light done\n");
 	} else {
 		//Con_Printf("thrown away");
 	}
@@ -2018,7 +2026,8 @@ void LightFromSurface(msurface_t *surf) {
 	invnum = 1.0/poly->numverts;
 
 	//Calculate origin for the light we are possibly going to spawn
-	v = poly->verts[0];
+	//v = poly->verts[0];
+	v = (float *)(&globalVertexTable[poly->firstvertex]);
 	center[0] = center[1] = center[2] = 0;
 	for (i=0 ; i<poly->numverts ; i++, v+= VERTEXSIZE)
 	{
@@ -2059,6 +2068,7 @@ void LightFromSurface(msurface_t *surf) {
 		R_CalcSvBsp(&fakeEnt);
 		Con_Printf("Added surface light");
 	}
+
 }
 
 /**
@@ -2100,6 +2110,8 @@ void LightFromFile(vec3_t orig) {
 		R_CalcSvBsp(&fakeEnt);
 		//Con_Printf("Added file light");
 	}
+
+
 }
 
 
@@ -2163,24 +2175,24 @@ char *ParseEnt (char *data, qboolean *isLight, vec3_t origin)
 		} else if (!strcmp(keyname, "origin"))  {
 			ParseVector(com_token, origin);	
 		} else if (!strcmp(keyname, "_noautolight")) {
-
 			Con_Printf("Automatic light gen disabled\n");//XYW \n
-
 			foundworld = true;
 		} else if (!strcmp(keyname, "_skybox")) {
 			strcpy(skybox_name,com_token);
-
 		} else if (!strcmp(keyname, "_cloudspeed")) {
 			skybox_cloudspeed = atof(com_token);
-
 		} else if (!strcmp(keyname, "_lightmapbright")) {
-
-			//Con_Printf("Automatic light gen disabled");
-
-			sh_lightmapbright.value = atof(com_token);
-
+			Cvar_Set("sh_lightmapbright",com_token);
 			Con_Printf("Lightmap brightness set to %f\n",sh_lightmapbright.value);
-
+		} else if (!strcmp(keyname, "_fog_color")) {
+			ParseVector(com_token, origin);	
+			Cvar_SetValue("fog_r",origin[0]);
+			Cvar_SetValue("fog_g",origin[1]);
+			Cvar_SetValue("fog_b",origin[2]);
+		} else if (!strcmp(keyname, "_fog_start")) {
+			Cvar_Set("fog_start",com_token);
+		} else if (!strcmp(keyname, "_fog_end")) {
+			Cvar_Set("fog_end",com_token);
 		} else {
 
 			//just do nothing
@@ -2199,6 +2211,9 @@ void LoadLightsFromFile (char *data)
 	qboolean	isLight;
 	vec3_t		origin;
 
+	Cvar_SetValue ("fog_start",0.0);
+	Cvar_SetValue ("fog_end",0.0);
+
 // parse ents
 	while (1)
 	{
@@ -2215,7 +2230,11 @@ void LoadLightsFromFile (char *data)
 			LightFromFile(origin);
 			//Con_Printf("found light in file");
 		}
-	}	
+	}
+	
+	if ((!fog_start.value) && (!fog_end.value)) {
+		Cvar_SetValue ("fog_enabled",0.0);
+	}
 }
 
 void R_AutomaticLightPos() {
