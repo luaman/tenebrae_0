@@ -60,18 +60,6 @@ typedef void (APIENTRY * PFNGLGETPROGRAMNAMEDPARAMETERFVNVPROC) (GLuint id, GLsi
 typedef void (APIENTRY * PFNGLGETPROGRAMNAMEDPARAMETERDVNVPROC) (GLuint id, GLsizei len, const GLubyte *name, GLdouble *params);
 #endif
 
-// EXT_stencil_two_side
-#ifndef GL_EXT_stencil_two_side
-#define GL_STENCIL_TEST_TWO_SIDE_EXT      0x8910
-#define GL_ACTIVE_STENCIL_FACE_EXT        0x8911
-#endif
-
-#ifndef GL_EXT_stencil_two_side
-#define GL_EXT_stencil_two_side 1
-typedef void (APIENTRY * PFNGLACTIVESTENCILFACEEXTPROC) (GLenum face);
-#endif
-PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
-
 static char vertexprogram[] =
 "!!VP1.1\n"
 "OPTION NV_position_invariant;\n"
