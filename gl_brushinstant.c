@@ -144,7 +144,9 @@ qboolean CheckBrushLightUpdate(entity_t *e, brushlightinstant_t *ins) {
 		(bdist(ins->lasteorg,e->origin) < DIST_DELTA) &&
 		(bdist(ins->lasteangles,e->angles) < ANG_DELTA) &&
 		(fabs(ins->lastlradius - currentshadowlight->radius) <= RADIUS_DELTA) && 
-		(ins->lastshadowonly == ins->shadowonly))
+		(ins->lastshadowonly == ins->shadowonly) &&
+		(ins->lockframe >= r_framecount-10))//XYW Don't reuse if it has been unused for a long time
+
 	{
 		atest = atest+1;
 		return false;

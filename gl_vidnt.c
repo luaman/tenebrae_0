@@ -854,7 +854,7 @@ void GL_Init (void)
 	gl_extensions = glGetString (GL_EXTENSIONS);
 	Con_Printf ("GL_EXTENSIONS: %s\n", gl_extensions);
 
-//	Con_Printf ("%s %s\n", gl_renderer, gl_version);
+	Con_Printf ("%s %s\n", gl_renderer, gl_version);
 
     if (strnicmp(gl_renderer,"PowerVR",7)==0)
          fullsbardraw = true;
