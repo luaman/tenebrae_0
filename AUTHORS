@@ -1,0 +1,25 @@
+
+Id Software		<http://www.idsoftware.com>
+
+ - original quake code 
+
+Charles Hollemeersh	<c_hollemeersch(at)hotmail.com>
+
+ - Tenebrae Mod
+
+Jarno Paananen		<jpaana(at)users.sourceforge.net>
+
+ - Radeon support
+
+AWE			<awe(at)fruitz-of-dojo.de>
+
+ - Mac OSX port
+
+Sam Lantinga 		<slouken(at)devolution.com>
+
+ - initial port of quake to SDL
+
+Didier Cassirame	<faded(at)free.fr>
+
+ - OpenGL through SDL hack
+
