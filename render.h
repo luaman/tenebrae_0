@@ -75,8 +75,6 @@ typedef struct entity_s
 	int		light_lev;
 	int		pflags;
 
-	void* aliasframeinstant;
-	void* brushlightinstant;
 
 	// Animation interpolation (Based on QuakeForge)
     float                   frame_start_time;
@@ -85,6 +83,10 @@ typedef struct entity_s
     int                     pose1; 
     int                     pose2;
 	
+     // frame instant chain
+     struct aliasframeinstant_s *aliasframeinstant;
+     void* brushlightinstant;
+
 	//PENTA:
 	int			numleafs;
 	short		leafnums[MAX_CLIENT_ENT_LEAFS];
