@@ -179,11 +179,11 @@ void R_SetupInstants ()
 	if (mirror) return;
 
 	//interpolate gun also
-	if (cl.viewent.model)
+	if (cl.viewent.model && cl.viewent.model->type == mod_alias)
 		R_SetupInstantForFrame(&cl.viewent,true);
 
 	//for player
-	if (cl_entities[cl.viewentity].model)
+	if (cl_entities[cl.viewentity].model && cl_entities[cl.viewentity].model->type == mod_alias)
 		R_SetupInstantForFrame(&cl_entities[cl.viewentity],true);
 
 }
