@@ -379,7 +379,11 @@ void Con_DebugLog(char *file, char *fmt, ...)
     int fd;
 
     va_start(argptr, fmt);
+#ifdef _MSC_VER
+    vsprintf(data, fmt, argptr);
+#else
     vsnprintf(data, MAXPRINTMSG,fmt, argptr);
+#endif
     va_end(argptr);
     fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
     write(fd, data, strlen(data));
@@ -404,7 +408,11 @@ void Con_Printf(char *fmt, ...)
     static qboolean	inupdate;
 	
     va_start (argptr,fmt);
+#ifdef _MSC_VER
+    vsprintf(msg, fmt, argptr);
+#else
     vsnprintf (msg,MAXPRINTMSG,fmt,argptr);
+#endif
     va_end (argptr);
 	
 // also echo to debugging console
