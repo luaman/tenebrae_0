@@ -200,8 +200,10 @@ void R_Glare ()
 	r_refdef.vrect.y = 0;
 	r_refdef.vrect.width = GLARE_WIDTH;
 	r_refdef.vrect.height = GLARE_WIDTH;
-	r_refdef.fov_x = 90.0;
-	r_refdef.fov_y = 90.0;//CalcFov (90.0, r_refdef.vrect.width, r_refdef.vrect.height);
+//	r_refdef.fov_x = 90.0;
+//	r_refdef.fov_y = 90.0;//CalcFov (90.0, r_refdef.vrect.width, r_refdef.vrect.height);
+	r_refdef.fov_x = scr_fov.value;
+	r_refdef.fov_y = CalcFov (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
 
 	//Con_Printf("render glaer\n");
 	R_RenderScene ();
