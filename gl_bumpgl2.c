@@ -159,7 +159,8 @@ typedef char GLcharARB;
 #define GL_ARB_vertex_shader 1
 
 // Taken from ARB_vertex_program
-#if !defined(__FreeBSD__)
+#ifndef GL_ARB_vertex_program
+#define GL_ARB_vertex_program 1
 typedef void (APIENTRY * PFNGLVERTEXATTRIB4FVARBPROC)	(GLuint index, const GLfloat *v);
 typedef void (APIENTRY * PFNGLVERTEXATTRIB3FVARBPROC)	(GLuint index, const GLfloat *v);
 typedef void (APIENTRY * PFNGLVERTEXATTRIB2FVARBPROC)	(GLuint index, const GLfloat *v);
@@ -203,6 +204,11 @@ typedef void (APIENTRY * PFNGLVERTEXATTRIB4NUIVARBPROC)	(GLuint index, const GLu
 typedef void (APIENTRY * PFNGLVERTEXATTRIBPOINTERARBPROC)	(GLuint index, GLint size, GLenum type, GLboolean normalize, GLsizei stride, const GLvoid *pointer);
 typedef void (APIENTRY * PFNGLENABLEVERTEXATTRIBARRAYARBPROC)	(GLuint index);
 typedef void (APIENTRY * PFNGLDISABLEVERTEXATTRIBARRAYARBPROC)	(GLuint index);
+typedef void (APIENTRY * PFNGLGETVERTEXATTRIBDVARBPROC) (GLuint index, GLenum pname, GLdouble *params);
+
+typedef void (APIENTRY * PFNGLGETVERTEXATTRIBFVARBPROC) (GLuint index, GLenum pname, GLfloat *params);
+typedef void (APIENTRY * PFNGLGETVERTEXATTRIBIVARBPROC) (GLuint index, GLenum pname, GLint *params);
+typedef void (APIENTRY * PFNGLGETVERTEXATTRIBPOINTERVARBPROC) (GLuint index, GLenum pname, void **pointer);
 #endif
 typedef void (APIENTRY * PFNGLBINDATTRIBLOCATIONARBPROC) (GLhandleARB programObj, GLuint index, const GLcharARB *name);
 typedef void (APIENTRY * PFNGLBINDARRAYGL2PROC) (GLhandleARB shaderObject, GLenum array, const GLcharARB *name, GLint length);
@@ -257,17 +263,11 @@ typedef void (APIENTRY * PFNGLGETUNIFORMFVARBPROC) (GLhandleARB programObj, GLin
 typedef void (APIENTRY * PFNGLGETUNIFORMIVARBPROC) (GLhandleARB programObj, GLint location, GLint *params);
 typedef void (APIENTRY * PFNGLGETATTRIBLOCATIONARBPROC) (GLhandleARB programObj, const GLcharARB *name);
 typedef void (APIENTRY * PFNGLVALIDATEPROGRAMARBPROC) (GLhandleARB programObj);
-#if !defined (__FreeBSD__)
-typedef void (APIENTRY * PFNGLGETVERTEXATTRIBPOINTERVARBPROC) (GLuint index, GLenum pname, void **pointer);
-#endif
+
 typedef void (APIENTRY * PFNGLGETOBJECTPARAMETERFVARBPROC)(GLhandleARB obj, GLenum pname, GLfloat *params);
 typedef void (APIENTRY * PFNGLGETOBJECTPARAMETERIVARBPROC)(GLhandleARB obj, GLenum pname, GLint *params);
-#if !defined (__FreeBSD__)
-typedef void (APIENTRY * PFNGLGETVERTEXATTRIBDVARBPROC) (GLuint index, GLenum pname, GLdouble *params);
 
-typedef void (APIENTRY * PFNGLGETVERTEXATTRIBFVARBPROC) (GLuint index, GLenum pname, GLfloat *params);
-typedef void (APIENTRY * PFNGLGETVERTEXATTRIBIVARBPROC) (GLuint index, GLenum pname, GLint *params);
-#endif
+
 typedef GLhandleARB (APIENTRY * PFNGLGETHANDLEARBPROC) (GLenum pname);
 typedef GLhandleARB (APIENTRY * PFNGLCREATEVERTEXARRAYOBJECTGL2PROC) (GLhandleARB formatObject, GLsizei count);
 typedef void (APIENTRY * PFNGLLOADVERTEXARRAYDATAGL2PROC) (GLhandleARB object, GLuint start, GLsizei count, GLvoid *data, GLenum preserve);
