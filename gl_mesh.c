@@ -79,42 +79,45 @@ int findneighbour(int index, int edgei, int numtris) {
 int	numNormals[MAXALIASTRIS];
 int	dupIndex[MAXALIASTRIS];
 
-void TangentForTri(mtriangle_t *tri, vec3_t norm, ftrivertx_t *verts, fstvert_t *texcos, vec3_t res) {
+void TangentForTri(int *index, ftrivertx_t *vertices, fstvert_t *texcos, vec3_t Tangent, vec3_t Binormal) {
+//see:
+//http://members.rogers.com/deseric/tangentspace.htm
+	vec3_t stvecs [3];
+	float *v0, *v1, *v2;
+	float *st0, *st1, *st2;
+	vec3_t vec1, vec2;
+	vec3_t planes[3];
+	int i;
 
-	vec3_t	vec1, vec2, dirv, tz;
-	float	delta1, delta2, t;
-	vec3_t	*v[3];
-	float	st[3][2];
-	int		j;
+	v0 = &vertices[index[0]].v[0];
+	v1 = &vertices[index[1]].v[0];
+	v2 = &vertices[index[2]].v[0];
+	st0 = &texcos[index[0]].s;
+	st1 = &texcos[index[1]].s;
+	st2 = &texcos[index[2]].s;
 
-	for (j=0; j<3; j++) {
-		v[j] = &verts[tri->vertindex[j]].v;
-
-		st[j][0] = texcos[tri->vertindex[j]].s;
-		st[j][1] = texcos[tri->vertindex[j]].t;
+	for (i=0; i<3; i++) {
+		vec1[0] = v1[i]-v0[i];
+		vec1[1] = st1[0]-st0[0];
+		vec1[2] = st1[1]-st0[1];
+		vec2[0] = v2[i]-v0[i];
+		vec2[1] = st2[0]-st0[0];
+		vec2[2] = st2[1]-st0[1];
+		VectorNormalize(vec1);
+		VectorNormalize(vec2);
+		CrossProduct(vec1,vec2,planes[i]);
 	}
 
-	vec1[0] = *v[1][0] - *v[0][0];
-	vec1[1] = *v[1][1] - *v[0][1];
-	vec1[2] = *v[1][2] - *v[0][2];
-	delta1 = st[1][0] - st[0][0];
-      
-	vec2[0] = *v[2][0] - *v[0][0];
-	vec2[1] = *v[2][1] - *v[0][1];
-	vec2[2] = *v[2][2] - *v[0][2];
-	delta2 = st[2][0] - st[0][0];
-
-	dirv[0] = (delta1 * vec2[0] - vec1[0] * delta2);
-	dirv[1] = (delta1 * vec2[1] - vec1[1] * delta2);
-	dirv[2] = (delta1 * vec2[2] - vec1[2] * delta2);
-
-	VectorNormalize(dirv);
-
-	VectorCopy(norm,tz);
-	t = dirv[0]*tz[0]+dirv[1]*tz[1]+dirv[2]*tz[2];
-	res[0] = dirv[0]-t*tz[0];
-	res[1] = dirv[1]-t*tz[1];
-	res[2] = dirv[2]-t*tz[2];
+	//Tangent = (-planes[B][x]/plane[A][x], -planes[B][y]/planes[A][y], - planes[B][z]/planes[A][z] )
+	//Binormal = (-planes[C][x]/planes[A][x], -planes[C][y]/planes[A][y], -planes[C][z]/planes[A][z] )
+	Tangent[0] = -planes[0][1]/planes[0][0];
+	Tangent[1] = -planes[1][1]/planes[1][0];
+	Tangent[2] = -planes[2][1]/planes[2][0];
+	Binormal[0] = -planes[0][2]/planes[0][0];
+	Binormal[1] = -planes[1][2]/planes[1][0];
+	Binormal[2] = -planes[2][2]/planes[2][0];
+	VectorNormalize(Tangent); //is this needed?
+	VectorNormalize(Binormal);
 }
 
 int NormalToLatLong( const vec3_t normal) {
@@ -146,6 +149,9 @@ int NormalToLatLong( const vec3_t normal) {
 
 	return r;
 }
+
+void Orthogonalize(vec3_t v1, vec3_t v2, vec3_t res);
+void DecodeNormal(int quant, vec3_t norm);
 			
 /*
 ================
@@ -169,7 +175,7 @@ void GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr)
 	plane_t	*norms;
 	vec3_t	v1, v2, normal;
 	vec3_t	triangle[3];
-	vec3_t	*tangents;
+	vec3_t	*tangents, *binormals;
 	float	s,t;
 	int		*indecies;
 	int		newcount;
@@ -397,33 +403,39 @@ void GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr)
 			indecies++;
 		}
 	}
-
+	indecies = (int *)((byte *)pheader+pheader->indecies);
 	
 	//PENTA: Calculate tangents for vertices (bump mapping)
 	tangents = Hunk_Alloc (paliashdr->poseverts * paliashdr->numposes * sizeof(vec3_t));
 	paliashdr->tangents = (byte *)tangents - (byte *)paliashdr;
+
+	binormals = Hunk_Alloc (pheader->poseverts * pheader->numposes * sizeof(vec3_t));
+	pheader->binormals = (byte *)binormals - (byte *)pheader;
 	//for all frames
 	for (i=0; i<paliashdr->numposes; i++) {
 
 		//set temp to zero
-		for (j=0; j<paliashdr->poseverts; j++) {
-			tangents[i*paliashdr->poseverts+j][0] = 0;
-			tangents[i*paliashdr->poseverts+j][1] = 0;
-			tangents[i*paliashdr->poseverts+j][2] = 0;
+		for (j=0; j<pheader->poseverts; j++) {
+			tangents[i*pheader->poseverts+j][0] = 0;
+			tangents[i*pheader->poseverts+j][1] = 0;
+			tangents[i*pheader->poseverts+j][2] = 0;
+			binormals[i*pheader->poseverts+j][0] = 0;
+			binormals[i*pheader->poseverts+j][1] = 0;
+			binormals[i*pheader->poseverts+j][2] = 0;
 			numNormals[j] = 0;
 		}
 
 		
 		//for all tris
 		for (j=0; j<paliashdr->numtris; j++) {
-			vec3_t tangent;
-			TangentForTri(&tris[j],norms[i*paliashdr->numtris+j].normal,
-						  &verts[i*paliashdr->poseverts],texcoords,tangent);
-			//for all vertices in the tri
+			vec3_t tangent, binormal;
+			TangentForTri(&indecies[j*3],&verts[i*pheader->poseverts],texcoords,tangent,binormal);			//for all vertices in the tri
 			for (k=0; k<3; k++) {
 				l = tris[j].vertindex[k];
 				VectorAdd(tangents[i*paliashdr->poseverts+l],tangent,
 							tangents[i*paliashdr->poseverts+l]); 
+				VectorAdd(binormals[i*pheader->poseverts+l],binormal,
+							binormals[i*pheader->poseverts+l]); 
 				numNormals[l]++;
 			}
 		}
@@ -434,7 +446,18 @@ void GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr)
 			tangents[i*paliashdr->poseverts+j][0] = tangents[i*paliashdr->poseverts+j][0]/numNormals[j];
 			tangents[i*paliashdr->poseverts+j][1] = tangents[i*paliashdr->poseverts+j][1]/numNormals[j];
 			tangents[i*paliashdr->poseverts+j][2] = tangents[i*paliashdr->poseverts+j][2]/numNormals[j];
+
+			binormals[i*pheader->poseverts+j][0] = binormals[i*pheader->poseverts+j][0]/numNormals[j];
+			binormals[i*pheader->poseverts+j][1] = binormals[i*pheader->poseverts+j][1]/numNormals[j];
+			binormals[i*pheader->poseverts+j][2] = binormals[i*pheader->poseverts+j][2]/numNormals[j];
+
 			VectorNormalize(tangents[i*paliashdr->poseverts+j]);
+			VectorNormalize(binormals[i*paliashdr->poseverts+j]);
+
+			DecodeNormal(verts[i*pheader->poseverts+j].lightnormalindex, normal);
+
+			Orthogonalize(normal, tangents[i*pheader->poseverts+j], tangents[i*pheader->poseverts+j]);
+			Orthogonalize(normal, binormals[i*pheader->poseverts+j], binormals[i*pheader->poseverts+j]);
 		}
 	}
 }
