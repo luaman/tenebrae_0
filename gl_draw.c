@@ -451,7 +451,6 @@ void Draw_Init (void)
 	sprintf (ver, "(Linux %2.2f, gl %4.2f) %4.2f", (float)LINUX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);
 #elif defined (__APPLE__) || defined (MACOSX)
 	sprintf (ver, "(MACOS X %2.2f, gl %4.2f) %4.2f", (float)MACOSX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);
-
 #else
 	sprintf (ver, "(st %4.2f) %4.2f", (float)STQUAKE_VERSION, (float)VERSION);
 #endif
@@ -765,7 +764,6 @@ void Draw_ConsoleBackground (int lines)
 
 	char tl[80]; //Console Clock - Eradicator
 	char timebuf[20];
-	Sys_Strtime( timebuf );
 
 	if (lines > y)
 		Draw_Pic(0, lines - vid.height, conback);
@@ -774,6 +772,7 @@ void Draw_ConsoleBackground (int lines)
 
 	if ( con_clock.value )
 	{
+                Sys_Strtime( timebuf );
 		y = lines-14; 
 		sprintf (tl, "Time: %s",timebuf); //Console Clock - Eradicator
 		x = vid.conwidth - (vid.conwidth*12/vid.width*12) + 30; 
