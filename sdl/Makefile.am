@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = tenebrae.sdl
 
-tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ -lGL -lGLU
+tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ @PNGLIB@ -lGL -lGLU 
 
 MASTER_DIR=..
 
@@ -254,8 +254,10 @@ GL_TENEBRAE_SRCS =		\
 	$(MASTER_DIR)/gl_aliasinstant.c	\
 	$(MASTER_DIR)/gl_brushinstant.c	\
 	$(MASTER_DIR)/gl_bumpdriver.c		\
+	$(MASTER_DIR)/gl_bumparb.c		\
 	$(MASTER_DIR)/gl_bumpgf.c		\
 	$(MASTER_DIR)/gl_bumpmap.c		\
+	$(MASTER_DIR)/gl_bumpparhelia.c		\
 	$(MASTER_DIR)/gl_bumpradeon.c		\
 	$(MASTER_DIR)/gl_glare.c		\
 	$(MASTER_DIR)/gl_md3.c		\

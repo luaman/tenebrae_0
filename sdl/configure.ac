@@ -65,6 +65,10 @@ AM_PATH_SDL($SDL_VERSION,
             AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
 )
 
+# FIX-ME : we need to check PNG library here - hardwired for now
+PNGLIB="-lpng -lz"
+AC_SUBST(PNGLIB)
+
 
 CFLAGS="$CFLAGS $SDL_CFLAGS -DSDL"
 LIBS="$LIBS $SDL_LIBS"
