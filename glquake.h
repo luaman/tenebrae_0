@@ -277,6 +277,7 @@ extern	cvar_t	sh_playershadow;//PENTA: the player casts a shadow (the one YOU ar
 extern	cvar_t	sh_nocache;
 extern	cvar_t	sh_glares;
 extern	cvar_t	sh_noefrags;
+extern  cvar_t  sh_showtangent;
 
 extern	cvar_t	fog_waterfog;
 extern	cvar_t	gl_caustics;
@@ -312,6 +313,7 @@ extern	double	r_Dproject_matrix[16];			//PENTA	<AWE> added "extern".
 extern	double	r_Dworld_matrix[16];			//PENTA	<AWE> added "extern".
 extern  int 	r_Iviewport[4];				//PENTA
 
+extern	float color_black[4];
 
 #define NUMVERTEXNORMALS	162
 
@@ -1119,6 +1121,7 @@ typedef struct aliaslightinstant_s {
 	entity_t	*lastent;
 	shadowlight_t *lastlight;
 	vec3_t	lightpos, vieworg; //Object space light position
+	void *lastframeinstant;
 
 	//Per light stuff
 	vec3_t	extvertices[MAXALIASVERTS]; //extruded vertices (volumes)
@@ -1190,6 +1193,8 @@ extern shadowlight_t *usedshadowlights[MAXUSEDSHADOWLIGHS];
 extern shadowlight_t *currentshadowlight;
 extern msurface_t *shadowchain; //linked list of polygons that are shadowed
 extern float frustumPlanes[6][4];
+
+extern mmvertex_t *globalVertexTable;
 
 #define MAX_VOLUME_COMMANDS 131072 //Thats 0.5 meg storage for commands, insane
 #define MAX_VOLUME_VERTS 87381 //1 Meg storage for vertices
@@ -1349,6 +1354,15 @@ int		GL_LoadLuma(char *identifier, qboolean mipmap);
 void		R_DrawCaustics(void);
 int			CL_PointContents (vec3_t p);
 void		V_CalcBlend (void);
+
+#define VERTEX_TEXTURE 1
+#define VERTEX_LIGHTMAP 2
+
+int R_GetNextVertexIndex(void);
+int R_AllocateVertexInTemp(vec3_t pos, float texture [2], float lightmap[2]);
+void R_CopyVerticesToHunk(void);
+void R_EnableVertexTable(int fields);
+void R_DisableVertexTable(int fields);
 
 qboolean 	VID_Is8bit (void);
 
