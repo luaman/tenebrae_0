@@ -956,7 +956,7 @@ void GL_Set2D (void)
 	glEnable (GL_ALPHA_TEST);
 
 	glEnable(GL_BLEND);
-	glAlphaFunc(GL_GREATER,0.01);
+	glAlphaFunc(GL_GREATER,0.666);
 //	glDisable (GL_ALPHA_TEST);
 
 	glColor4f (1,1,1,1);
