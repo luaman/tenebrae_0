@@ -1967,7 +1967,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		}
 		else
 		{
-		    Con_Printf("Error loading gloss map %s: Gloss map bust be the same size as normal map\n", identifier);
+		    Con_SafePrintf("Error loading gloss map %s: Gloss map bust be the same size as normal map\n", identifier);
 		}
 		GL_UploadNormal (trans, width, height, mipmap);
 	    }
@@ -1999,7 +1999,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		    }
 		    else
 		    {
-			Con_Printf("Error loading gloss map %s: Gloss map bust be the same size as bump map\n", identifier);
+			Con_SafePrintf("Error loading gloss map %s: Gloss map bust be the same size as bump map\n", identifier);
                         Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
 		    }
 		}
