@@ -694,6 +694,15 @@ void SCR_ScreenShot_f (void)
 
 	strcpy(pcxname,"screenshots/quake00000.tga");
 #endif /* __APPLE__ || MACOSX */
+
+
+// 
+// check screenshot dir  
+//
+	sprintf (checkname, "%s/screenshots", com_gamedir);
+        Sys_mkdir(checkname);
+	memset(checkname,0,MAX_OSPATH);        
+
 		
 	for (i=0 ; i<=99999 ; i++) 
 	{ 
