@@ -1454,32 +1454,32 @@ void R_DrawLightSprites (void)
 	if (!r_drawentities.value)
 		return;
 
-	//return;
+        if ( cl_numlightvisedicts == 0 )
+            return;
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE,GL_ONE);
 	glDepthMask(0);
 
 
-	glMatrixMode(GL_TEXTURE);
-	glPushMatrix();
-	/*
-	glLoadIdentity();
-    
-	glRotatef (currentshadowlight->rspeed*cl.time,1,0,0);
+        if ( currentshadowlight->filtercube )
+        {
+            glMatrixMode(GL_TEXTURE);
+            glPushMatrix();
+            GL_SetupCubeMapMatrix(true);
 
-	glScalef(1/currentshadowlight->cubescale, 1/currentshadowlight->cubescale, 1/currentshadowlight->cubescale);
-	glRotatef (-currentshadowlight->angles[2]-90,  1, 0, 0);
-    glRotatef (-currentshadowlight->angles[0],  0, 1, 0);
-    glRotatef (-currentshadowlight->angles[1],  0, 0, 1);
-	
-	glTranslatef(-currentshadowlight->origin[0],
-				 -currentshadowlight->origin[1],
-				 -currentshadowlight->origin[2]);
-	*/
-	GL_SetupCubeMapMatrix(true);
+            GL_EnableColorShader (false);
+        }
+        else
+        {
+            GL_SelectTexture(GL_TEXTURE0_ARB);
+            glEnable(GL_TEXTURE_2D);
+            glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+            glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PREVIOUS_ARB);
+            glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+            glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
+        }
 
-	GL_EnableColorShader (false);
 	for (i=0 ; i<cl_numlightvisedicts ; i++)
 	{
 		currententity = cl_lightvisedicts[i];
@@ -1502,16 +1502,24 @@ void R_DrawLightSprites (void)
 					      currentshadowlight->color[1]*colorscale,
 						  currentshadowlight->color[2]*colorscale);
 
-				R_DrawSpriteModelWV(currententity);
+                                if ( currentshadowlight->filtercube )
+                                    R_DrawSpriteModelWV(currententity);
+                                else
+                                    R_DrawSpriteModel(currententity);
+
 			}
 		}
 	}
 
 	glDisable(GL_BLEND);
-	GL_DisableColorShader (false);
 
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
+        if ( currentshadowlight->filtercube )
+        {
+            GL_DisableColorShader (false);
+
+            glPopMatrix();
+            glMatrixMode(GL_MODELVIEW);
+        }
 }
 
 /*
