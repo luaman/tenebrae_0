@@ -122,7 +122,7 @@ qboolean SNDDMA_Init(void)
 		shm->channels = 1;
 	else if ((i = COM_CheckParm("-sndstereo")) != 0)
 		shm->channels = 2;
-	else if ((i = COM_CheckParm("-sndchannels") != 0)
+	else if ((i = COM_CheckParm("-sndchannels")) != 0)
 	{
 		shm->channels = atoi(com_argv[i+1]);
 	}
