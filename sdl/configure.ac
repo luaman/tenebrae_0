@@ -66,22 +66,37 @@ AM_PATH_SDL($SDL_VERSION,
             AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
 )
 
-# Game data 
-QUAKE_GAMEDIR=games/quake/
-
-AC_SUBST(QUAKE_GAMEDIR)
-
 
 CFLAGS="$CFLAGS $SDL_CFLAGS -DSDL"
 LIBS="$LIBS $SDL_LIBS"
 
+# Game data 
+
+AC_ARG_VAR(GAMEDIR,
+[GAMEDIR		defines the quake data subdir [default=${datadir}/games/quake]])
+
+if test x$GAMEDIR = x; then
+	GAMEDIR=${datadir}/games/quake
+fi
+
+AC_SUBST(GAMEDIR)
+
 # Enable/disable the i686 asm
 
 AC_ARG_ENABLE(asm,
-[  --enable-asm            enable i686 assembly routines [default=no]],
+[  --enable-asm		enable i686 assembly routines [default=no]],
   ,[enable_asm=no])
 if test x$enable_asm = xyes; then
     CFLAGS="$CFLAGS -DUSE_ASM"
+fi
+
+# Enable/disable user prefs
+
+AC_ARG_ENABLE(userpref,
+[  --enable-userpref	enable user preference directory [default=yes]],
+  ,[enable_userpref=yes])
+if test x$enable_userpref = xyes; then
+    CFLAGS="$CFLAGS -DUSERPREF_DIR"
 fi
 
 CFLAGS="$CFLAGS -DELF"

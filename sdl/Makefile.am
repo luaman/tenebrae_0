@@ -6,7 +6,7 @@ tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ -lGL -lGLU
 MASTER_DIR=..
 
 # datadir is a variable defined by autoconf to @prefix@/share/ 
-tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DSDL -DUSERPREF_DIR -DBASEDIR=@datadir@/@QUAKE_GAMEDIR@
+tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DSDL -DBASEDIR=@GAMEDIR@
 
 
 tenebrae_sdl_SOURCES =			\
