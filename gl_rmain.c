@@ -96,7 +96,6 @@ void R_Clear (void);
 cvar_t	r_norefresh = {"r_norefresh","0"};
 cvar_t	r_drawentities = {"r_drawentities","1"};
 cvar_t	r_drawviewmodel = {"r_drawviewmodel","1"};
-cvar_t	r_speeds = {"r_speeds","0"};
 cvar_t	r_fullbright = {"r_fullbright","0"};
 cvar_t	r_lightmap = {"r_lightmap","0"};
 cvar_t	r_shadows = {"r_shadows","0"};
@@ -2192,7 +2191,8 @@ void R_RenderScene (void)
 
 	R_DrawCaustics();
 
-	R_DrawParticles (); //to fix the particles triangles showing up after water
+	//Removed to fix particle & water bug (see R_RenderView) - Eradicator
+	//R_DrawParticles (); //to fix the particles triangles showing up after water
 						//put this behind the water drawing#ifdef GLTEST
 
 	glFogfv(GL_FOG_COLOR, fog_color);
@@ -2634,14 +2634,6 @@ void R_RenderView (void)
 	if (!r_worldentity.model || !cl.worldmodel)
 		Sys_Error ("R_RenderView: NULL worldmodel");
 
-	if (r_speeds.value)
-	{
-		glFinish ();
-		time1 = Sys_FloatTime ();
-		c_brush_polys = 0;
-		c_alias_polys = 0;
-	}
-
 	mirror = false;
 
 
@@ -2690,7 +2682,13 @@ void R_RenderView (void)
 
 	R_RenderScene ();
 	//R_DrawViewModel ();
-	glFogfv(GL_FOG_COLOR, fog_color);
+
+	/*Rendering fog in black for particles is done to stop triangle effect on the 
+	particles. It is done right before and fixed after each particle draw function 
+	to avoid effection fog on the water. A particle draw is done before and after
+	the water draw to make sure particles are rendered over the surface of the 
+	water. - Eradicator*/
+
 	R_DrawWaterSurfaces ();
 	R_DrawMirrorSurfaces ();
 
@@ -2702,14 +2700,11 @@ void R_RenderView (void)
 	glDisable(GL_FOG);
 //  End of all fog code...
 
+	//glFogfv(GL_FOG_COLOR, color_black); //Stops triangle effect on particles
+	R_DrawParticles (); //Fixes particle & water bug
+	//glFogfv(GL_FOG_COLOR, fog_color); //Real fog colour
+
 	//Draw a poly over the screen (underwater, slime, blood hit)
 	R_DrawGlare() ;
 	R_PolyBlend ();
-
-	if (r_speeds.value)
-	{
-//		glFinish ();
-		time2 = Sys_FloatTime ();
-		Con_Printf ("%3i ms  %4i wpoly %4i epoly\n", (int)((time2-time1)*1000), c_brush_polys, c_alias_polys); 
-	}
 }
