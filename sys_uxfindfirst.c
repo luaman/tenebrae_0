@@ -37,23 +37,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include <dirent.h>
 #include <fnmatch.h>
+#include <errno.h>
 
-#if defined(__GLIBC__) && !(__GLIBC_PREREQ(2,3))
+#if 1
+//#if defined(__GLIBC__) && !(__GLIBC_PREREQ(2,3))
 
 #define UXDATA_GRANULARITY 10
 
 typedef struct {
+	int pathlen;
 	size_t count;
 	size_t lsize;
-	char **list;
+	DIR *dir;
+	struct dirent **list;
 } uxdirdata_t;
 
-int uxdata_free (uxdata_t *ud)
+int uxdata_free (uxdirdata_t *ud)
 {
 	int i;
-	// elements	
-	for (i=0;i<ud->lsize;i++)
-		Z_Free (ud->list[i]);
+	closedir (ud->dir);
 	// table
 	if (ud->lsize % UXDATA_GRANULARITY)
 		ud->lsize += UXDATA_GRANULARITY - (ud->lsize % UXDATA_GRANULARITY);
@@ -72,19 +74,24 @@ dirdata_t *Sys_Findfirst (char *dirname, char *filter, dirdata_t *dirdata)
 	DIR *dir;
 	struct dirent *entry;
 	struct dirent **list;
-	char *entry;
 
 	if (dirdata && filter){
 		uxdata = Z_Malloc (sizeof(uxdirdata_t));
+		uxdata->pathlen = strlen (dirname);
+		if (uxdata->pathlen >= MAX_OSPATH)
+			return;
 		dir = opendir (dirname);
 		if (dir == NULL) {
+			Z_Free (uxdata);
 			return NULL;
 		}
 		uxdata->count = 0;
 		uxdata->lsize = 10;
 		uxdata->list = Z_Malloc (sizeof(struct dirent *) * (uxdata->lsize));
-		do {
-			entry = readdir (dir);
+		
+		while (entry = readdir (dir)){
+			int code;
+
 			// realloc entry list
 			if (uxdata->lsize == uxdata->count) {
 				list = Z_Malloc (sizeof(struct dirent *) * (uxdata->lsize += UXDATA_GRANULARITY));
@@ -93,26 +100,35 @@ dirdata_t *Sys_Findfirst (char *dirname, char *filter, dirdata_t *dirdata)
 				uxdata->list = list;
 			}
 			// check name matching filter
-			int code = fnmatch (filter, dir->d_name);
+			code = fnmatch (filter, entry->d_name, 0);
 			switch (code){
 			case 0: /* match */
-				return SYS_GLOB_MATCH;
 				uxdata->list[uxdata->count] = entry;
 				uxdata->count++;
 				break;
-			case FN_NOMATCH:
+			case FNM_NOMATCH:
 				break;
 			default:
 				Sys_Error ("Sys_Glob_select : fnmatch call (%d)\n",errno);
 			}
-		} while (entry);
-		uxdata->lsize = uxdata->count;
-		uxdata->count = 0;
-		// sort the entry list
-		qsort(uxdata->list, uxdata->lsize, sizeof(struct dirent *),direntp_compare);
-		strncpy (dirdata->entry,uxdata->list[0].d_name,sizeof(dirdata->entry));
-		dirdata->internal = uxdata;
-		return dirdata;
+		}
+		if (uxdata->count) {
+			uxdata->lsize = uxdata->count;
+			uxdata->count = 0;
+			// sort the entry list
+			qsort(uxdata->list, uxdata->lsize, sizeof(struct dirent *),direntp_compare);
+			strncpy (dirdata->entry, dirname, sizeof(dirdata->entry));
+			uxdata->pathlen = strlen (dirname);
+			if (dirname[uxdata->pathlen-1] != '/') {
+				dirdata->entry[uxdata->pathlen]='/';
+				uxdata->pathlen++;
+			}
+			strncpy (dirdata->entry+uxdata->pathlen, uxdata->list[0]->d_name, sizeof(dirdata->entry)-uxdata->pathlen);
+			uxdata->dir = dir;
+			dirdata->internal = uxdata;
+			return dirdata;
+		}
+		else uxdata_free (uxdata);
 	}
 	return NULL;
 }
@@ -126,7 +142,7 @@ dirdata_t *Sys_Findnext (dirdata_t *dirdata)
 			uxdata->count++;
 			// next entry ?
 			if (uxdata->count<uxdata->lsize){
-				strncpy (dirdata->entry,uxdata->list[uxdata->count].d_name,sizeof(dirdata->entry));
+				strncpy (dirdata->entry+uxdata->pathlen, uxdata->list[0]->d_name, sizeof(dirdata->entry)-uxdata->pathlen);
 				return dirdata;
 			}
 			// no -> close (just in case Findclose isn't called) 
