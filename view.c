@@ -430,7 +430,7 @@ void V_SetContentsColor (int contents)
 		cl.cshifts[CSHIFT_CONTENTS] = cshift_slime;
 		break;
 	default:
-		cl.cshifts[CSHIFT_CONTENTS] = cshift_water;
+		cl.cshifts[CSHIFT_CONTENTS] = cshift_empty;
 	}
 }
 
