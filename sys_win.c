@@ -265,24 +265,17 @@ typedef struct {
 
 dirdata_t *Sys_Findfirst (char *dir, char *filter, dirdata_t *dirdata)
 {
-  static windirdata_t windata; // FIX-ME : non reentrant...yuk
+  windirdata_t *windata;
   char dirfilter[MAX_OSPATH];
   if (dirdata)
   {
-#if !defined(_WIN32) //You can't use snprintf in Windows
-    snprintf(dirfilter,MAX_OSPATH,"%s/%s", dir, filter);
-#else
-	sprintf(dirfilter,"%s/%s", dir, filter);
-#endif
-    windata.handle = _findfirst (dirfilter, &windata.fileinfo);
-    if (windata.handle!=-1){
-      strncpy(windata.dir,dir,MAX_OSPATH); 
-#if !defined(_WIN32)
-    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", dir, windata.fileinfo.name);
-#else
-	sprintf(dirdata->entry,"%s/%s", dir, windata.fileinfo.name);
-#endif
-      dirdata->internal=&windata;
+    windata=Z_Malloc (sizeof(windata_t));
+    sprintf(dirfilter,"%s/%s", dir, filter);
+    windata.handle = _findfirst (dirfilter, windata->fileinfo);
+    if (windata->handle!=-1){
+      strncpy(windata->dir,dir,MAX_OSPATH); 
+      sprintf(dirdata->entry,"%s/%s", dir, windata->fileinfo.name);
+      dirdata->internal=windata;
       return dirdata;
     }
   }
@@ -296,20 +289,29 @@ dirdata_t *Sys_Findnext (dirdata_t *dirdata)
     windata=dirdata->internal;
     // next entry ?
     if (_findnext( windata->handle, &(windata->fileinfo))!=-1){
-#if !defined(_WIN32)
-    snprintf(dirdata->entry,MAX_OSPATH,"%s/%s", windata->dir, windata->fileinfo.name);
-#else
-	sprintf(dirdata->entry,"%s/%s", windata->dir, windata->fileinfo.name);
-#endif
+      sprintf(dirdata->entry,"%s/%s", windata->dir, windata->fileinfo.name);
       return dirdata;
     }
     // no -> close 
     _findclose(windata->handle);
+    Z_Free (windata);
     dirdata->internal=NULL;
   }
   return NULL;
 }
 
+void Sys_Findclose (dirdata_t *dirdata)
+{
+  windirdata_t *windata;
+  if (dirdata){
+    windata=dirdata->internal;
+    if (windata){
+      _findclose(windata->handle);
+      Z_Free (windata);
+      dirdata->internal=NULL;
+    }    
+  }
+}
 
 /*
 ===============================================================================
