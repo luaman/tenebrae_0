@@ -1233,6 +1233,7 @@ typedef struct aliaslightinstant_s {
 	vec3_t lasteorg, lastlorg, lasteangles, lastvorg;
 	float lastlradius;
 	entity_t	*lastent;
+	aliashdr_t * lasthdr;
 	shadowlight_t *lastlight;
 	vec3_t	lightpos, vieworg; //Object space light position
 	void *lastframeinstant;

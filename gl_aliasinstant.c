@@ -90,7 +90,7 @@ aliasframeinstant_t *R_AllocateInstant(entity_t *e, aliasframeinstant_t *framein
 /*
 R_AllocateInstant
 */
-aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
+aliaslightinstant_t *R_AllocateLightInstant(entity_t *e, aliashdr_t * paliashdr) {
 
 	int i, oldest, oindex;
 	/*
@@ -103,7 +103,7 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 	
 	//try to reclaim an instant that was previously used for this surface and this light
 	for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
-		if ((LightInstantCache[i].lastent == e) && (LightInstantCache[i].lastlight == currentshadowlight))
+		if ((LightInstantCache[i].lastent == e) && (LightInstantCache[i].lastlight == currentshadowlight) && (LightInstantCache[i].lasthdr == paliashdr))
 			return &LightInstantCache[i];
 	}
 
@@ -303,7 +303,7 @@ void R_InterpolateBinomials(aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 	int			i;
 
 	for (i=0; i<paliashdr->poseverts; i++) {
-		CrossProduct(instant->tangents[i],instant->normals[i],instant->binomials[i]);
+		CrossProduct(instant->normals[i],instant->tangents[i],instant->binomials[i]);
 	}
 }
 
@@ -561,7 +561,7 @@ void R_SetupObjectSpace(entity_t *e, aliaslightinstant_t *linstant) {
 	linstant->vieworg[2] = res[2];
 }
 
-void R_SetupLightHAV(entity_t *e, aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
+void R_SetupLightHAV(aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
 	int i;
 	vec3_t lightDir, H, tx, ty, tz;
 
@@ -595,7 +595,7 @@ extern int	extrudeTimeStamp;			// <AWE> added "extern".
 extern int	extrudedTimestamp[MAXALIASVERTS];	//PENTA: Temp buffer for extruded vertices
                                                         // <AWE> added "extern".
 
-void R_CalcVolumeVerts(entity_t *e, aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
+void R_CalcVolumeVerts(aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
 
 	mtriangle_t	*tris, *triangle;
 	float d, scale;
@@ -654,7 +654,7 @@ void R_CalcVolumeVerts(entity_t *e, aliasframeinstant_t *instant, aliaslightinst
 	}
 }
 
-void R_CalcAttenColors(entity_t *e,	aliasframeinstant_t *instant, aliaslightinstant_t *linstant)
+void R_CalcAttenColors(aliasframeinstant_t *instant, aliaslightinstant_t *linstant)
 {
 	vec3_t *v,	diff;
 	float		distsq, fallOff;
@@ -675,7 +675,7 @@ void R_CalcAttenColors(entity_t *e,	aliasframeinstant_t *instant, aliaslightinst
 }
 
 
-void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
+void R_CalcIndeciesForLight(aliasframeinstant_t *instant, aliaslightinstant_t *linstant) {
 
 	mtriangle_t	*tris;
 	int i, j;
@@ -683,16 +683,26 @@ void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliasligh
 	aliashdr_t *paliashdr = instant->paliashdr;
 	indecies = (int *)((byte *)paliashdr + paliashdr->indecies);
 	tris = (mtriangle_t *)((byte *)paliashdr + paliashdr->triangles);
-
+/*
 	//calculate visibility
+	linstant->numtris = paliashdr->numtris;
+	for (i=0; i<paliashdr->numtris; i++) {
+		linstant->indecies[i*3] = indecies[i*3];
+		linstant->indecies[i*3+1] = indecies[i*3+1];
+		linstant->indecies[i*3+2] = indecies[i*3+2];
+	}
+
+	return;
+*/
+
 	j = 0;
 	linstant->numtris = 0;
 	for (i=0; i<paliashdr->numtris; i++) {
 		if (!linstant->triangleVis[i]) {
 			linstant->numtris++;
-			linstant->indecies[j] = tris[i].vertindex[0];
-			linstant->indecies[j+1] = tris[i].vertindex[1];
-			linstant->indecies[j+2] = tris[i].vertindex[2];
+			linstant->indecies[j] = indecies[i*3];
+			linstant->indecies[j+1] = indecies[i*3+1];
+			linstant->indecies[j+2] = indecies[i*3+2];
 			j+=3;
 		}
 	}
@@ -703,9 +713,9 @@ void R_CalcIndeciesForLight(entity_t *e, aliasframeinstant_t *instant, aliasligh
 	//and render them separately to reduce popping artefacts
 	for (i=0; i<paliashdr->numtris; i++) {
 		if (linstant->triangleVis[i]) {
-			linstant->indecies[j] = tris[i].vertindex[0];
-			linstant->indecies[j+1] = tris[i].vertindex[1];
-			linstant->indecies[j+2] = tris[i].vertindex[2];
+			linstant->indecies[j] = indecies[i*3];//tris[i].vertindex[0];
+			linstant->indecies[j+1] = indecies[i*3+1];//tris[i].vertindex[1];
+			linstant->indecies[j+2] = indecies[i*3+2];//tris[i].vertindex[2];
 			j+=3;
 		}
 	}
@@ -754,7 +764,7 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 	aliaslightinstant_t *aliaslightinstant;
 	qboolean update;
 
-	aliaslightinstant = R_AllocateLightInstant(e);
+	aliaslightinstant = R_AllocateLightInstant(e, paliashdr);
 	aliasframeinstant->lightinstant = aliaslightinstant;
 
 	R_SetupObjectSpace(e, aliaslightinstant);	
@@ -762,13 +772,13 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 	update = CheckLightUpdate(e,paliashdr, aliaslightinstant,aliasframeinstant);
 	if  (update)
 	{
-		R_CalcVolumeVerts(e, aliasframeinstant, aliaslightinstant);
+		R_CalcVolumeVerts(aliasframeinstant, aliaslightinstant);
 
 		if (!aliasframeinstant->shadowonly) {
 			if ( gl_cardtype == GENERIC || gl_cardtype == GEFORCE ) {//PA:
-				R_CalcAttenColors(e,  aliasframeinstant, aliaslightinstant);
+				R_CalcAttenColors(aliasframeinstant, aliaslightinstant);
 			}
-			R_CalcIndeciesForLight(e,  aliasframeinstant, aliaslightinstant);
+			R_CalcIndeciesForLight(aliasframeinstant, aliaslightinstant);
 
 			//make sure that we can compare the next frame
 			VectorCopy(e->origin, aliaslightinstant->lasteorg);
@@ -778,6 +788,7 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 			aliaslightinstant->lastlight = currentshadowlight;
 			aliaslightinstant->lastframeinstant = aliasframeinstant;
 			aliaslightinstant->lastent = e;
+			aliaslightinstant->lasthdr = paliashdr;
 		}
 	}
 
@@ -786,7 +797,7 @@ void R_SetupSurfaceInstantForLight(entity_t *e,aliashdr_t *paliashdr, aliasframe
 	//this happens a lot so recalculate only this.
 	if ((update) || CheckHalfAngle(aliaslightinstant)) {
 		if (!aliasframeinstant->shadowonly) {
-			R_SetupLightHAV(e,  aliasframeinstant, aliaslightinstant);
+			R_SetupLightHAV(aliasframeinstant, aliaslightinstant);
 		}
 		VectorCopy(r_refdef.vieworg,aliaslightinstant->lastvorg);
 
@@ -811,21 +822,20 @@ void R_SetupInstantForLight(entity_t *e)
 //PENTA: guard against model removed from cache
 	
 	data = (alias3data_t *)Mod_Extradata (e->model);
-        maxnumsurf = data->numSurfaces;        
-        aliasframeinstant = e->aliasframeinstant;
+	maxnumsurf = data->numSurfaces;        
+	aliasframeinstant = e->aliasframeinstant;
 
-        for (i=0;i<maxnumsurf;++i){
+	for (i=0;i<maxnumsurf;++i){
              
-             paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
+		paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
              
-             if (!aliasframeinstant) {
+		if (!aliasframeinstant) {
 
-                  Con_Printf("R_SetupInstantForLight: missing instant for %s\n",e->model->name); 
-                  //r_cache_thrash = true; 
-                  return;                  
-             }
-             R_SetupSurfaceInstantForLight(e, paliashdr, aliasframeinstant);
-             aliasframeinstant = aliasframeinstant->_next;
-        }
-        
+			Con_Printf("R_SetupInstantForLight: missing instant for %s\n",e->model->name); 
+			//r_cache_thrash = true; 
+			return;                  
+		}
+		R_SetupSurfaceInstantForLight(e, paliashdr, aliasframeinstant);
+		aliasframeinstant = aliasframeinstant->_next;
+	}    
 }
