@@ -45,6 +45,7 @@ case "$target" in
     *-*-mingw32*)
         MATHLIB=""
         INETLIB="-lwsock32"
+	OPENGLLIBS="-lopengl32 -lglu32"
         ;;
     *-*-beos*)
         MATHLIB=""
@@ -53,10 +54,25 @@ case "$target" in
     *)
         MATHLIB="-lm"
         INETLIB=""
+ 	OPENGLLIBS="-lGL -lGLU"
         ;;
 esac
 AC_SUBST(MATHLIB)
 AC_SUBST(INETLIB)
+AC_SUBST(OPENGLLIBS)
+
+# Check for lex
+
+AM_PROG_LEX
+if test "$LEX" != flex; then
+  LEX="$SHELL $missing_dir/missing flex"
+  AC_SUBST(LEX_OUTPUT_ROOT, lex.yy)
+  AC_SUBST(LEXLIB, '')
+fi
+
+LFLAGS="-i -Cfr"
+AC_SUBST(LFLAGS)
+
 
 # Check for SDL
 SDL_VERSION=1.2.0
@@ -65,13 +81,24 @@ AM_PATH_SDL($SDL_VERSION,
             AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
 )
 
-# FIX-ME : we need to check PNG library here - hardwired for now
-PNGLIB="-lpng -lz"
-AC_SUBST(PNGLIB)
+# FIX-ME : the png version isn't checked for now (don't know if useful though)
+PNG_VERSION=1.2.0
+
+# AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
+
+# AC_CHECK_PROG (variable, prog-to-check-for, value-if-found, [value-if-not-found], [path], [reject])
+
+AC_CHECK_PROG(PNGLIBS,libpng-config,`libpng-config --libs`, "" )
+
+if test "x$PNGLIBS" = "x"; then
+	AC_MSG_ERROR([*** libpng  not found!])
+fi
+
+AC_SUBST(PNGLIBS)
 
 
-CFLAGS="$CFLAGS $SDL_CFLAGS -DSDL"
-LIBS="$LIBS $SDL_LIBS"
+CFLAGS="$CFLAGS $SDL_CFLAGS -DSDL $PNG_FLAGS"
+LIBS="$LIBS $SDL_LIBS $PNGLIBS"
 
 # Game data 
 

@@ -1,12 +1,12 @@
 
 bin_PROGRAMS = tenebrae.sdl
 
-tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ @PNGLIB@ -lGL -lGLU 
+tenebrae_sdl_LDADD = @MATHLIB@ @INETLIB@ @OPENGLLIBS@
 
 MASTER_DIR=..
 
 # datadir is a variable defined by autoconf to @prefix@/share/ 
-tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DSDL -DBASEDIR=@GAMEDIR@
+tenebrae_sdl_CFLAGS = @CFLAGS@ -DGLQUAKE -DBASEDIR=@GAMEDIR@ -I$(MASTER_DIR)
 
 
 tenebrae_sdl_SOURCES =			\
@@ -92,6 +92,8 @@ tenebrae_sdl_SOURCES =			\
 	$(MASTER_DIR)/sv_user.c		\
 	$(MASTER_DIR)/sys.h			\
 	$(MASTER_DIR)/sys_sdl.c		\
+	$(MASTER_DIR)/te_scripts.c		\
+	$(MASTER_DIR)/te_scripts.h		\
 	$(MASTER_DIR)/vgamodes.h		\
 	$(MASTER_DIR)/vid.h			\
 	$(MASTER_DIR)/gl_vidsdl.c		\
@@ -105,7 +107,8 @@ tenebrae_sdl_SOURCES =			\
 	$(MASTER_DIR)/zone.c			\
 	$(MASTER_DIR)/zone.h			\
 	$(GL_SRCS)			\
-	$(GL_TENEBRAE_SRCS)
+	$(GL_TENEBRAE_SRCS)		\
+	$(LEX_TENEBRAE_SRCS)
 
 QUAKE_SRCS =				\
 	$(MASTER_DIR)/d_edge.c		\
@@ -233,6 +236,7 @@ NEXT_SRCS =			\
 	$(MASTER_DIR)/snd_next.c
 
 GL_SRCS =			\
+	$(MASTER_DIR)/gl_decals.c		\
 	$(MASTER_DIR)/gl_draw.c		\
 	$(MASTER_DIR)/gl_mesh.c		\
 	$(MASTER_DIR)/gl_model.c		\
@@ -264,6 +268,10 @@ GL_TENEBRAE_SRCS =		\
 	$(MASTER_DIR)/gl_screenrect.c		\
 	$(MASTER_DIR)/gl_shadow.c		\
 	$(MASTER_DIR)/gl_svbsp.c		
+
+LEX_TENEBRAE_SRCS =				\
+	$(MASTER_DIR)/lex_part.l		
+
 
 EXTRA_DIST =			\
 	$(MASTER_DIR)/sdl/configure.ac		\
