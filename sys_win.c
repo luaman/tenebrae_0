@@ -432,6 +432,9 @@ void Sys_Error (char *error, ...)
 	vsprintf (text, error, argptr);
 	va_end (argptr);
 
+	//PENTA: Write sys_error's also to the log file
+	Con_DebugLog(va("%s/qconsole.log",com_gamedir), "Sys_Error: %s", text);
+
 	if (isDedicated)
 	{
 		va_start (argptr, error);
