@@ -1869,10 +1869,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	GL_GetOverrideName(identifier,"",filename);	
 	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
 	{
-//	COM_FOpenFile (filename, &f);
-//	if (f) {
 		Con_DPrintf("Overriding colormap for %s\n",identifier);
-//		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
@@ -2165,10 +2162,6 @@ int GL_LoadCubeMap (int identifier)
 	for (i = 0; i < 6; i++) 
 	{
 		sprintf(filename,"cubemaps/%i%s.tga", identifier, face_names[i]);	
-//		COM_FOpenFile (filename, &f);
-//		if (f) {
-//			LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
-//		}
 		LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height);
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
 	}
