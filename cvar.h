@@ -95,3 +95,5 @@ void 	Cvar_WriteVariables (FILE *f);
 cvar_t *Cvar_FindVar (char *var_name);
 
 extern cvar_t	*cvar_vars;
+
+void	Cvar_List_f (void); //Cvarlist - Eradicator
