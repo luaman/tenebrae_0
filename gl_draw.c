@@ -1241,63 +1241,90 @@ Works on normal maps instead of rgb
 */
 void GL_MipMapNormal (byte *in, int width, int height)
 {
-	int		i, j;
-	byte	*out;
-	float	inv255	= 1.0f/255.0f;
-	float	inv127	= 1.0f/127.0f;
-	float	x,y,z,l,mag00,mag01,mag10,mag11;
+    int		i, j;
+    byte	*out;
+    float	inv255	= 1.0f/255.0f;
+    float	inv127	= 1.0f/127.0f;
+    float	x,y,z,l,mag00,mag01,mag10,mag11, g;
 
 
-	width <<=2;
-	height >>= 1;
-	out = in;
-	for (i=0 ; i<height ; i++, in+=width)
+    width <<=2;
+    height >>= 1;
+    out = in;
+    for (i=0 ; i<height ; i++, in+=width)
+    {
+	for (j=0 ; j<width ; j+=8, out+=4, in+=8)
 	{
-		for (j=0 ; j<width ; j+=8, out+=4, in+=8)
-		{
 
-			mag00 = inv255 * in[3];
-			mag01 = inv255 * in[7];
-			mag10 = inv255 * in[width+3];
-			mag11 = inv255 * in[width+7];
+#if 0
+	    mag00 = inv255 * in[3];
+	    mag01 = inv255 * in[7];
+	    mag10 = inv255 * in[width+3];
+	    mag11 = inv255 * in[width+7];
+#else
+// We can't use alpha now, so recalc the length
 
-			x = mag00*(inv127*in[0]-1.0)+
-				mag01*(inv127*in[4]-1.0)+
-				mag10*(inv127*in[width+0]-1.0)+
-				mag11*(inv127*in[width+4]-1.0);
-			y = mag00*(inv127*in[1]-1.0)+
-				mag01*(inv127*in[5]-1.0)+
-				mag10*(inv127*in[width+1]-1.0)+
-				mag11*(inv127*in[width+5]-1.0);
-			z = mag00*(inv127*in[2]-1.0)+
-				mag01*(inv127*in[6]-1.0)+
-				mag10*(inv127*in[width+2]-1.0)+
-				mag11*(inv127*in[width+6]-1.0);
+#endif
 
-			l = sqrt(x*x+y*y+z*z);
-			if (l == 0.0) {
-				x = 0.0;
-				y = 0.0;
-				z = 1.0;
-			} else {
-				//normalize it.
-				l=1/l;
-				x *=l;
-				y *=l;
-				z *=l;
-			}
-			out[0] = (unsigned char)128 + 127*x;
-			out[1] = (unsigned char)128 + 127*y;
-			out[2] = (unsigned char)128 + 127*z;
-
-			l = l/4.0;
-			if (l > 1.0) {
-				out[3] = 255;
-			} else {
-				out[3] = (byte)(255.0*l);
-			}
-		}
+#if 0
+	    x = mag00*(inv127*in[0]-1.0)+
+		mag01*(inv127*in[4]-1.0)+
+		mag10*(inv127*in[width+0]-1.0)+
+		mag11*(inv127*in[width+4]-1.0);
+	    y = mag00*(inv127*in[1]-1.0)+
+		mag01*(inv127*in[5]-1.0)+
+		mag10*(inv127*in[width+1]-1.0)+
+		mag11*(inv127*in[width+5]-1.0);
+	    z = mag00*(inv127*in[2]-1.0)+
+		mag01*(inv127*in[6]-1.0)+
+		mag10*(inv127*in[width+2]-1.0)+
+		mag11*(inv127*in[width+6]-1.0);
+#else
+	    x = (inv127*in[0]-1.0)+
+		(inv127*in[4]-1.0)+
+		(inv127*in[width+0]-1.0)+
+		(inv127*in[width+4]-1.0);
+	    y = (inv127*in[1]-1.0)+
+		(inv127*in[5]-1.0)+
+		(inv127*in[width+1]-1.0)+
+		(inv127*in[width+5]-1.0);
+	    z = (inv127*in[2]-1.0)+
+		(inv127*in[6]-1.0)+
+		(inv127*in[width+2]-1.0)+
+		(inv127*in[width+6]-1.0);
+	    g = (inv255*in[3])+
+		(inv255*in[7])+
+		(inv255*in[width+3])+
+		(inv255*in[width+7]);
+#endif
+	    l = sqrt(x*x+y*y+z*z);
+	    if (l == 0.0) {
+		x = 0.0;
+		y = 0.0;
+		z = 1.0;
+	    } else {
+		//normalize it.
+		l=1/l;
+		x *=l;
+		y *=l;
+		z *=l;
+	    }
+	    out[0] = (unsigned char)128 + 127*x;
+	    out[1] = (unsigned char)128 + 127*y;
+	    out[2] = (unsigned char)128 + 127*z;
+#if 0
+	    l = l/4.0;
+	    if (l > 1.0) {
+		out[3] = 255;
+	    } else {
+		out[3] = (byte)(255.0*l);
+	    }
+#else
+	    out[3] = (byte)(g * 64.0);
+#endif
 	}
+    }
+
 }
 
 /*
@@ -1332,6 +1359,24 @@ void GL_MipMap8Bit (byte *in, int width, int height)
 			out[0] = d_15to8table[(r<<0) + (g<<5) + (b<<10)];
 		}
 	}
+}
+
+/*
+===============
+PENTA:
+Packs the byte values in gloss in the alpha channel of dest
+<AWE> : added "void" as return type.
+===============
+*/
+void	GL_PackGloss(byte *gloss,unsigned *dest,int length)
+{
+    int i;
+
+    for (i=0; i<length; i++, gloss++, dest++) 
+    {
+        *dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
+        *dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
+    }
 }
 
 /*
@@ -1579,97 +1624,99 @@ unsigned int * genNormalMap(byte *pixels, int w, int h, float scale)
 }
 
 //PENTA
-void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
-	
-        static unsigned char	scaled[1024*1024];	// [512*256];
-	int			scaled_width, scaled_height;
-	byte			*nmap;
-	int			texturemode;
+void GL_UploadBump(byte *data, int width, int height, qboolean mipmap, byte* gloss)
+{
+    static unsigned char	scaled[1024*1024];	// [512*256];
+    int			scaled_width, scaled_height;
+    byte			*nmap;
+    int			texturemode;
 
-        if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
-        {
-            texturemode = GL_COMPRESSED_RGBA_ARB;
-        }
-        else
-        {
-            texturemode = GL_RGBA;
-        }
+    if ( gl_texcomp && ((int)gl_compress_textures.value) & 2 )
+    {
+	texturemode = GL_COMPRESSED_RGBA_ARB;
+    }
+    else
+    {
+	texturemode = GL_RGBA;
+    }
 
-        //Resize to power of 2 and maximum texture size
-	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
-		;
-	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
-		;
+    //Resize to power of 2 and maximum texture size
+    for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+	;
+    for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+	;
 
-	scaled_width >>= (int)gl_picmip.value;
-	scaled_height >>= (int)gl_picmip.value;
+    scaled_width >>= (int)gl_picmip.value;
+    scaled_height >>= (int)gl_picmip.value;
 
-	if (scaled_width > gl_max_size.value)
-		scaled_width = gl_max_size.value;
-	if (scaled_height > gl_max_size.value)
-		scaled_height = gl_max_size.value;
+    if (scaled_width > gl_max_size.value)
+	scaled_width = gl_max_size.value;
+    if (scaled_height > gl_max_size.value)
+	scaled_height = gl_max_size.value;
 
-	if (scaled_width * scaled_height > sizeof(scaled))
-		Sys_Error ("GL_LoadTexture: too big");
+    if (scaled_width * scaled_height > sizeof(scaled))
+	Sys_Error ("GL_LoadTexture: too big");
 
-	//To resize or not to resize
-	if (scaled_width == width && scaled_height == height)
+    //To resize or not to resize
+    if (scaled_width == width && scaled_height == height)
+    {
+	memcpy (scaled, data, width*height);
+	scaled_width = width;
+	scaled_height = height;
+    }
+    else {
+	//Just picks pixels so grayscale is equivalent with 8 bit.
+	GL_Resample8BitTexture (data, width, height, scaled, scaled_width, scaled_height);
+    }
+
+    if (is_overriden)
+	nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,10.0f); 
+    else
+	nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
+
+    GL_PackGloss(gloss, (unsigned int*)nmap, width*height);
+
+    glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
+		  GL_RGBA, GL_UNSIGNED_BYTE, nmap);
+
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (mipmap)
+    {
+	int		miplevel;
+
+	miplevel = 0;
+	while (scaled_width > 1 || scaled_height > 1)
 	{
-		memcpy (scaled, data, width*height);
-		scaled_width = width;
-		scaled_height = height;
+	    GL_MipMapNormal(nmap,scaled_width,scaled_height);
+	    //GL_MipMapGray((byte *)scaled, scaled_width, scaled_height);
+	    scaled_width >>= 1;
+	    scaled_height >>= 1;
+	    if (scaled_width < 1)
+		scaled_width = 1;
+	    if (scaled_height < 1)
+		scaled_height = 1;
+	    miplevel++;
+
+	    glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
+			  GL_UNSIGNED_BYTE, nmap);
 	}
-	else {
-		//Just picks pixels so grayscale is equivalent with 8 bit.
-		GL_Resample8BitTexture (data, width, height, scaled, scaled_width, scaled_height);
-	}
+    }
 
-	if (is_overriden)
-		nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,10.0f); 
-	else
-		nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
-
-	glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
-					GL_RGBA, GL_UNSIGNED_BYTE, nmap);
-
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	if (mipmap)
-	{
-		int		miplevel;
-
-		miplevel = 0;
-		while (scaled_width > 1 || scaled_height > 1)
-		{
-			GL_MipMapNormal(nmap,scaled_width,scaled_height);
-			//GL_MipMapGray((byte *)scaled, scaled_width, scaled_height);
-			scaled_width >>= 1;
-			scaled_height >>= 1;
-			if (scaled_width < 1)
-				scaled_width = 1;
-			if (scaled_height < 1)
-				scaled_height = 1;
-			miplevel++;
-
-			glTexImage2D (GL_TEXTURE_2D, miplevel, texturemode, scaled_width, scaled_height, 0, GL_RGBA,
-						GL_UNSIGNED_BYTE, nmap);
-		}
-	}
-
-	if (mipmap)
-	{
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
-	else
-	{
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
+    if (mipmap)
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
+    else
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
 
         
-	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
+    if (gl_texturefilteranisotropic)
+	glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 
 }
 
@@ -1778,30 +1825,6 @@ void	GL_GetOverrideName(char *identifier,char *tail, char *dest) {
 
 }
 
-/*
-===============
-PENTA:
-Packs the byte values in gloss in the alpha channel of dest
-<AWE> : added "void" as return type.
-===============
-*/
-void	GL_PackGloss(byte *gloss,unsigned *dest,int length) {
-	int i;
-
-        if ( willi_gray_colormaps.value )
-        {
-            for (i=0; i<length; i++, gloss++, dest++) {
-		*dest = LittleLong (0x007F7F7F) | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
-	    }
-        }
-        else
-        {
-            for (i=0; i<length; i++, gloss++, dest++) {
-		*dest = *dest & LittleLong (0x00FFFFFF);	// <AWE> Added support for big endian.
-                *dest = *dest | LittleLong (*gloss << 24);	// <AWE> Added support for big endian.
-	    }
-        }
-}
 
 
 /*
@@ -1833,10 +1856,12 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	//try to load an overrided texture
 
 	GL_GetOverrideName(identifier,"",filename);	
-	COM_FOpenFile (filename, &f);
-	if (f) {
+	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	{
+//	COM_FOpenFile (filename, &f);
+//	if (f) {
 		Con_DPrintf("Overriding colormap for %s\n",identifier);
-		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
+//		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
@@ -1889,31 +1914,6 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		}
 	}
 
-	if (bump) {
-		//Try to load a gloss map & pack it in the alpha channel of
-		//our color map
-		char filename[128];
-		int gloss_width, gloss_height;
-		GL_GetOverrideName(identifier,"_gloss",filename);	
-		COM_FOpenFile (filename, &f);
-		if (f)
-		{
-			//Con_Printf("Using gloss map for %s\n",identifier);
-			LoadGrayTGA(f,&glosspix[0],&gloss_width,&gloss_height);
-		} else {
-			//set some gloss by default
-			gloss_width = width;
-			gloss_height = height;
-			Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
-		}
-
-		if ((gloss_width == width) && (gloss_height == height)) {
-			GL_PackGloss(glosspix, trans, width*height);
-		} else {
-			Con_Printf("Error loading gloss map: Gloss map bust be the same size as texture map\n");
-		}
-	}
-
 	if (!strcmp("scrap",identifier)) {
 		GL_Upload32 (trans, width, height, mipmap, alpha);
 		return;
@@ -1934,56 +1934,82 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	//Disable Bumpmapping parameter and now bumpmap cvar slightly
 	//works. this only prevents textures from loading, but if it
 	//has already loaded bumpmaps will not turn off) - Eradicator
-	if (!COM_CheckParm("-nobumpmaps") && ( sh_bumpmaps.value )) 
+	if (!COM_CheckParm("-nobumpmaps") && ( sh_bumpmaps.value ) && bump )
 	{
 	    //upload bump map (if any)
-	    if (bump) {
-		char filename[128];
+	    char filename[128];
 
-                GL_Bind(texture_extension_number);
-                // first check for normal map
-                GL_GetOverrideName(identifier,"_norm",filename);
-                COM_FOpenFile (filename, &f);
-                if (f)
-                {
-                    Con_DPrintf("Overriding normal map for %s\n",identifier);
-                    LoadColorTGA(f, (byte *) &trans[0],&width,&height); // <AWE> added cast.
-                    GL_UploadNormal (trans, width, height, mipmap);
-                }
-                else
-                {
-                    //See if we can override the bump map
-                    //sprintf(filename,"override/%s_bump.tga", identifier);
-                    GL_GetOverrideName(identifier,"_bump",filename);
-                    //See if we can override the bump map
-                    COM_FOpenFile (filename, &f);
-                    if (f)
-                    {
-                        Con_DPrintf("Overriding bumpmap for %s\n",identifier);
-                        LoadGrayTGA(f,&bumppix[0],&width,&height);
-                    }
-                    GL_UploadBump (bumppix, width, height, mipmap);
-                }
+	    GL_Bind(texture_extension_number);
+	    // first check for normal map
+	    GL_GetOverrideName(identifier,"_norm",filename);
+	    if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	    {
+		char filename[128];
+		int gloss_width, gloss_height;
+		Con_DPrintf("Overriding normal map for %s\n",identifier);
+
+		GL_GetOverrideName(identifier,"_gloss",filename);
+		if ( LoadTextureInPlace(filename, 1, &glosspix[0], &gloss_width, &gloss_height) )
+		{
+		    Con_DPrintf("Using gloss map for %s\n",identifier);
+		}
+		else
+		{
+		    //set some gloss by default
+		    gloss_width = width;
+		    gloss_height = height;
+		    Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		}
+		
+		if ((gloss_width == width) && (gloss_height == height))
+		{
+		    GL_PackGloss(glosspix, trans, width*height);
+		}
+		else
+		{
+		    Con_Printf("Error loading gloss map %s: Gloss map bust be the same size as normal map\n", identifier);
+		}
+		GL_UploadNormal (trans, width, height, mipmap);
 	    }
-	}
-
-	/*
-	if (bump) {
-		char filename[128];
-		//sprintf(filename,"override/%s_bump.tga", identifier);
+	    else
+	    {
+		//See if we can override the bump map
 		GL_GetOverrideName(identifier,"_bump",filename);
 		//See if we can override the bump map
-		COM_FOpenFile (filename, &f);
-		if (f)
+		if ( LoadTextureInPlace(filename, 1, &bumppix[0], &width, &height) )
 		{
-			Con_DPrintf("Overriding bumpmap for %s\n",identifier);
-			LoadGrayTGA(f,&bumppix[0],&width,&height);
+		    char filename[128];
+		    int gloss_width, gloss_height;
+		    Con_DPrintf("Overriding bumpmap for %s\n",identifier);
+		    GL_GetOverrideName(identifier,"_gloss",filename);
+		    if ( LoadTextureInPlace(filename, 1, &glosspix[0], &gloss_width, &gloss_height) )
+		    {
+			Con_DPrintf("Using gloss map for %s\n",identifier);
+		    }
+		    else
+		    {
+			//set some gloss by default
+			gloss_width = width;
+			gloss_height = height;
+			Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		    }
+		
+		    if ((gloss_width == width) && (gloss_height == height))
+		    {
+		    }
+		    else
+		    {
+			Con_Printf("Error loading gloss map %s: Gloss map bust be the same size as bump map\n", identifier);
+                        Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+		    }
 		}
-		GL_Bind(texture_extension_number);
-		GL_UploadBump (bumppix, width, height, mipmap);
+                else
+                {
+                    Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
+                }
+		GL_UploadBump (bumppix, width, height, mipmap, &glosspix[0]);
+	    }
 	}
-	*/
-
 	texture_extension_number++;
 }
 
@@ -2046,10 +2072,13 @@ int GL_LoadLuma(char *identifier, qboolean mipmap)
 
 	//try to load an overrided texture
 	GL_GetOverrideName(identifier,"_luma",filename);	
-	COM_FOpenFile (filename, &f);
-	if (f) {
+//	COM_FOpenFile (filename, &f);
+//	if (f)
+	if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
+	{
+
 		Con_DPrintf("Using luma map for %s\n",identifier);
-		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
+//		LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
 
 		is_overriden = true;
 		//force it to upload a 32 bit texture
@@ -2133,10 +2162,11 @@ int GL_LoadCubeMap (int identifier)
 	for (i = 0; i < 6; i++) 
 	{
 		sprintf(filename,"cubemaps/%i%s.tga", identifier, face_names[i]);	
-		COM_FOpenFile (filename, &f);
-		if (f) {
-			LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
-		}
+//		COM_FOpenFile (filename, &f);
+//		if (f) {
+//			LoadColorTGA(f, (byte *) &trans[0],&width,&height);	// <AWE> added cast.
+//		}
+		LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height);
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, texturemode, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &trans[0]);
 	}
 	
@@ -2258,7 +2288,7 @@ int GL_Load3DAttenTexture(void)
 	int s,t,r, err;
 	byte *data;
 
-	if (!gl_geforce3 && !gl_radeon) return 0;//PA:
+	if (gl_cardtype == GENERIC || gl_cardtype == GEFORCE) return 0;//PA:
 
 	data = malloc(ATTEN_VOLUME_SIZE*ATTEN_VOLUME_SIZE*ATTEN_VOLUME_SIZE*4);
         if (!data) return 0;							// <AWE> check memory here!
