@@ -836,17 +836,17 @@ void R_RenderBrushPoly (msurface_t *fa)
 	int		i;
 	float	*v;
 
-	c_brush_polys++;
-
 	if (fa->flags & SURF_DRAWSKY)
 	{	// warp texture, no lightmaps
 		EmitBothSkyLayers (fa);
 		return;
 	}
-		
-	t = R_TextureAnimation (fa->texinfo->texture);
-	GL_SelectTexture(GL_TEXTURE0_ARB);
-	GL_Bind (t->gl_texturenum);
+	
+	/*if (!busy_caustics)*/ {
+		t = R_TextureAnimation (fa->texinfo->texture);
+		GL_SelectTexture(GL_TEXTURE0_ARB);
+		GL_Bind (t->gl_texturenum);
+	}
 
 	if (fa->flags & SURF_DRAWTURB)
 	{	// warp texture, no lightmaps
@@ -861,8 +861,10 @@ void R_RenderBrushPoly (msurface_t *fa)
 		glNormal3fv(&fa->plane->normal[0]);
 	}
 
-	GL_SelectTexture(GL_TEXTURE1_ARB);
-	GL_Bind (lightmap_textures + fa->lightmaptexturenum);
+	/*if (!busy_caustics)*/ {
+		GL_SelectTexture(GL_TEXTURE1_ARB);
+		GL_Bind (lightmap_textures + fa->lightmaptexturenum);
+	}
 
 	p = fa->polys;
 	glBegin (GL_POLYGON);
@@ -890,8 +892,6 @@ void R_RenderBrushPolyLuma (msurface_t *fa)
 	glpoly_t *p;
 	texture_t *t;
 
-	c_brush_polys++;
-
 	if (fa->flags & SURF_DRAWSKY)
 		return;
 
@@ -899,6 +899,7 @@ void R_RenderBrushPolyLuma (msurface_t *fa)
 		return;
 
 	t = R_TextureAnimation (fa->texinfo->texture);
+
 	GL_Bind (t->gl_lumitex);
 
 	glBegin (GL_POLYGON);
@@ -912,28 +913,67 @@ void R_RenderBrushPolyLuma (msurface_t *fa)
 	glEnd ();
 }
 
+
+
 /*
+
 ================
+
 R_RenderBrushPoly
 
+
+
 PENTA:
+
 ================
+
 */
+
 void R_RenderBrushPolyLightmap (msurface_t *fa)
+
 {
+
 	int		i;
+
 	float	*v;
+
 	glpoly_t *p;
 
-	c_brush_polys++;
-
 	if (fa->flags & SURF_DRAWSKY)
+
 		return;
 
 	if (fa->flags & SURF_DRAWTURB)
+
 		return;
 
 	GL_Bind (lightmap_textures+fa->lightmaptexturenum);
+
+	glBegin (GL_POLYGON);
+
+	p = fa->polys;
+
+	v = p->verts[0];
+
+	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
+
+	{
+
+		glTexCoord2f (v[5], v[6]);
+
+		glVertex3fv (v);
+
+	}
+
+	glEnd ();
+
+}
+
+
+void R_RenderBrushPolyCaustics (msurface_t *fa)
+{	int		i;
+	float	*v;
+	glpoly_t *p;
 
 	glBegin (GL_POLYGON);
 	p = fa->polys;
@@ -943,9 +983,9 @@ void R_RenderBrushPolyLightmap (msurface_t *fa)
 		glTexCoord2f (v[5], v[6]);
 		glVertex3fv (v);
 	}
+
 	glEnd ();
 }
-
 /*
 ================
 R_RenderDynamicLightmaps
@@ -1102,6 +1142,7 @@ void R_DrawWaterSurfaces (void)
 			glColor4f (1,1,1,r_wateralpha.value);
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 			//glBlendFunc(GL_DST_COLOR,GL_ONE);
+
 			glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 			glMatrixMode(GL_TEXTURE);
 			glLoadIdentity();
@@ -1186,6 +1227,8 @@ void R_DrawWaterSurfaces (void)
 ================
 DrawTextureChains
 PENTA: Modifications
+
+We fill the causistics chain here!
 ================
 */
 void DrawTextureChains (void)
@@ -1218,12 +1261,21 @@ void DrawTextureChains (void)
 		glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
 	}
 
+
+
 	if (gl_wireframe.value) {
+
 		GL_SelectTexture(GL_TEXTURE0_ARB);
+
 		glDisable(GL_TEXTURE_2D);
+
 		GL_SelectTexture(GL_TEXTURE1_ARB);
+
 		glDisable(GL_TEXTURE_2D);
+
 	}
+
+	causticschain = NULL; //clear chain here
 
 	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
 	{
@@ -1250,37 +1302,77 @@ void DrawTextureChains (void)
 		*/
 		//else
 		{
+
 			//PENTA: water at end of frame
 			if (s->flags & SURF_DRAWTURB)
 				continue;
 			
+
 			//Do the ambient pass
-			for ( ; s ; s=s->texturechain)
+			while (s) {
 				R_RenderBrushPoly (s);
+				s=s->texturechain;
+				c_brush_polys ++;
+			}
+
 
 			//Has this texture a luma texture then add it
+
 			if (t->gl_lumitex) {
+				vec3_t color_black = {0.0, 0.0, 0.0};
+
+				glFogfv(GL_FOG_COLOR, color_black);
+
 				glEnable(GL_BLEND);
+
 				glBlendFunc(GL_ONE, GL_ONE);
+
 				GL_SelectTexture(GL_TEXTURE1_ARB);
+
 				glDisable(GL_TEXTURE_2D);
+
 				GL_SelectTexture(GL_TEXTURE0_ARB);
 
 				glColor3f(1, 1, 1);
 
-
 				s = t->texturechain;
+
 				for ( ; s ; s=s->texturechain)
+
 					R_RenderBrushPolyLuma (s);
 
+
+
 				glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
+
 			
+
 				GL_SelectTexture(GL_TEXTURE1_ARB);
+
 				glEnable(GL_TEXTURE_2D);
+
 				GL_SelectTexture(GL_TEXTURE0_ARB);
+
 				GL_SelectTexture(GL_TEXTURE1_ARB);
+
 				glDisable(GL_BLEND);
+
+				glFogfv(GL_FOG_COLOR, fog_color);
 			}
+
+			s = t->texturechain;
+			//Make cauistics list
+			while (s) {
+				msurface_t *olds;
+				olds = s;
+				s=s->texturechain;
+				//attach the surface for caustics drawing (post multipyied later)
+				if (olds->flags & SURF_UNDERWATER) {
+					olds->texturechain = causticschain;
+					causticschain = olds;
+				}
+			}
+
 		}
 
 		t->texturechain = NULL;
@@ -1290,6 +1382,98 @@ void DrawTextureChains (void)
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDepthMask (1);
 }
+
+void R_DrawBrushModelCaustics (entity_t *e);
+
+/*
+=============
+R_DrawCaustics
+
+Tenebrae does "real cauistics", projected textures on all things including ents
+(Other mods seem to just add an extra, not properly projected layer to the polygons in the world.)
+=============
+*/
+void R_DrawCaustics(void) {
+
+	msurface_t *s;
+	int			i;
+	vec3_t		mins, maxs;
+
+	GLfloat sPlane[4] = {0.01, 0.005, 0.0, 0.0 };
+	GLfloat tPlane[4] = {0.0, 0.01, 0.005, 0.0 };
+
+	if (!gl_caustics.value) return;
+
+	glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+	glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+	glTexGenfv(GL_S, GL_OBJECT_PLANE, sPlane);
+	glTexGenfv(GL_T, GL_OBJECT_PLANE, tPlane);
+	glEnable(GL_TEXTURE_GEN_S);
+	glEnable(GL_TEXTURE_GEN_T);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_DST_COLOR, GL_ONE);
+
+	GL_Bind(caustics_textures[(int)(cl.time*16)&7]);
+
+	busy_caustics = true;
+	s = causticschain;
+	while (s) {
+		R_RenderBrushPolyCaustics (s);
+		s = s->texturechain;
+	}
+
+	for (i=0 ; i<cl_numvisedicts ; i++)
+	{
+		currententity = cl_visedicts[i];
+
+		if (currententity->angles[0] || currententity->angles[1] || currententity->angles[2])
+		{
+			int i;
+			for (i=0 ; i<3 ; i++)
+			{
+				mins[i] = currententity->origin[i] - currententity->model->radius;
+				maxs[i] = currententity->origin[i] + currententity->model->radius;
+			}
+		} else {
+			VectorAdd (currententity->origin,currententity->model->mins, mins);
+			VectorAdd (currententity->origin,currententity->model->maxs, maxs);
+		}
+
+		if (R_CullBox (mins, maxs))
+			continue;
+
+		//quick hack! check if ent is below water
+		if ((CL_PointContents(mins) != CONTENTS_WATER) && (CL_PointContents(maxs) != CONTENTS_WATER))
+			continue;
+
+		if (mirror) {
+			if (mirror_clipside == BoxOnPlaneSide(mins, maxs, mirror_plane)) {
+				continue;
+			}
+		}
+
+		switch (currententity->model->type)
+		{
+		case mod_alias:
+			R_DrawAliasModel (currententity,1.0);
+
+		case mod_brush:
+			R_DrawBrushModelCaustics(currententity);
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	busy_caustics = false;
+	glDisable(GL_BLEND);
+
+	glDisable(GL_TEXTURE_GEN_S);
+	glDisable(GL_TEXTURE_GEN_T);	
+}
+
 
 /*
 =================
@@ -1358,32 +1542,47 @@ e->angles[0] = -e->angles[0];	// stupid quake bug
 	//Draw model with specified ambient color
 	GL_DisableMultitexture();
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
 
-	GL_EnableMultitexture();
-	if (sh_colormaps.value) {
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	if (!busy_caustics) {
+		glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
+
+		GL_EnableMultitexture();
+		if (sh_colormaps.value) {
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		} else {
+			//No colormaps: Color maps are bound on tmu 0 so disable it
+			//and let tu1 modulate itself with the light map brightness
+			glDisable(GL_REGISTER_COMBINERS_NV);
+			GL_SelectTexture(GL_TEXTURE0_ARB);		
+			glDisable(GL_TEXTURE_2D);
+			GL_SelectTexture(GL_TEXTURE1_ARB);
+			glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+			glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PRIMARY_COLOR_ARB);
+			glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
+			glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
+		}
 	} else {
-		//No colormaps: Color maps are bound on tmu 0 so disable it
-		//and let tu1 modulate itself with the light map brightness
-		glDisable(GL_REGISTER_COMBINERS_NV);
-		GL_SelectTexture(GL_TEXTURE0_ARB);		
-		glDisable(GL_TEXTURE_2D);
-		GL_SelectTexture(GL_TEXTURE1_ARB);
-		glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-		glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_PRIMARY_COLOR_ARB);
-		glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-		glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_MODULATE);
+		glColor3f(1,1,1);
 	}
+
+
 
 	//XYZ
+
 	if (gl_wireframe.value) {
+
 		GL_SelectTexture(GL_TEXTURE0_ARB);		
+
 		glDisable(GL_TEXTURE_2D);
+
 		GL_SelectTexture(GL_TEXTURE1_ARB);
+
 		glDisable(GL_TEXTURE_2D);
+
 	}
 
+
+	c_brush_polys += clmodel->nummodelsurfaces;
 	//
 	// draw texture
 	//
@@ -1403,6 +1602,93 @@ e->angles[0] = -e->angles[0];	// stupid quake bug
 	}
 
 	GL_DisableMultitexture();
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glPopMatrix ();
+}
+
+/*
+=================
+R_DrawBrushModel
+=================
+*/
+void R_DrawBrushModelCaustics (entity_t *e)
+{
+	vec3_t		mins, maxs;
+	int			i;
+	msurface_t	*psurf;
+	float		dot;
+	mplane_t	*pplane;
+	model_t		*clmodel;
+	qboolean	rotated;
+
+	//bright = 1;
+
+	currententity = e;
+	currenttexture = -1;
+
+	clmodel = e->model;
+
+	if (e->angles[0] || e->angles[1] || e->angles[2])
+	{
+		rotated = true;
+		for (i=0 ; i<3 ; i++)
+		{
+			mins[i] = e->origin[i] - clmodel->radius;
+			maxs[i] = e->origin[i] + clmodel->radius;
+		}
+	}
+	else
+	{
+		rotated = false;
+		VectorAdd (e->origin, clmodel->mins, mins);
+		VectorAdd (e->origin, clmodel->maxs, maxs);
+	}
+
+	if (R_CullBox (mins, maxs))
+		return;
+
+	VectorSubtract (r_refdef.vieworg, e->origin, modelorg);
+	if (rotated)
+	{
+		vec3_t	temp;
+		vec3_t	forward, right, up;
+
+		VectorCopy (modelorg, temp);
+		AngleVectors (e->angles, forward, right, up);
+		modelorg[0] = DotProduct (temp, forward);
+		modelorg[1] = -DotProduct (temp, right);
+		modelorg[2] = DotProduct (temp, up);
+	}
+
+	psurf = &clmodel->surfaces[clmodel->firstmodelsurface];
+
+    glPushMatrix ();
+e->angles[0] = -e->angles[0];	// stupid quake bug
+	R_RotateForEntity (e);
+e->angles[0] = -e->angles[0];	// stupid quake bug
+
+	//Draw model with specified ambient color
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+	//
+	// draw texture
+	//
+	for (i=0 ; i<clmodel->nummodelsurfaces ; i++, psurf++)
+	{
+	// find which side of the node we are on
+		pplane = psurf->plane;
+
+		dot = DotProduct (modelorg, pplane->normal) - pplane->dist;
+
+	// draw the polygon
+		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
+			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
+		{
+				R_RenderBrushPolyCaustics (psurf);
+		}
+	}
+
+	//R_BlendLightmaps (); nope no lightmaps 
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glPopMatrix ();
 }
@@ -1531,6 +1817,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 
 	
 		if (mirror) {
+
 			int side = BoxOnPlaneSide(node->minmaxs, node->minmaxs+3, mirror_plane); 
 			if ((mirror_clipside == side)) {
 				return;
@@ -1724,15 +2011,19 @@ void R_InitDrawWorld (void)
 
 	glColor3f (1,1,1);
 	memset (lightmap_polys, 0, sizeof(lightmap_polys));
-/*#ifdef QUAKE2
+//#ifdef QUAKE2
+
 	R_ClearSkyBox ();
-#endif*/
+//#endif
 	//if (mirror) Con_Printf("RWorldn\n");
 	//mark visible polygons/ents
 	R_RecursiveWorldNode (cl.worldmodel->nodes);
-/*#ifdef QUAKE2
+//#ifdef QUAKE2
+
+	if (gl_wireframe.value) return;
 	R_DrawSkyBox ();
-#endif*/
+	//if (fog_enabled.value) glEnable(GL_FOG);
+//#endif
 }
 
 /*
