@@ -250,6 +250,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_nocache);
 	Cvar_RegisterVariable (&sh_glares);
 	Cvar_RegisterVariable (&sh_noefrags);
+	Cvar_RegisterVariable (&sh_showtangent);
 
 	Cvar_RegisterVariable (&mir_detail);
 	Cvar_RegisterVariable (&mir_frameskip);
@@ -450,6 +451,8 @@ void R_NewMap (void)
 	R_ClearParticles ();
 
 	GL_BuildLightmaps ();
+
+	R_CopyVerticesToHunk();
 
 	// identify sky texture
 	skytexturenum = -1;
