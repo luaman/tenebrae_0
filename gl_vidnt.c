@@ -1256,6 +1256,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				vid_wassuspended = false;
 				ChangeDisplaySettings (&gdevmode, CDS_FULLSCREEN);
 				ShowWindow(mainwindow, SW_SHOWNORMAL);
+				MoveWindow(mainwindow, 0, 0, gdevmode.dmPelsWidth, gdevmode.dmPelsHeight, false); //Alt Tab Fix - Eradicator
 			}
 		}
 		else if ((modestate == MS_WINDOWED) && _windowed_mouse.value && key_dest == key_game)
