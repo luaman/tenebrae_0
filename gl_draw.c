@@ -105,7 +105,7 @@ void GL_Bind (int texnum)
 
         if (gl_texturefilteranisotropic)	// <AWE> anisotropic texture filtering
         {
-            glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+            glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
         }
 */
 }

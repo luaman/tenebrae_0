@@ -123,7 +123,7 @@ qboolean gl_var = false; //PENTA: vertex array range is available
 qboolean 	gl_palettedtex = false; // <AWE> true for "gl_EXT_paletted_texture" [GL_Upload8_EXT].
 
 qboolean	gl_texturefilteranisotropic = false; // <AWE> true for "GL_EXT_texture_filter_anisotropic".
-GLfloat		gl_texureanisotropylevel = 2.0f; // <AWE> anistropic texture level [= 1.0f or max. value].//Penta?? Changed to 2.0 because 1.0 is just isotropic filtering
+GLfloat		gl_textureanisotropylevel = 2.0f; // <AWE> anistropic texture level [= 1.0f or max. value].//Penta?? Changed to 2.0 because 1.0 is just isotropic filtering
 //cvar_t	gl_anisotropic = { "gl_anisotropic", "0", 1 }; // <AWE> On MacOSX X we use this var to store the state. 0 = off, 1 = on.
 
 /*-----------------------------------------------------------------------*/

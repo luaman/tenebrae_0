@@ -278,6 +278,8 @@ extern	cvar_t	sh_noefrags;
 
 extern	cvar_t	fog_waterfog;
 extern	cvar_t	gl_caustics;
+extern	cvar_t	gl_truform;
+extern	cvar_t	gl_truform_tesselation;
 extern  cvar_t	scr_fov;	// 10 - 170
 extern	cvar_t	mir_detail; //PENTA: mirror detail level
 							//0: no mirrors
@@ -1051,7 +1053,7 @@ extern qboolean gl_geforce3;
 extern qboolean gl_radeon;//PA:
 extern qboolean gl_var;
 
-extern GLfloat	gl_texureanisotropylevel; // <AWE> required for anisotropic textures.
+extern GLfloat	gl_textureanisotropylevel; // <AWE> required for anisotropic textures.
 
 void GL_DisableMultitexture(void);
 void GL_EnableMultitexture(void);
