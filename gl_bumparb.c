@@ -503,8 +503,9 @@ void GL_CreateShadersARB()
     SAFE_GET_PROC(qglGetVertexAttribPointervARB,glGetVertexAttribPointervARBPROC,"glGetVertexAttribPointervARB");
     SAFE_GET_PROC(qglIsProgramARB,glIsProgramARBPROC,"glIsProgramARB");
 
-    SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
-    SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
+    if ( strstr(gl_extensions, "GL_ATI_pn_triangles") )     {         SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
+        SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
+    }
 #endif /* !__APPLE__ && !MACOSX */
 
     glEnable(GL_VERTEX_PROGRAM_ARB);

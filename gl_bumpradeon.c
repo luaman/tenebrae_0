@@ -316,8 +316,9 @@ void GL_CreateShadersRadeon()
     SAFE_GET_PROC( qglGetLocalConstantIntegervEXT, PFNGLGETLOCALCONSTANTINTEGERVEXTPROC, "glGetLocalConstantIntegervEXT");
     SAFE_GET_PROC( qglGetLocalConstantFloatvEXT, PFNGLGETLOCALCONSTANTFLOATVEXTPROC, "glGetLocalConstantFloatvEXT");
 
-    SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
-    SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
+    if ( strstr(gl_extensions, "GL_ATI_pn_triangles") )     {         SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
+        SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
+    }
 #endif /* !__APPLE__ && !MACOSX */
 
     glEnable(GL_FRAGMENT_SHADER_ATI);
