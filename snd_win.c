@@ -194,9 +194,33 @@ sndinitstat SNDDMA_InitDirect (void)
 
 	shm = &sn;
 
-	shm->channels = 2;
-	shm->samplebits = 16;
-	shm->speed = 11025;
+	//shm->channels = 2;
+	if (COM_CheckParm("-sndchannels")) //Better sound channels (once 2) - Eradicator
+	{
+		shm->channels = Q_atoi(com_argv[COM_CheckParm("-sndchannels")+1]);
+	}
+	else
+	{
+		shm->channels = 2;
+	}
+	//shm->samplebits = 16;
+	if (COM_CheckParm("-samplebits")) //Better sample bits (once 16) - Eradicator
+	{
+		shm->samplebits = Q_atoi(com_argv[COM_CheckParm("-samplebits")+1]);
+	}
+	else
+	{
+		shm->samplebits = 16;
+	}
+	//shm->speed = samplerate.value; //Better Sample Rate (once 11025) - Eradicator
+	if (COM_CheckParm("-samplerate"))
+	{
+		shm->speed = Q_atoi(com_argv[COM_CheckParm("-samplerate")+1]);
+	}
+	else
+	{
+		shm->speed = 22050;
+	}
 
 	memset (&format, 0, sizeof(format));
 	format.wFormatTag = WAVE_FORMAT_PCM;
