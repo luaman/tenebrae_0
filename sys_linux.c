@@ -476,7 +476,7 @@ int main (int c, char **v)
 	extern int vcrFile;
 	extern int recording;
 	int j;
-	int mb_mem_size=20;
+	int mb_mem_size=50;
 	static char *home;
 	struct stat stat_buf;
 
@@ -488,12 +488,6 @@ int main (int c, char **v)
 	COM_InitArgv (c, v);
 	parms.argc = com_argc;
 	parms.argv = com_argv;
-
-#ifdef GLQUAKE
-	mb_mem_size=16;
-#else
-	mb_mem_size=8;
-#endif
 
 	j = COM_CheckParm ("-mem");
 	if (j)

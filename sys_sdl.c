@@ -487,7 +487,7 @@ int main (int c, char **v)
 	extern int vcrFile;
 	extern int recording;
 	static int frame;
-	int mb_mem_size=20;
+	int mb_mem_size=50;
 	int j;
 	moncontrol(0);
 
