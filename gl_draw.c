@@ -1396,7 +1396,7 @@ static	unsigned	scaled[1024*1024];	// [512*256];
 
         if ( willi_gray_colormaps.value )
         {
-            memset(data, 0x7f, width*height*4);
+	    Q_memset(data, 0x7f, width*height*4);
         }
 
 	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
@@ -1635,6 +1635,7 @@ unsigned int * genNormalMap(byte *pixels, int w, int h, float scale)
 void GL_UploadBump(byte *data, int width, int height, qboolean mipmap, byte* gloss)
 {
     static unsigned char	scaled[1024*1024];	// [512*256];
+    static unsigned char	scaledgloss[1024*1024];	// [512*256];
     int			scaled_width, scaled_height;
     byte			*nmap;
     int			texturemode;
@@ -1669,12 +1670,15 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap, byte* glo
     if (scaled_width == width && scaled_height == height)
     {
 	memcpy (scaled, data, width*height);
+	memcpy (scaledgloss, gloss, width*height);
 	scaled_width = width;
 	scaled_height = height;
     }
-    else {
+    else
+    {
 	//Just picks pixels so grayscale is equivalent with 8 bit.
 	GL_Resample8BitTexture (data, width, height, scaled, scaled_width, scaled_height);
+	GL_Resample8BitTexture (gloss, width, height, scaledgloss, scaled_width, scaled_height);
     }
 
     if (is_overriden)
@@ -1682,7 +1686,7 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap, byte* glo
     else
 	nmap = (byte *)genNormalMap(scaled,scaled_width,scaled_height,4.0f);
 
-    GL_PackGloss(gloss, (unsigned int*)nmap, width*height);
+    GL_PackGloss(scaledgloss, (unsigned int*)nmap, scaled_width*scaled_height);
 
     glTexImage2D (GL_TEXTURE_2D, 0, texturemode, scaled_width, scaled_height, 0,
 		  GL_RGBA, GL_UNSIGNED_BYTE, nmap);
@@ -1931,12 +1935,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	//upload color map
 	GL_Bind(texture_extension_number);
 
- 	/*if (VID_Is8bit() && !alpha && (data!=scrap_texels[0])) {
- 		GL_Upload8_EXT (data, width, height, mipmap, alpha);
- 		//return;
-	} else {*/
-		GL_Upload32 (trans, width, height, mipmap, alpha);
-	//}
+	GL_Upload32 (trans, width, height, mipmap, alpha);
 
 	texture_extension_number++;
 
