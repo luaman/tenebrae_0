@@ -275,7 +275,7 @@ static int add_section(char *instring, long offset)
    get_section_name(section,instring);
    // See if section already exists.
    for (i=0;i<NUM_SECTION_BUFFERS;i++)
-      if (stricmp(section,section_buffers[i].name)==0)
+      if (Q_strcasecmp(section,section_buffers[i].name)==0)
          return(i);
    // Increment current_section_buffer
    current_section_buffer++;
@@ -302,7 +302,7 @@ static void add_field(char *instring, int section, long offset)
    // See if field already exists
    for (i=0;i<NUM_FIELD_BUFFERS;i++)
       if (field_buffers[i].section==section)
-         if (stricmp(field_buffers[i].name,field)==0)
+         if (Q_strcasecmp(field_buffers[i].name,field)==0)
             return;
    // Increment current_field_buffer
    current_field_buffer++;
