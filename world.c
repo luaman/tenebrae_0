@@ -386,23 +386,18 @@ void SV_LinkEdict (edict_t *ent, qboolean touch_triggers)
 
 // set the abs box
 
-#ifdef QUAKE2
+//#ifdef QUAKE2 //Commented out for rotating brush support - Eradicator
 	if (ent->v.solid == SOLID_BSP && 
 	(ent->v.angles[0] || ent->v.angles[1] || ent->v.angles[2]) )
 	{	// expand for rotation
 		float		max, v;
-		int			i;
+		int		i;
 
-		max = 0;
-		for (i=0 ; i<3 ; i++)
-		{
-			v =fabs( ent->v.mins[i]);
-			if (v > max)
-				max = v;
-			v =fabs( ent->v.maxs[i]);
-			if (v > max)
-				max = v;
-		}
+		max = DotProduct(ent->v.mins, ent->v.mins);
+		v = DotProduct(ent->v.maxs, ent->v.maxs); //Fixed some probs with bboxes - Eradicator
+		if (max < v)
+		max = v;
+		max = sqrt(max);
 		for (i=0 ; i<3 ; i++)
 		{
 			ent->v.absmin[i] = ent->v.origin[i] - max;
@@ -410,7 +405,7 @@ void SV_LinkEdict (edict_t *ent, qboolean touch_triggers)
 		}
 	}
 	else
-#endif
+//#endif
 	{
 		VectorAdd (ent->v.origin, ent->v.mins, ent->v.absmin);	
 		VectorAdd (ent->v.origin, ent->v.maxs, ent->v.absmax);
@@ -752,7 +747,7 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 	VectorSubtract (start, offset, start_l);
 	VectorSubtract (end, offset, end_l);
 
-#ifdef QUAKE2
+//#ifdef QUAKE2 //Commented out for rotate code - Eradicator
 	// rotate start and end into the models frame of reference
 	if (ent->v.solid == SOLID_BSP && 
 	(ent->v.angles[0] || ent->v.angles[1] || ent->v.angles[2]) )
@@ -773,12 +768,12 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 		end_l[1] = -DotProduct (temp, right);
 		end_l[2] = DotProduct (temp, up);
 	}
-#endif
+//#endif
 
 // trace a line through the apropriate clipping hull
 	SV_RecursiveHullCheck (hull, hull->firstclipnode, 0, 1, start_l, end_l, &trace);
 
-#ifdef QUAKE2
+//#ifdef QUAKE2 //Commented out for rotate code - Eradicator
 	// rotate endpos back to world frame of reference
 	if (ent->v.solid == SOLID_BSP && 
 	(ent->v.angles[0] || ent->v.angles[1] || ent->v.angles[2]) )
@@ -803,7 +798,7 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 			trace.plane.normal[2] = DotProduct (temp, up);
 		}
 	}
-#endif
+//#endif //Commented out for rotate code - Eradicator
 
 // fix trace up by the offset
 	if (trace.fraction != 1)
