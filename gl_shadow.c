@@ -689,7 +689,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		}
 	}
 
-	r_lightTimestamp++;
+	//r_lightTimestamp++;
 
 	shadowchain = NULL;
 	if (light->isStatic) {
