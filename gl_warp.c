@@ -65,6 +65,7 @@ void SubdividePolygon (int numverts, float *verts)
 	float	frac;
 	glpoly_t	*poly;
 	float	s, t;
+	float	tex[2];
 
 	if (numverts > 60)
 		Sys_Error ("numverts = %i", numverts);
@@ -122,21 +123,18 @@ void SubdividePolygon (int numverts, float *verts)
 		return;
 	}
 
-	poly = Hunk_Alloc (sizeof(glpoly_t) + (numverts-4) * VERTEXSIZE*sizeof(float)
-						//PENTA: we don't need neighbour data for water poly's since
-						//we don't cast shadows with water
-						);
+	poly = Hunk_Alloc(sizeof(glpoly_t));
 						
 	poly->next = warpface->polys;
 	warpface->polys = poly;
 	poly->numverts = numverts;
+	poly->firstvertex = R_GetNextVertexIndex();
 	for (i=0 ; i<numverts ; i++, verts+= 3)
 	{
-		VectorCopy (verts, poly->verts[i]);
-		s = DotProduct (verts, warpface->texinfo->vecs[0]);
-		t = DotProduct (verts, warpface->texinfo->vecs[1]);
-		poly->verts[i][3] = s;
-		poly->verts[i][4] = t;
+		tex[0] = DotProduct (verts, warpface->texinfo->vecs[0]);
+		tex[1] = DotProduct (verts, warpface->texinfo->vecs[1]);
+		//Penta: lighmap coords are ignored...
+		R_AllocateVertexInTemp(verts,tex,tex);
 	}
 }
 
@@ -207,7 +205,7 @@ void EmitWaterPolys (msurface_t *fa)
 	for (p=fa->polys ; p ; p=p->next)
 	{
 		glBegin (GL_POLYGON);
-		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
+		for (i=0,v=(float *)(&globalVertexTable[p->firstvertex]) ; i<p->numverts ; i++, v+=VERTEXSIZE)
 		{
 			os = v[3];
 			ot = v[4];
@@ -249,7 +247,7 @@ void EmitMirrorWaterPolys (msurface_t *fa)
 	for (p=fa->polys ; p ; p=p->next)
 	{
 		glBegin (GL_POLYGON);
-		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
+		for (i=0,v=(float *)(&globalVertexTable[p->firstvertex]) ; i<p->numverts ; i++, v+=VERTEXSIZE)
 		{
 			os = v[0];
 			ot = v[1];
@@ -277,7 +275,7 @@ void EmitMirrorPolys (msurface_t *fa)
 	for (p=fa->polys ; p ; p=p->next)
 	{
 		glBegin (GL_POLYGON);
-		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
+		for (i=0,v=(float *)(&globalVertexTable[p->firstvertex]); i<p->numverts ; i++, v+=VERTEXSIZE)
 		{
 			qglMultiTexCoord2fARB(GL_TEXTURE1_ARB, v[3]/64, v[4]/64);
 			glTexCoord3fv(v);
@@ -306,14 +304,14 @@ qboolean OverrideFluidTex(char *name) {
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 		GL_Bind(newwatertex);
-		//glScalef(0.6,0.6,1);
+		glScalef(0.5,0.5,1);
 		glTranslatef(-0.025*realtime,-0.025*realtime,0);
 
 		GL_EnableMultitexture() ;
 		GL_Bind(newwatertex);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
 		glTranslatef(0.05*realtime,0.05*realtime,0);
-		glScalef(0.5,0.5,1);
+		glScalef(0.25,0.25,1);
 		return true;
 
 	}
@@ -330,7 +328,7 @@ qboolean OverrideFluidTex(char *name) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
 		glTranslatef(-realtime,0.5*realtime,0);
 		//glScalef(0.5,0.25,1);
-
+		glFogfv(GL_FOG_COLOR, color_black);
 		return true;
 
 	}
@@ -350,13 +348,13 @@ qboolean OverrideFluidTex(char *name) {
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 		GL_Bind(newslimetex);
-		//glScalef(0.5,0.5,1);
+		glScalef(0.5,0.5,1);
 		glTranslatef(-0.05*realtime,-0.05*realtime,0);
 
 		GL_EnableMultitexture() ;
 		GL_Bind(newslimetex);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
-		glScalef(0.5,0.5,1);
+		glScalef(0.25,0.25,1);
 		glTranslatef(0.05*realtime,0.05*realtime,0);
 		return true;
 
@@ -370,6 +368,7 @@ qboolean OverrideFluidTex(char *name) {
 		glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_SPHERE_MAP);
 		glEnable(GL_TEXTURE_GEN_S);
 		glEnable(GL_TEXTURE_GEN_T);
+		glFogfv(GL_FOG_COLOR, color_black);
 		return true;
 
 	}
@@ -409,7 +408,7 @@ void EmitSkyPolys (msurface_t *fa)
 	for (p=fa->polys ; p ; p=p->next)
 	{
 		glBegin (GL_POLYGON);
-		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
+		for (i=0,v=(float *)(&globalVertexTable[p->firstvertex]) ; i<p->numverts ; i++, v+=VERTEXSIZE)
 		{
 			VectorSubtract (v, r_origin, dir);
 			dir[2] *= 3;	// flatten the sphere
@@ -1380,21 +1379,25 @@ void R_DrawSkyChain (msurface_t *s)
 	int		i;
 	vec3_t	verts[MAX_CLIP_VERTS];
 	glpoly_t	*p;
+	float		*v;
 
 	c_sky = 0;
 	GL_Bind(solidskytexture);
 
 	// calculate vertex values for sky box
 
+
 	for (fa=s ; fa ; fa=fa->texturechain)
 	{
 		for (p=fa->polys ; p ; p=p->next)
 		{
-			for (i=0 ; i<p->numverts ; i++)
+			v = (float *)(&globalVertexTable[p->firstvertex]);
+
+			for (i=0 ; i<p->numverts ; i++, v+=VERTEXSIZE)
 			{
-				VectorSubtract (p->verts[i], r_origin, verts[i]);
+				VectorSubtract (v, r_origin, verts[i]);
 			}
-			ClipSkyPolygon (p->numverts, verts[0], 0);
+			ClipSkyPolygon (p->numverts, v, 0);
 		}
 	}
 }
