@@ -47,6 +47,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <setjmp.h>
 
+#ifndef min
+#define min(a,b) (a<b?a:b) 
+#endif
+#ifndef max
+#define max(a,b) (a>b?a:b) 
+#endif
+
+
 #if defined(_WIN32) && !defined(WINDED)
 
 #if defined(_M_IX86)
@@ -63,7 +71,7 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
-#if defined __i386__ // && !defined __sun__
+#if defined(__i386__) && defined(USE_ASM)
 #define id386	1
 #else
 #define id386	0
