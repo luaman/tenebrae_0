@@ -1138,11 +1138,11 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
-#if defined (_WIN32) || defined (__APPLE__) || defined (MACOSX)
-#define	OPTIONS_ITEMS	14
-#else
-#define	OPTIONS_ITEMS	13
-#endif /* _WIN32 ||Ê__APPLE__ ||ÊMACOSX */
+//#if defined (_WIN32) || defined (__APPLE__) || defined (MACOSX)
+#define	OPTIONS_ITEMS	18
+//#else
+//#define	OPTIONS_ITEMS	17
+//#endif /* _WIN32 ||Ê__APPLE__ ||ÊMACOSX */
 
 #define	SLIDER_RANGE	10
 
@@ -1167,7 +1167,7 @@ void M_Menu_Options_f (void)
 #endif /* _WIN32 */
 }
 
-
+extern cvar_t useprofiles;
 void M_AdjustSliders (int dir)
 {
 	S_LocalSound ("misc/menu3.wav");
@@ -1254,6 +1254,18 @@ void M_AdjustSliders (int dir)
 		Cvar_SetValue ("_windowed_mouse", !_windowed_mouse.value);
 		break;
 #endif /* _WIN32 || __APPLE__ || MACOSX */
+	case 14:
+		Cvar_SetValue ("sh_fps", !sh_fps.value);
+		break;
+	case 15:
+		Cvar_SetValue ("chase_active", !chase_active.value);
+		break;
+	case 16:
+		Cvar_SetValue ("sh_glares", !sh_glares.value);
+		break;
+	case 17:
+		Cvar_SetValue ("useprofiles", !useprofiles.value);
+		break;
 	}
 }
 
@@ -1350,6 +1362,19 @@ void M_Options_Draw (void)
 		M_DrawCheckbox (220, 136, _windowed_mouse.value);
 	}
 #endif /* _WIN32 ||Ê__APPLE__ ||ÊMACOSX */
+
+	//New Options - Eradicator
+	M_Print (16, 144,"		      Display FPS");
+	M_DrawCheckbox (220, 144, sh_fps.value);
+
+	M_Print (16, 152,"		     Third Person");
+	M_DrawCheckbox (220, 152, chase_active.value);
+
+	M_Print (16, 160,"		           Glares");
+	M_DrawCheckbox (220, 160, sh_glares.value);
+
+	M_Print (16, 168,"		    Load Profiles");
+	M_DrawCheckbox (220, 168, useprofiles.value);
 
 // cursor
 	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
@@ -1451,7 +1476,7 @@ void M_Options_Key (int k)
 			options_cursor = 12;
                 }
                 else
-			options_cursor = 0;
+			options_cursor = 14;
 	}
 #endif /* _WIN32 || __APPLE__ || MACOSX */
 }
@@ -1462,7 +1487,8 @@ void M_Options_Key (int k)
 char *bindnames[][2] =
 {
 {"+attack", 		"attack"},
-{"impulse 10", 		"change weapon"},
+{"impulse 10", 		"previous weapon"},
+{"impulse 12", 		"next weapon"}, //Prev Wep requires new progs.dat - Eradicator
 {"+jump", 			"jump / swim up"},
 {"+forward", 		"walk forward"},
 {"+back", 			"backpedal"},
@@ -1478,7 +1504,9 @@ char *bindnames[][2] =
 {"+mlook", 			"mouse look"},
 {"+klook", 			"keyboard look"},
 {"+moveup",			"swim up"},
-{"+movedown",		"swim down"}
+{"+movedown",		"swim down"},
+{"saveprofile",		"save profile"}, //Profile commands - Eradicator
+{"loadprofile",		"load profile"}
 };
 
 #define	NUMCOMMANDS	(sizeof(bindnames)/sizeof(bindnames[0]))
