@@ -1083,12 +1083,10 @@ void PR_LoadProgs (void)
 		if (progs->crc != QUAKE1HEADER_CRC) {
 			Sys_Error ("progs.dat system vars have been modified, progdefs.h is out of date\n Tenebrae only works with Quake1 and tenebrae mods not other engine mods.");
 		} else {
-			Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+			Con_Printf("\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
 			Con_Printf("You are using an unmodified quake1 mod.\n");
 			Con_Printf("Some features may not be available (e.g. the flashlight)\n");
-			Con_Printf("See the tenebrae website for modified prog and info on how\n");
-			Con_Printf("to modify existing progs.\n");
-			Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+			Con_Printf("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
 		}
 	}
 
