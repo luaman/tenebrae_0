@@ -96,22 +96,10 @@ void R_InitParticleTexture (void)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	particletexture_glow = EasyTgaLoad("particles/glow.tga");
+	particletexture_blood = EasyTgaLoad("textures/particles/blood.tga");
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_glow2 = EasyTgaLoad("particles/glow2.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_smoke = EasyTgaLoad("particles/smoke.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_tele = EasyTgaLoad("particles/teleport.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_blood = EasyTgaLoad("particles/blood.tga");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	particletexture_dirblood = EasyTgaLoad("particles/blood2.tga");
+	particletexture_dirblood = EasyTgaLoad("textures/particles/blood2.tga");
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 }
@@ -266,7 +254,9 @@ void R_Init (void)
 
 	Cvar_RegisterVariable (&fog_waterfog);
 	Cvar_RegisterVariable (&gl_caustics);
+	R_InitParticleEffects();
 	R_InitParticles ();
+	R_InitDecals ();
 	R_InitParticleTexture ();
 
 #ifdef GLTEST
@@ -453,6 +443,7 @@ void R_NewMap (void)
 		 	
 	r_viewleaf = NULL;
 	R_ClearParticles ();
+	R_ClearDecals ();
 
 	GL_BuildLightmaps ();
 

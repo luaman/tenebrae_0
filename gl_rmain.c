@@ -675,7 +675,7 @@ void R_DrawAliasShadowVolume (entity_t *e)
 	// locate the proper data
 	//
 	if (!e->aliasframeinstant) {
-		Con_Printf("no insant for ent %s\n", clmodel->name);	
+		Con_Printf("no instant for ent %s\n", clmodel->name);	
 		return;
 	}
 
@@ -2197,6 +2197,7 @@ void R_RenderScene (void)
 	//Removed to fix particle & water bug (see R_RenderView) - Eradicator
 	//R_DrawParticles (); //to fix the particles triangles showing up after water
 						//put this behind the water drawing#ifdef GLTEST
+	R_DrawDecals();
 
 	glFogfv(GL_FOG_COLOR, fog_color);
 }
