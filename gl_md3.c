@@ -404,6 +404,14 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
         if (size)
              Hunk_Alloc (size);
 
+     mod->flags = 0;
+     mod->type = mod_alias;
+     mod->numframes = pinmodel->numFrames;
+     mod->synctype = ST_SYNC;
+
+     mod->mins[0] = mod->mins[1] = mod->mins[2] =  99999.0;
+     mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = -99999.0; 
+     
         for (surfcount = 0; surfcount < pinmodel->numSurfaces; ++surfcount) {
              
 	//Alocate hunk mem for the header and the frame info (not the actual frame vertices)
@@ -425,19 +433,12 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	pheader->skinheight = 4;//Hacked value
 	pheader->numverts = surf->numVerts;
 	pheader->numtris = surf->numTriangles;
-	pheader->numframes = pinmodel->numFrames;
-	pheader->synctype = ST_SYNC;
+          pheader->numframes = surf->numFrames;
+          pheader->synctype = mod->synctype;
 	pheader->flags = 0;//Hacked value
 	pheader->size = 1;//All right, the unofficial specs say the average size of triangles, so we just put something there
-	pheader->numposes = pinmodel->numFrames;
+          pheader->numposes = surf->numFrames;
 	pheader->poseverts = surf->numVerts;
-
-	mod->mins[0] = mod->mins[1] = mod->mins[2] =  99999.0;
-	mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = -99999.0; 
-	mod->flags = 0;
-	mod->type = mod_alias;
-	mod->numframes = pheader->numframes;
-	mod->synctype = pheader->synctype;
 
 	//Convert the frames
 	frame = (md3Frame_t *) ( (byte *)pinmodel + pinmodel->ofsFrames );
@@ -465,8 +466,6 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	}
 	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
 
-	//calculate radius
-	mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
 
 	//Convert the vertices
 	verts = Hunk_Alloc (pheader->numposes * pheader->poseverts * sizeof(ftrivertx_t) );
@@ -613,6 +612,9 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
              // next surface
              surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
         } /* for numsurf */
+
+     //calculate radius
+     mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
 
         
         /* monster or player models only ? */
