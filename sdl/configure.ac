@@ -88,10 +88,10 @@ PNG_VERSION=1.2.0
 
 # AC_CHECK_PROG (variable, prog-to-check-for, value-if-found, [value-if-not-found], [path], [reject])
 
-AC_CHECK_PROG(PNGLIBS,libpng-config,`libpng-config --libs`, "" )
+AC_CHECK_PROG(PNGLIBS,libpng-config,`libpng-config --libs`, )
 
-if test "x$PNGLIBS" = "x"; then
-	AC_MSG_ERROR([*** libpng  not found!])
+if test x"$PNGLIBS" = x; then
+	AC_MSG_ERROR([*** libpng not found!])
 fi
 
 AC_SUBST(PNGLIBS)
