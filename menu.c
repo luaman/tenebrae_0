@@ -1865,9 +1865,10 @@ void M_Quit_Draw (void)
 	M_Print (16, 36,       " Charles Hollemeersch\n");
 	M_Print (16, 44,       " Jarno Paananen\n");
 	M_Print (16, 52,       " Matt McChesney\n");
-	M_Print (16, 60,       "\n");
-	M_PrintWhite (16, 68,  "Art\n");
-	M_Print (16, 76,       " Willi Hammes\n");
+	M_Print (16, 60,       " Adam Jones\n"); //My Name :) - Eradicator
+	M_Print (16, 68,       "\n");
+	M_PrintWhite (16, 76,  "Art\n");
+	M_Print (16, 84,       " Willi Hammes\n");
 	/*
 	M_Print (16, 84,  " Sandy Petersen     Mike Wilson\n");
 	M_Print (16, 92,  " American McGee     Donna Jackson\n");
