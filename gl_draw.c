@@ -31,7 +31,7 @@ extern unsigned char d_15to8table[65536];
 cvar_t		gl_nobind = {"gl_nobind", "0"};
 cvar_t		gl_max_size = {"gl_max_size", "1024"};
 cvar_t		gl_picmip = {"gl_picmip", "0"};
-
+cvar_t          gl_gloss = {"gl_gloss", "0.5"};
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
 qpic_t		*draw_backtile;
@@ -411,6 +411,7 @@ void Draw_Init (void)
 	Cvar_RegisterVariable (&gl_nobind);
 	Cvar_RegisterVariable (&gl_max_size);
 	Cvar_RegisterVariable (&gl_picmip);
+	Cvar_RegisterVariable (&gl_gloss);
 
 	// 3dfx can only handle 256 wide textures
 	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
@@ -530,7 +531,7 @@ void Draw_Init (void)
 
 	for (i=0; i<8; i++) {
 		char name[32];
-		sprintf(name,"penta/caust%i.tga",i*4);
+		sprintf(name,"penta/caust%2.2i.tga",i*4);
 		caustics_textures[i] = EasyTgaLoad(name);
 	}
 
@@ -1647,7 +1648,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 			//set some gloss by default
 			gloss_width = width;
 			gloss_height = height;
-			Q_memset(&glosspix[0], 127, width*height);
+			Q_memset(&glosspix[0], 255*gl_gloss.value, width*height);
 		}
 
 		if ((gloss_width == width) && (gloss_height == height)) {
