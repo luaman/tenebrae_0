@@ -202,12 +202,13 @@ PENTA: If we don't have these extensions then we don't continue
 */
 void CheckDiffuseBumpMappingExtensions(void) 
 {
-	if (!strstr(gl_extensions, "GL_EXT_texture_env_combine")) {
-		Sys_Error ("EXT_texture_env_combine not found.\nProbably your 3d-card is not supported.\n");
+	if (!strstr(gl_extensions, "GL_EXT_texture_env_combine") &&
+		!strstr(gl_extensions, "GL_ARB_texture_env_combine") ) {
+	  Sys_Error ("EXT_texture_env_combine not found.\nProbably your 3d-card is not supported.\n");
 	}
 
-	if (!strstr(gl_extensions, "GL_EXT_texture_env_dot3")) {
-		Sys_Error ("EXT_texture_env_dot3 not found.\nProbably your 3d-card is not supported.\n");
+	if (!strstr(gl_extensions, "GL_ARB_texture_env_dot3")) {
+		Sys_Error ("ARB_texture_env_dot3 not found.\nProbably your 3d-card is not supported.\n");
 	}
 
 	if (!strstr(gl_extensions, "GL_ARB_texture_cube_map")) {
