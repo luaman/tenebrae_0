@@ -143,6 +143,7 @@ qboolean 	gl_nvcombiner = false; //PENTA: true if nvdida texture shaders are pre
 qboolean 	gl_geforce3 = false; //PENTA: true if we have a geforce3 or higher
 qboolean	gl_radeon = false; //PA: true if we have a radeon 8500 or higher
 qboolean 	gl_var	= false; //PENTA: vertex array range is available
+qboolean 	gl_texcomp = false; // JP: texture compression available
 
 // <AWE> Two more extensions. Added already check for paletted texture to gl_vidnt.c.
 //	 However any code for anisotropic texture filtering has still to be added to gl_vidnt.c.
@@ -693,10 +694,10 @@ void CheckSpecularBumpMappingExtensions(void)
 		(PFNGLGETCOMBINEROUTPUTPARAMETERIVNVPROC)
 		wglGetProcAddress("glGetCombinerOutputParameterivNV");
 	  qglGetFinalCombinerInputParameterfvNV =
-		(PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC)
+		(PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC)
 		wglGetProcAddress("glGetFinalCombinerInputfvNV"); // <AWE> "glGetFinalCombinerInputfvNV" should be changed to: "glGetFinalCombinerInputParameterfvNV"
 	  qglGetFinalCombinerInputParameterivNV =
-		(PFNGLGETFINALCOMBINERINPUTPARAMETERFVNVPROC)
+		(PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC)
 		wglGetProcAddress("glGetFinalCombinerInputivNV"); // <AWE> "glGetFinalCombinerInputivNV" should be changed to: "glGetFinalCombinerInputParameterivNV"
 	} else {
 		gl_nvcombiner = false;
@@ -837,6 +838,15 @@ void CheckAnisotropicExtension(void)
 	}
 }
 
+void CheckTextureCompressionExtension(void)
+{
+    if (strstr(gl_extensions, "GL_ARB_texture_compression") )
+    {
+        Con_Printf("Texture compression available\n");
+        gl_texcomp = true;
+    }
+}
+
 /*
 ===============
 GL_Init
@@ -872,6 +882,7 @@ void GL_Init (void)
 	CheckRadeonExtensions();
 	CheckVertexArrayRange();
 	CheckAnisotropicExtension();
+	CheckTextureCompressionExtension();
 
 	//PENTA: enable mlook by default, people kept mailing me about how to do mlook
 	Cbuf_AddText ("+mlook");

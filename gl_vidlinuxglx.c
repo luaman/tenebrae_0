@@ -116,6 +116,7 @@ qboolean gl_nvcombiner = false; //PENTA: true if nvdida texture shaders are pres
 qboolean gl_geforce3 = false; //PENTA: true if we have a geforce3 or higher
 qboolean gl_radeon = false; //PA: true if we have a radeon 8500 or higher
 qboolean gl_var = false; //PENTA: vertex array range is available
+qboolean gl_texcomp = false; // JP: texture compression available
 
 // <AWE> Two more extensions. Added already check for paletted texture to gl_vidnt.c.
 //	 However any code for anisotropic texture filtering has still to be added to gl_vidnt.c.
@@ -846,6 +847,14 @@ void CheckAnisotropicExtension(void)
 	}
 }
 
+void CheckTextureCompressionExtension(void)
+{
+    if (strstr(gl_extensions, "GL_ARB_texture_compression") )
+    {
+        Con_Printf("Texture compression available\n");
+        gl_texcomp = true;
+    }
+}
 
 /*
 ===============
@@ -875,6 +884,7 @@ void GL_Init (void)
 	//CheckRadeonExtensions(); FABE: no radeon support for linux
 	CheckVertexArrayRange();
 	CheckAnisotropicExtension();
+	CheckTextureCompressionExtension();
 
 //PENTA: enable mlook by default, people kept mailing me about how to do mlook
 	Cbuf_AddText ("+mlook");
