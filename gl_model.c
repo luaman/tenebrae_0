@@ -534,6 +534,19 @@ Mod_LoadEntities
 */
 void Mod_LoadEntities (lump_t *l)
 {
+	FILE *f;
+	char	filename[128];
+
+	sprintf(filename,"maps/%s.edo",loadname);
+	COM_FOpenFile(filename,&f);
+	if (f) {
+		loadmodel->entities = Hunk_AllocName (lengthoffile(f), loadname);	
+		fread(loadmodel->entities, 1, lengthoffile(f), f);
+		fclose(f);
+		return;
+	}
+	
+	
 	if (!l->filelen)
 	{
 		loadmodel->entities = NULL;
