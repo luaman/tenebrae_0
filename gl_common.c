@@ -25,7 +25,7 @@ const char     *gl_vendor;
 const char     *gl_renderer;
 const char     *gl_version;
 const char     *gl_extensions;
-static qboolean fullsbardraw = false;
+qboolean fullsbardraw = false;
 
 
 float           vid_gamma = 1.0;
@@ -608,8 +608,10 @@ void VID_Init8bitPalette(void)
           return;
      
      
-     if (strstr (gl_extensions, "GL_EXT_shared_texture_palette")
-         && (SAFE_GET_PROC (qglColorTableEXT,GLCOLORTABLEEXTPFN,"glColorTableEXT") != NULL)) {
+     SAFE_GET_PROC (qglColorTableEXT,GLCOLORTABLEEXTPFN,"glColorTableEXT");
+
+     if (strstr (gl_extensions, "GL_EXT_shared_texture_palette") && qglColorTableEXT )
+     {
           char thePalette[256*3];
           char *oldPalette, *newPalette;
           

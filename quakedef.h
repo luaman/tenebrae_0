@@ -366,6 +366,7 @@ extern qboolean		isDedicated;
 
 extern int			minimum_memory;
 
+extern qboolean fullsbardraw;
 //
 // chase
 //
