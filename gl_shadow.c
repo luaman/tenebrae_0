@@ -44,8 +44,10 @@ msurface_t *shadowchain; //linked list of polygons that are shadowed
 byte *lightvis;
 byte worldvis[MAX_MAP_LEAFS/8];
 
+/* -DC- isn't that volumeVertsBuff ?
 vec3_t volumevertices[MAX_VOLUME_VERTICES];//buffer for the vertices of the shadow volume
 int usedvolumevertices;
+*/
 
 void DrawVolumeFromCmds(int *volumeCmds, int *lightCmds, float *volumeVerts);
 void DrawAttentFromCmds(int *lightCmds);
@@ -53,7 +55,7 @@ void DrawBumpFromCmds(int *lightCmds);
 void DrawSpecularBumpFromCmds(int *lightCmds);
 void PrecalcVolumesForLight(model_t *model);
 int getVertexIndexFromSurf(msurface_t *surf, int index, model_t *model);
-
+qboolean R_ContributeFrame(shadowlight_t *light);
 
 /*
 =============
@@ -373,7 +375,7 @@ extern vec3_t		r_emins, r_emaxs;	// <AWE> added "extern".
 /*
 =============
 
-R_VisibleEntity
+InShadowEntity
 
 Some efrag based sceme may cut even more ents!
 =============
@@ -562,7 +564,6 @@ void R_MarkShadowCasting (shadowlight_t *light, mnode_t *node)
 	int			c,leafindex;
 
 	if (node->contents < 0) {
-
 		//we are in a leaf
 		leaf = (mleaf_t *)node;
 		leafindex = leaf->index-1;
@@ -647,7 +648,7 @@ qboolean R_ContributeFrame (shadowlight_t *light)
 		//whole sphere is out ouf frustum so cut it.
 		return false;
 	}
-	
+
 	//fully/partially in frustum
 	
 	if (!sh_noscissor.value) {
@@ -721,19 +722,19 @@ qboolean R_FillShadowChain (shadowlight_t *light)
 	shadowchain = NULL;
 
 	lightvis = &light->vis[0];
-		//numUsedShadowLights++;
-
-		//mark shadow casting ents
-		MarkShadowEntities();
-
-		//mark shadow casting polygons
-		if (!light->isStatic) {
-			R_MarkShadowCasting ( light, cl.worldmodel->nodes);
-		} else {
-			return true;
-		}
-
-		return (shadowchain) ? true : false;
+	//numUsedShadowLights++;
+	
+	//mark shadow casting ents
+	MarkShadowEntities();
+	
+	//mark shadow casting polygons
+	if (!light->isStatic) {
+	       R_MarkShadowCasting ( light, cl.worldmodel->nodes);
+	} else {
+	       return true;
+	}
+	
+	return (shadowchain) ? true : false;
 }
 
 void *VolumeVertsPointer;
@@ -1147,6 +1148,7 @@ Non calculated vertices are not saved in the list but the index in the vertex ar
 of the model is saved.
 
 We store them in volumeCmdsBuff and lightCmdsBuff
+
 =============
 */
 void PrecalcVolumesForLight(model_t *model) {
@@ -1317,10 +1319,10 @@ void PrecalcVolumesForLight(model_t *model) {
 			lightCmds[lightPos++] = GL_POLYGON;
 
 			(void *)lightCmds[lightPos++] = surf;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[0]*colorscale;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[1]*colorscale;
-			(float)lightCmds[lightPos++] = currentshadowlight->color[2]*colorscale;
-			(float)lightCmds[lightPos++] = colorscale;
+			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[0]*colorscale; 
+			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[1]*colorscale;
+			*(float *)(lightCmds+lightPos++) = currentshadowlight->color[2]*colorscale;
+			*(float *)(lightCmds+lightPos++) = colorscale;
 
 			v = poly->verts[0];
 			for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
@@ -1329,8 +1331,8 @@ void PrecalcVolumesForLight(model_t *model) {
 				VectorSubtract (v, nearPt, nearToVert);
 
 				// Get our texture coordinates, transform into tangent plane
-				(float)lightCmds[lightPos++] = DotProduct (nearToVert, (*s)) * scale + 0.5;
-				(float)lightCmds[lightPos++] = DotProduct (nearToVert, (*t)) * scale + 0.5;
+				*(float *)(lightCmds+lightPos++) = DotProduct (nearToVert, (*s)) * scale + 0.5;
+				*(float *)(lightCmds+lightPos++) = DotProduct (nearToVert, (*t)) * scale + 0.5;
 				
 				//calculate local light vector and put it into tangent space
 				{
@@ -1346,9 +1348,9 @@ void PrecalcVolumesForLight(model_t *model) {
 
 					tsLightDir[1] = -DotProduct(lightDir,(*t));
 					tsLightDir[0] = DotProduct(lightDir,(*s));
-					(float)lightCmds[lightPos++] = tsLightDir[0];
-					(float)lightCmds[lightPos++] = tsLightDir[1];
-					(float)lightCmds[lightPos++] = tsLightDir[2];
+					*(float *)(lightCmds+lightPos++) = tsLightDir[0];
+					*(float *)(lightCmds+lightPos++) = tsLightDir[1];
+					*(float *)(lightCmds+lightPos++) = tsLightDir[2];
 				}
 			}
 		if (lightPos >  MAX_LIGHT_COMMANDS) {
@@ -1838,7 +1840,7 @@ int done = 0;
 
 /*
 ================
-ShadowVolumeBsp
+R_CalcSvBsp
 
 Called for every static ent during spawning of the client
 ================
