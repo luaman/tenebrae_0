@@ -409,7 +409,7 @@ void Mod_LoadTextures (lump_t *l)
 			R_InitSky (tx);
 		else
 		{
-			if (cls.state == ca_connected) //Client has a netconnection?  We should keep it alive
+			if (cls.state == ca_connected && cl.maxclients > 1) //Client has a netconnection?  We should keep it alive
 				CL_KeepaliveMessage ();
 			else if (cls.state == ca_dedicated)
 				continue; //Don't load textures on a dedicated server
