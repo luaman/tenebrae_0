@@ -1278,7 +1278,7 @@ done: ;
 	}
 
 	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 }
 
 void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha) 
@@ -1370,7 +1370,7 @@ done: ;
 	}
 
 	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 
 }
 
@@ -1426,12 +1426,9 @@ unsigned int * genNormalMap(byte *pixels, int w, int h, float scale)
 //PENTA
 void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
 	
-	int			s;
         static unsigned char	scaled[1024*512];	// [512*256];
 	int			scaled_width, scaled_height;
 	byte			*nmap;
-
-	s = width*height;
 
 	//Resize to power of 2 and maximum texture size
 	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
@@ -1507,8 +1504,86 @@ void GL_UploadBump(byte *data, int width, int height, qboolean mipmap) {
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	}
 
+        
 	if (gl_texturefilteranisotropic)
-		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_texureanisotropylevel);
+		glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
+
+}
+
+
+//PENTA
+void GL_UploadNormal(unsigned int *data, int width, int height, qboolean mipmap)
+{
+    static unsigned int	scaled[1024*512];	// [512*256];
+    int			scaled_width, scaled_height;
+
+    //Resize to power of 2 and maximum texture size
+    for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+	;
+    for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+	;
+
+    scaled_width >>= (int)gl_picmip.value;
+    scaled_height >>= (int)gl_picmip.value;
+
+    if (scaled_width > gl_max_size.value)
+	scaled_width = gl_max_size.value;
+    if (scaled_height > gl_max_size.value)
+	scaled_height = gl_max_size.value;
+
+    if (scaled_width * scaled_height > sizeof(scaled))
+	Sys_Error ("GL_LoadTexture: too big");
+
+    //To resize or not to resize
+    if (scaled_width == width && scaled_height == height)
+    {
+	memcpy (scaled, data, width*height*4);
+	scaled_width = width;
+	scaled_height = height;
+    }
+    else {
+	GL_ResampleTexture ((unsigned*)data, width, height, scaled, scaled_width, scaled_height);
+    }
+
+    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0,
+		  GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (mipmap)
+    {
+	int		miplevel;
+
+	miplevel = 0;
+	while (scaled_width > 1 || scaled_height > 1)
+	{
+	    GL_MipMapNormal((byte*)scaled,scaled_width,scaled_height);
+	    scaled_width >>= 1;
+	    scaled_height >>= 1;
+	    if (scaled_width < 1)
+		scaled_width = 1;
+	    if (scaled_height < 1)
+		scaled_height = 1;
+	    miplevel++;
+
+	    glTexImage2D (GL_TEXTURE_2D, miplevel, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA,
+			  GL_UNSIGNED_BYTE, scaled);
+	}
+    }
+
+    if (mipmap)
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
+    else
+    {
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+    }
+
+    if (gl_texturefilteranisotropic)
+	glTexParameterfv (GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &gl_textureanisotropylevel);
 
 }
 
@@ -1674,24 +1749,38 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 
 	texture_extension_number++;
 
-if (!COM_CheckParm("-nobumpmaps")) //Disable Bumpmapping Parameter - Eradicator
-{
-	//upload bump map (if any)
-	if (bump) {
+	if (!COM_CheckParm("-nobumpmaps")) //Disable Bumpmapping Parameter - Eradicator
+	{
+	    //upload bump map (if any)
+	    if (bump) {
 		char filename[128];
-		//sprintf(filename,"override/%s_bump.tga", identifier);
-		GL_GetOverrideName(identifier,"_bump",filename);
-		//See if we can override the bump map
-		COM_FOpenFile (filename, &f);
-		if (f)
-		{
-			Con_DPrintf("Overriding bumpmap for %s\n",identifier);
-			LoadGrayTGA(f,&bumppix[0],&width,&height);
-		}
-		GL_Bind(texture_extension_number);
-		GL_UploadBump (bumppix, width, height, mipmap);
+
+                GL_Bind(texture_extension_number);
+                // first check for normal map
+                GL_GetOverrideName(identifier,"_norm",filename);
+                COM_FOpenFile (filename, &f);
+                if (f)
+                {
+                    Con_DPrintf("Overriding normal map for %s\n",identifier);
+                    LoadColorTGA(f, (byte *) &trans[0],&width,&height); // <AWE> added cast.
+                    GL_UploadNormal (trans, width, height, mipmap);
+                }
+                else
+                {
+                    //See if we can override the bump map
+                    //sprintf(filename,"override/%s_bump.tga", identifier);
+                    GL_GetOverrideName(identifier,"_bump",filename);
+                    //See if we can override the bump map
+                    COM_FOpenFile (filename, &f);
+                    if (f)
+                    {
+                        Con_DPrintf("Overriding bumpmap for %s\n",identifier);
+                        LoadGrayTGA(f,&bumppix[0],&width,&height);
+                    }
+                    GL_UploadBump (bumppix, width, height, mipmap);
+                }
+	    }
 	}
-}
 
 	/*
 	if (bump) {
