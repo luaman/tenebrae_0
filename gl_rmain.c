@@ -149,6 +149,7 @@ cvar_t	sh_noshadowpopping = {"sh_noshadowpopping","1"};
 cvar_t	mir_detail = {"mir_detail","1",true};
 cvar_t	mir_frameskip = {"mir_frameskip","1",true};
 cvar_t	mir_forcewater = {"mir_forcewater","0"};
+cvar_t	mir_distance = {"mir_distance","400",true};
 cvar_t  gl_wireframe = {"gl_wireframe","0"}; 
 cvar_t  gl_caustics = {"gl_caustics","1"};
 cvar_t  gl_truform = {"gl_truform","0"};
@@ -187,7 +188,7 @@ extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesfATI;
 #define GL_DECR_WRAP_EXT                                        0x8508
 
 
-#define MAX_UPDATE_MIRROR 400
+#define	MIN_PLAYER_MIRROR 48 //max size of player bounding box
 
 //extern	cvar_t	gl_ztrick; PENTA: Removed
 
@@ -2346,13 +2347,22 @@ void R_AllocateMirror(msurface_t *surf)
 {
 	int i,oldest,oindex;
 	mirrorplane_t *mir = NULL;
+	vec3_t	tempnormal;
 
 	//#define NUM_MIRROR_PLANES 8
 	//extern mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
+
+	//see if surface is part of an existing mirror
 	for (i=0; i<NUM_MIRROR_PLANES; i++) {
-		if ((surf->plane->normal[0] == mirrorplanes[i].plane.normal[0]) &&
-			(surf->plane->normal[1] == mirrorplanes[i].plane.normal[1]) &&
-			(surf->plane->normal[2] == mirrorplanes[i].plane.normal[2]) &&
+
+		VectorCopy(surf->plane->normal,tempnormal);
+		//if (surf->flags & SURF_PLANEBACK) {
+		//	VectorInverse(tempnormal);
+		//}
+
+		if ((tempnormal[0] == mirrorplanes[i].plane.normal[0]) &&
+			(tempnormal[1] == mirrorplanes[i].plane.normal[1]) &&
+			(tempnormal[2] == mirrorplanes[i].plane.normal[2]) &&
 			(surf->plane->dist == mirrorplanes[i].plane.dist))
 		{
 			mir = &mirrorplanes[i];
@@ -2361,7 +2371,7 @@ void R_AllocateMirror(msurface_t *surf)
 		}
 	}
 
-
+	//allocate new mirror
 	if (!mir) {
 		oldest = r_framecount;
 		oindex = -1;
@@ -2379,6 +2389,9 @@ void R_AllocateMirror(msurface_t *surf)
 
 		mir = &mirrorplanes[oindex];
 		VectorCopy(surf->plane->normal,mir->plane.normal);
+		//if (surf->flags & SURF_PLANEBACK) {
+		//	VectorInverse(mir->plane.normal);
+		//}
 		mir->plane.dist = surf->plane->dist;
 		mir->plane.type = surf->plane->type;
 		mir->plane.signbits = surf->plane->signbits;
@@ -2400,6 +2413,7 @@ void R_Mirror (mirrorplane_t *mir)
 	entity_t	*ent;
 	int			ox, oy, ow, oh, ofovx, ofovy, cl_oldvisedicts;
 	vec3_t		oang, oorg;
+	qboolean	drawplayer;
 
 	if (mirror) {
 		Con_Printf("Warning: Resursive mirrors\n");
@@ -2416,14 +2430,23 @@ void R_Mirror (mirrorplane_t *mir)
 	VectorCopy(r_refdef.vieworg, oorg);
 	d = DotProduct (r_refdef.vieworg, mir->plane.normal) - mir->plane.dist;
 
-	if (abs(d) > MAX_UPDATE_MIRROR) {
+	//camera is to far away from mirror don't update it...
+	if (abs(d) > mir_distance.value) {
 		mirror = false;
 		return;
 	}
 
-	//calculate a far plane for the mirror
+	//player is very close to mirror don't draw it since he interects it and this gives bad artefacts
+	if (abs(d) < MIN_PLAYER_MIRROR) {
+		drawplayer = false;
+	} else {
+		drawplayer = true;
+	}
+
+	//calculate a far plane for the mirror, stuff to far away from mirrors is not drawn anymore...
 	VectorCopy(mir->plane.normal,mirror_far_plane.normal);
-	mirror_far_plane.dist = mir->plane.dist + 500;
+	//VectorInverse(mirror_far_plane.normal);
+	mirror_far_plane.dist = DotProduct(r_refdef.vieworg,mir->plane.normal) + mir_distance.value;
 
 	VectorMA (r_refdef.vieworg, -2*d, mir->plane.normal, r_refdef.vieworg);
 
@@ -2473,7 +2496,7 @@ void R_Mirror (mirrorplane_t *mir)
 		r_drawentities.value = 0;
 	} else {
 		//Hack add player to back of list	
-		if (cl_entities[cl.viewentity].model) {
+		if (drawplayer && cl_entities[cl.viewentity].model) {
 			ent = &cl_entities[cl.viewentity];
 			if (cl_numvisedicts < MAX_VISEDICTS)
 			{
@@ -2560,7 +2583,8 @@ void R_SetupMirrorShader(msurface_t *surf,mirrorplane_t *mir) {
 
 	if ((surf->flags & SURF_DRAWTURB) && !(surf->flags & SURF_GLASS)) {
 		//it is water
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE);
 		glEnable(GL_BLEND);
 		return;
 	} else {
