@@ -657,12 +657,9 @@ void R_DrawAliasShadowVolume (entity_t *e)
 	clmodel = currententity->model;
 
 
-	// HACK HACK HACK -- flames don't cast shadows
-	if (!strcmp (clmodel->name, "progs/flame2.mdl")
-		|| !strcmp (clmodel->name, "progs/flame.mdl")
-		|| !strcmp (clmodel->name, "progs/flame.mdl")
-		|| !strcmp (clmodel->name, "progs/flame.mdl"))
-		return;
+        /* no shadows casting for these */
+        if (clmodel->flags && EF_NOSHADOW)
+             return;
 
 	/*
 	Don't cull to frustum models behind you may still cast shadows
