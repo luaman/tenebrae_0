@@ -422,7 +422,7 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	//Con_Printf("%s: %f,%f,%f %f,%f,%f\n",loadname,mod->mins[0],mod->mins[1],mod->mins[2],mod->maxs[0],mod->maxs[1],mod->maxs[2]);
 
 	//calculate radius
-	mod->radius = max(Length(mod->mins),Length(mod->maxs));
+	mod->radius = RadiusFromBounds (mod->mins, mod->maxs);
 
 	//Convert the vertices
 	verts = Hunk_Alloc (pheader->numposes * pheader->poseverts * sizeof(ftrivertx_t) );
