@@ -56,6 +56,108 @@ byte		lightmaps[4*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
 msurface_t  *skychain = NULL;
 msurface_t  *waterchain = NULL;
 
+
+
+/*
+====================================================
+PENTA: Added for brush model vertex array support...
+
+	We first add vertices to a dynamically allocated buffer (malloc)
+	at the end of level loading we copy that to a "quake" allocated
+	buffer (on the Hunk)
+====================================================
+*/
+mmvertex_t *globalVertexTable = NULL;
+
+mmvertex_t *tempVertices = NULL;
+int	tempVerticesSize = 0;
+int	numTempVertices = 0;
+
+int R_GetNextVertexIndex(void) {
+	return numTempVertices;
+}
+/*
+Returns the index of the vertex the date was copied to...
+*/
+int R_AllocateVertexInTemp(vec3_t pos, float texture [2], float lightmap[2]) {
+
+	int i;
+	mmvertex_t *temp;
+
+
+	if (!tempVertices) {
+		tempVerticesSize = 512;
+		tempVertices = malloc(tempVerticesSize*sizeof(mmvertex_t));
+		numTempVertices = 0;
+	}
+
+	if (numTempVertices >= tempVerticesSize) {
+
+		tempVerticesSize+=512;
+		temp = malloc(tempVerticesSize*sizeof(mmvertex_t));
+		if (!temp) Sys_Error("R_AllocateVertexInTemp: malloc failed\n");
+		Q_memcpy(temp,tempVertices,(tempVerticesSize-512)*sizeof(mmvertex_t));
+		free(tempVertices);
+		tempVertices = temp;
+	}
+
+	VectorCopy(pos,tempVertices[numTempVertices].position);
+	for (i=0; i<2; i++) {
+		tempVertices[numTempVertices].texture[i] = texture[i];
+		tempVertices[numTempVertices].lightmap[i] = lightmap[i];
+	}
+	numTempVertices++;
+	return numTempVertices-1;
+}
+
+void R_CopyVerticesToHunk(void)
+{
+	globalVertexTable = Hunk_Alloc(numTempVertices*sizeof(mmvertex_t));
+	Q_memcpy(globalVertexTable,tempVertices,numTempVertices*sizeof(mmvertex_t));
+	free(tempVertices);
+	Con_Printf("Copied %i vertices to hunk\n",numTempVertices);
+
+	tempVertices = NULL;
+	tempVerticesSize = 0;
+	numTempVertices = 0;
+}
+
+void R_EnableVertexTable(int fields) {
+
+	glVertexPointer(3, GL_FLOAT, VERTEXSIZE*sizeof(float), globalVertexTable);
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	if (fields & VERTEX_TEXTURE) {
+		qglClientActiveTextureARB(GL_TEXTURE0_ARB);
+		glTexCoordPointer(2, GL_FLOAT, VERTEXSIZE*sizeof(float), (float *)(globalVertexTable)+3);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+
+	if (fields & VERTEX_LIGHTMAP) {
+		qglClientActiveTextureARB(GL_TEXTURE1_ARB);
+		glTexCoordPointer(2, GL_FLOAT, VERTEXSIZE*sizeof(float), (float *)(globalVertexTable)+5);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+	qglClientActiveTextureARB(GL_TEXTURE0_ARB);
+}
+
+void R_DisableVertexTable(int fields) {
+
+	glVertexPointer(3, GL_FLOAT, 0, globalVertexTable);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	if (fields & VERTEX_TEXTURE) {
+		qglClientActiveTextureARB(GL_TEXTURE0_ARB);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+
+	if (fields & VERTEX_LIGHTMAP) {
+		qglClientActiveTextureARB(GL_TEXTURE1_ARB);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+	qglClientActiveTextureARB(GL_TEXTURE0_ARB);
+}
+
 void R_RenderDynamicLightmaps (msurface_t *fa);
 
 /*
@@ -596,7 +698,8 @@ void R_DrawSequentialPoly (msurface_t *s)
 			}
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 			glBegin(GL_POLYGON);
-			v = p->verts[0];
+			//v = p->verts[0];
+			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 			{
 				qglMultiTexCoord2fARB (GL_TEXTURE0_ARB, v[3], v[4]);
@@ -611,7 +714,8 @@ void R_DrawSequentialPoly (msurface_t *s)
 			t = R_TextureAnimation (s->texinfo->texture);
 			GL_Bind (t->gl_texturenum);
 			glBegin (GL_POLYGON);
-			v = p->verts[0];
+			//v = p->verts[0];
+			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 			{
 				glTexCoord2f (v[3], v[4]);
@@ -622,7 +726,8 @@ void R_DrawSequentialPoly (msurface_t *s)
 			GL_Bind (lightmap_textures + s->lightmaptexturenum);
 			glEnable (GL_BLEND);
 			glBegin (GL_POLYGON);
-			v = p->verts[0];
+			//v = p->verts[0];
+			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 			{
 				glTexCoord2f (v[5], v[6]);
@@ -689,7 +794,8 @@ void DrawGLWaterPoly (glpoly_t *p)
 	GL_DisableMultitexture();
 
 	glBegin (GL_TRIANGLE_FAN);
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[3], v[4]);
@@ -712,7 +818,8 @@ void DrawGLWaterPolyLightmap (glpoly_t *p)
 	GL_DisableMultitexture();
 
 	glBegin (GL_TRIANGLE_FAN);
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[5], v[6]);
@@ -737,7 +844,8 @@ void DrawGLPoly (glpoly_t *p)
 	float	*v;
 
 	glBegin (GL_POLYGON);
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[3], v[4]);
@@ -799,7 +907,8 @@ void R_BlendLightmaps (void)
 		for( ; p ; p=p->chain)
 		{
 			glBegin (GL_POLYGON);
-			v = p->verts[0];
+			//v = p->verts[0];
+			v = (float *)(&globalVertexTable[p->firstvertex]);
 			for (j=0 ; j<p->numverts ; j++, v+= VERTEXSIZE)
 			{
 				glTexCoord2f (v[5], v[6]);
@@ -868,7 +977,8 @@ void R_RenderBrushPoly (msurface_t *fa)
 
 	p = fa->polys;
 	glBegin (GL_POLYGON);
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[3], v[4]);
@@ -904,7 +1014,8 @@ void R_RenderBrushPolyLuma (msurface_t *fa)
 
 	glBegin (GL_POLYGON);
 	p = fa->polys;
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[3], v[4]);
@@ -953,7 +1064,8 @@ void R_RenderBrushPolyLightmap (msurface_t *fa)
 
 	p = fa->polys;
 
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 
@@ -977,7 +1089,8 @@ void R_RenderBrushPolyCaustics (msurface_t *fa)
 
 	glBegin (GL_POLYGON);
 	p = fa->polys;
-	v = p->verts[0];
+	//v = p->verts[0];
+	v = (float *)(&globalVertexTable[p->firstvertex]);
 	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
 	{
 		glTexCoord2f (v[5], v[6]);
@@ -1196,6 +1309,7 @@ void R_DrawWaterSurfaces (void)
 				glLoadIdentity();
 				glDisable(GL_TEXTURE_GEN_S);
 				glDisable(GL_TEXTURE_GEN_T);
+				glFogfv(GL_FOG_COLOR, fog_color);
 			}
 		}
 	}
@@ -1235,7 +1349,7 @@ void DrawTextureChains (void)
 {
 	int		i;
 	msurface_t	*s;
-	texture_t	*t;
+	texture_t	*t, *tani;
 	qboolean	found = false;
 
 	//glBlendFunc(GL_ZERO,GL_SRC_COLOR);
@@ -1264,18 +1378,15 @@ void DrawTextureChains (void)
 
 
 	if (gl_wireframe.value) {
-
 		GL_SelectTexture(GL_TEXTURE0_ARB);
-
 		glDisable(GL_TEXTURE_2D);
-
 		GL_SelectTexture(GL_TEXTURE1_ARB);
-
 		glDisable(GL_TEXTURE_2D);
-
 	}
 
 	causticschain = NULL; //clear chain here
+
+	R_EnableVertexTable(VERTEX_TEXTURE | VERTEX_LIGHTMAP);
 
 	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
 	{
@@ -1306,57 +1417,49 @@ void DrawTextureChains (void)
 			//PENTA: water at end of frame
 			if (s->flags & SURF_DRAWTURB)
 				continue;
-			
+
+			GL_SelectTexture(GL_TEXTURE0_ARB);			
+			tani = R_TextureAnimation (s->texinfo->texture);
+			GL_Bind (tani->gl_texturenum);
 
 			//Do the ambient pass
+			//now with arrays!
+			GL_SelectTexture(GL_TEXTURE1_ARB);
 			while (s) {
-				R_RenderBrushPoly (s);
+				//R_RenderBrushPoly (s);
+				GL_Bind (lightmap_textures + s->lightmaptexturenum);
+				glDrawArrays(GL_TRIANGLE_FAN,s->polys->firstvertex,s->polys->numverts);
 				s=s->texturechain;
 				c_brush_polys ++;
 			}
-
-
+			GL_SelectTexture(GL_TEXTURE0_ARB);
+			
 			//Has this texture a luma texture then add it
 
 			if (t->gl_lumitex) {
-				vec3_t color_black = {0.0, 0.0, 0.0};
-
+				//vec3_t color_black = {0.0, 0.0, 0.0};
 				glFogfv(GL_FOG_COLOR, color_black);
-
 				glEnable(GL_BLEND);
-
 				glBlendFunc(GL_ONE, GL_ONE);
-
 				GL_SelectTexture(GL_TEXTURE1_ARB);
-
 				glDisable(GL_TEXTURE_2D);
-
 				GL_SelectTexture(GL_TEXTURE0_ARB);
-
 				glColor3f(1, 1, 1);
 
 				s = t->texturechain;
+				GL_Bind (t->gl_lumitex);
 
-				for ( ; s ; s=s->texturechain)
-
-					R_RenderBrushPolyLuma (s);
-
-
+				for ( ; s ; s=s->texturechain) {
+					//R_RenderBrushPolyLuma (s);
+					glDrawArrays(GL_TRIANGLE_FAN,s->polys->firstvertex,s->polys->numverts);
+				}
 
 				glColor3f(sh_lightmapbright.value,sh_lightmapbright.value,sh_lightmapbright.value);
-
-			
-
 				GL_SelectTexture(GL_TEXTURE1_ARB);
-
 				glEnable(GL_TEXTURE_2D);
-
 				GL_SelectTexture(GL_TEXTURE0_ARB);
-
 				GL_SelectTexture(GL_TEXTURE1_ARB);
-
 				glDisable(GL_BLEND);
-
 				glFogfv(GL_FOG_COLOR, fog_color);
 			}
 
@@ -1377,6 +1480,8 @@ void DrawTextureChains (void)
 
 		t->texturechain = NULL;
 	}
+	R_DisableVertexTable(VERTEX_TEXTURE | VERTEX_LIGHTMAP);
+	GL_SelectTexture(GL_TEXTURE1_ARB);
 	GL_DisableMultitexture();
 	//glDisable(GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1415,13 +1520,16 @@ void R_DrawCaustics(void) {
 	glBlendFunc(GL_DST_COLOR, GL_ONE);
 
 	GL_Bind(caustics_textures[(int)(cl.time*16)&7]);
-
 	busy_caustics = true;
 	s = causticschain;
+
+	R_EnableVertexTable(0);
 	while (s) {
-		R_RenderBrushPolyCaustics (s);
+		//R_RenderBrushPolyCaustics (s);
+		glDrawArrays(GL_TRIANGLE_FAN,s->polys->firstvertex,s->polys->numverts);			
 		s = s->texturechain;
 	}
+	R_DisableVertexTable(0);
 
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
@@ -2244,7 +2352,8 @@ void BuildPolyFromSurface (msurface_t *fa)
 	float		s, t;
 	glpoly_t	*poly;
 	temp_connect_t *tempEdge;
-
+	float		tex[2];
+	float		light[2];
 
 // reconstruct the polygon
 	pedges = currentmodel->edges;
@@ -2254,7 +2363,7 @@ void BuildPolyFromSurface (msurface_t *fa)
 	//
 	// draw texture <= wat mag dit comment me betekenen?
 	//
-	poly = Hunk_Alloc (sizeof(glpoly_t) + (lnumverts-4) * VERTEXSIZE*sizeof(float) );
+	poly = Hunk_Alloc (sizeof(glpoly_t));
 	//PENTA: reserve space for neighbour pointers
 	//PENTA: FIXME: pointers don't need to be 4 bytes
 	poly->neighbours = Hunk_Alloc (lnumverts*4);
@@ -2263,7 +2372,7 @@ void BuildPolyFromSurface (msurface_t *fa)
 	poly->flags = fa->flags;
 	fa->polys = poly;
 	poly->numverts = lnumverts;
-
+	poly->firstvertex = R_GetNextVertexIndex();
 	for (i=0 ; i<lnumverts ; i++)
 	{
 		lindex = currentmodel->surfedges[fa->firstedge + i];
@@ -2278,33 +2387,29 @@ void BuildPolyFromSurface (msurface_t *fa)
 			r_pedge = &pedges[-lindex];
 			vec = r_pcurrentvertbase[r_pedge->v[1]].position;
 		}
-		s = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
-		s /= fa->texinfo->texture->width;
+		tex[0] = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
+		tex[0] /= fa->texinfo->texture->width;
 
-		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
-		t /= fa->texinfo->texture->height;
-
-		VectorCopy (vec, poly->verts[i]);
-		poly->verts[i][3] = s;
-		poly->verts[i][4] = t;
+		tex[1] = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
+		tex[1] /= fa->texinfo->texture->height;
 
 		//
 		// lightmap texture coordinates
 		//
-		s = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
-		s -= fa->texturemins[0];
-		s += fa->light_s*16;
-		s += 8;
-		s /= BLOCK_WIDTH*16; //fa->texinfo->texture->width;
+		light[0] = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
+		light[0] -= fa->texturemins[0];
+		light[0] += fa->light_s*16;
+		light[0] += 8;
+		light[0] /= BLOCK_WIDTH*16; //fa->texinfo->texture->width;
 
-		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
-		t -= fa->texturemins[1];
-		t += fa->light_t*16;
-		t += 8;
-		t /= BLOCK_HEIGHT*16; //fa->texinfo->texture->height;
+		light[1] = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
+		light[1] -= fa->texturemins[1];
+		light[1] += fa->light_t*16;
+		light[1] += 8;
+		light[1] /= BLOCK_HEIGHT*16; //fa->texinfo->texture->height;
 
-		poly->verts[i][5] = s;
-		poly->verts[i][6] = t;
+		//Push back the new vertex
+		R_AllocateVertexInTemp(vec,tex,light);
 
 		//PENTA: Store in the tempedges table that this polygon uses the edge
 		tempEdge = tempEdges+abs(lindex);
@@ -2407,6 +2512,7 @@ void GL_BuildLightmaps (void)
 			break;
 		if (m->name[0] == '*')
 			continue;
+
 		r_pcurrentvertbase = m->vertexes;
 		currentmodel = m;
 		
