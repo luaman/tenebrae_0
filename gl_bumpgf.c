@@ -211,7 +211,8 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 	glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
 
 	GL_SelectTexture(GL_TEXTURE2_ARB);
-	glEnable(GL_TEXTURE_2D);
+
+        glEnable(GL_TEXTURE_2D);
 
 	GL_SelectTexture(GL_TEXTURE3_ARB);
 	glMatrixMode(GL_TEXTURE);
@@ -244,7 +245,7 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 	//	(gloss map = C) mul (light filter = D) save in Spare1 RGB
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_RGB, GL_VARIABLE_A_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_RGB);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_RGB, GL_VARIABLE_B_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_RGB);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_RGB, GL_VARIABLE_C_NV, GL_TEXTURE2_ARB, GL_UNSIGNED_IDENTITY_NV , GL_ALPHA);
+	qglCombinerInputNV(GL_COMBINER0_NV, GL_RGB, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_UNSIGNED_IDENTITY_NV , GL_ALPHA);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_RGB, GL_VARIABLE_D_NV, GL_TEXTURE3_ARB, GL_UNSIGNED_IDENTITY_NV , GL_RGB);
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_RGB, GL_SPARE0_NV, GL_SPARE1_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_TRUE, GL_FALSE, GL_FALSE);
 
@@ -282,6 +283,9 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 	qglCombinerInputNV(GL_COMBINER2_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_SPARE0_NV, GL_UNSIGNED_IDENTITY_NV, GL_ALPHA);
 	qglCombinerOutputNV(GL_COMBINER2_NV, GL_ALPHA, GL_SPARE0_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 	//combiner2 rgb: Do nothing
+//	qglCombinerInputNV(GL_COMBINER2_NV, GL_RGB, GL_VARIABLE_A_NV, GL_SPARE1_NV, GL_UNSIGNED_IDENTITY_NV, GL_RGB);
+//	qglCombinerInputNV(GL_COMBINER2_NV, GL_RGB, GL_VARIABLE_B_NV, GL_TEXTURE2_ARB, GL_UNSIGNED_IDENTITY_NV, GL_RGB);
+//	qglCombinerOutputNV(GL_COMBINER2_NV, GL_RGB, GL_SPARE1_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 	qglCombinerOutputNV(GL_COMBINER2_NV, GL_RGB, GL_DISCARD_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
 	//combiner3 Alpha: Raise specular further
@@ -292,7 +296,7 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 //	qglCombinerOutputNV(GL_COMBINER2_NV, GL_RGB, GL_DISCARD_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_A_NV, GL_SPARE1_NV, GL_UNSIGNED_IDENTITY_NV, GL_ALPHA);
 	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_B_NV, GL_SPARE1_NV, GL_UNSIGNED_IDENTITY_NV, GL_RGB);
-	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_C_NV, GL_TEXTURE2_ARB, GL_UNSIGNED_IDENTITY_NV , GL_ALPHA);
+	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_UNSIGNED_IDENTITY_NV , GL_ALPHA);
 	qglCombinerInputNV(GL_COMBINER3_NV, GL_RGB, GL_VARIABLE_D_NV, GL_TEXTURE3_ARB, GL_UNSIGNED_IDENTITY_NV , GL_RGB);
 	qglCombinerOutputNV(GL_COMBINER3_NV, GL_RGB, GL_SPARE1_NV, GL_DISCARD_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
@@ -515,7 +519,7 @@ void R_DrawBrushGF3Diffuse(entity_t *e) {
 		GL_SelectTexture(GL_TEXTURE2_ARB);
 		GL_Bind(t->gl_texturenum);
 
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		//v = poly->verts[0];
 		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
@@ -556,7 +560,7 @@ void R_DrawBrushGF3Specular(entity_t *e) {
 		GL_SelectTexture(GL_TEXTURE2_ARB);
 		GL_Bind(t->gl_texturenum);
 
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLE_FAN);
 		//v = poly->verts[0];
 		v = (float *)(&globalVertexTable[poly->firstvertex]);
 		for (j=0 ; j<poly->numverts ; j++, v+= VERTEXSIZE)
@@ -694,7 +698,7 @@ void R_DrawWorldBumpedGF3() {
 		//draw attent into dest alpha
 		GL_DrawAlpha();
 		GL_EnableAttentShaderGF3(currentshadowlight->origin);
-		R_DrawWorldWV(currentshadowlight->lightCmds);
+		R_DrawWorldWV(currentshadowlight->lightCmds, false);
 		GL_DisableAttentShaderGF3();
 		GL_ModulateAlphaDrawColor();
 	} else {
@@ -702,12 +706,12 @@ void R_DrawWorldBumpedGF3() {
 	}
 	glColor3fv(&currentshadowlight->color[0]);
 
-	GL_EnableDiffuseShaderGF3(true,currentshadowlight->origin);
-	R_DrawWorldGF3Diffuse(currentshadowlight->lightCmds);
-	GL_DisableDiffuseShaderGF3();
-
 	GL_EnableSpecularShaderGF3(true,currentshadowlight->origin,false);
 	R_DrawWorldGF3Specular(currentshadowlight->lightCmds);
+	GL_DisableDiffuseShaderGF3();
+
+	GL_EnableDiffuseShaderGF3(true,currentshadowlight->origin);
+	R_DrawWorldGF3Diffuse(currentshadowlight->lightCmds);
 	GL_DisableDiffuseShaderGF3();
 
 	glColor3f (1,1,1);
@@ -722,7 +726,7 @@ void R_DrawBrushBumpedGF3(entity_t *e) {
 		//draw attent into dest alpha
 		GL_DrawAlpha();
 		GL_EnableAttentShaderGF3(((brushlightinstant_t *)e->brushlightinstant)->lightpos);
-		R_DrawBrushWV(e);
+		R_DrawBrushWV(e, false);
 		GL_DisableAttentShaderGF3();
 		GL_ModulateAlphaDrawColor();
 	} else {
@@ -730,12 +734,12 @@ void R_DrawBrushBumpedGF3(entity_t *e) {
 	}
 	glColor3fv(&currentshadowlight->color[0]);
 
-	GL_EnableDiffuseShaderGF3(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos);
-	R_DrawBrushGF3Diffuse(e);
-	GL_DisableDiffuseShaderGF3();
-
 	GL_EnableSpecularShaderGF3(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos,false);
 	R_DrawBrushGF3Specular(e);
+	GL_DisableDiffuseShaderGF3();
+
+        GL_EnableDiffuseShaderGF3(false,((brushlightinstant_t *)e->brushlightinstant)->lightpos);
+	R_DrawBrushGF3Diffuse(e);
 	GL_DisableDiffuseShaderGF3();
 }
 
@@ -745,7 +749,7 @@ void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 		//draw attent into dest alpha
 		GL_DrawAlpha();
 		GL_EnableAttentShaderGF3(instant->lightinstant->lightpos);
-		R_DrawAliasFrameWV(paliashdr,instant);
+		R_DrawAliasFrameWV(paliashdr,instant, false);
 		GL_DisableAttentShaderGF3();
 		GL_ModulateAlphaDrawColor();
 	} else {
@@ -753,12 +757,12 @@ void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 	}
 	glColor3fv(&currentshadowlight->color[0]);
 
-	GL_EnableDiffuseShaderGF3(false,instant->lightinstant->lightpos);
-	R_DrawAliasFrameGF3Diffuse(paliashdr,instant);
-	GL_DisableDiffuseShaderGF3();
-
 	GL_EnableSpecularShaderGF3(false,instant->lightinstant->lightpos,true);
 	R_DrawAliasFrameGF3Specular(paliashdr,instant);
+	GL_DisableDiffuseShaderGF3();
+
+        GL_EnableDiffuseShaderGF3(false,instant->lightinstant->lightpos);
+	R_DrawAliasFrameGF3Diffuse(paliashdr,instant);
 	GL_DisableDiffuseShaderGF3();
 }
 
@@ -856,7 +860,7 @@ void R_LoadVertexProgram() {
 	GLint errPos, errCode;
 	const GLubyte *errString;
 
-	if (!gl_geforce3) return;
+	if ( gl_cardtype != GEFORCE3 ) return;
 
 	// Create the vertex program.
 	qglGenProgramsNV( 1, &diffuse_program_object);
