@@ -443,7 +443,6 @@ SetPal(2);
 	return frac;
 }
 
-
 /*
 ===============
 CL_RelinkEntities
@@ -541,8 +540,31 @@ void CL_RelinkEntities (void)
 		}
 
 // rotate binary objects locally
-		if (ent->model->flags & EF_ROTATE)
-			ent->angles[1] = bobjrotate;
+		if (ent->model->flags & EF_ROTATE || //EF_ROTATE
+			!strcmp (ent->model->name, "progs/g_shot.mdl") || //Hack to give .md3 files renamed to .mdl rotate effects - Eradicator
+			!strcmp (ent->model->name, "progs/g_nail.mdl") ||
+			!strcmp (ent->model->name, "progs/g_nail2.mdl") ||
+			!strcmp (ent->model->name, "progs/g_rock.mdl") ||
+			!strcmp (ent->model->name, "progs/g_rock2.mdl") || 
+			!strcmp (ent->model->name, "progs/g_light.mdl") ||
+			!strcmp (ent->model->name, "progs/w_g_key.mdl") ||
+			!strcmp (ent->model->name, "progs/w_s_key.mdl") ||
+			!strcmp (ent->model->name, "progs/m_g_key.mdl") ||
+			!strcmp (ent->model->name, "progs/m_s_key.mdl") ||
+			!strcmp (ent->model->name, "progs/b_g_key.mdl") ||
+			!strcmp (ent->model->name, "progs/b_s_key.mdl") ||
+			!strcmp (ent->model->name, "progs/quaddama.mdl") ||
+			!strcmp (ent->model->name, "progs/invisibl.mdl") ||
+			!strcmp (ent->model->name, "progs/invulner.mdl") ||
+			!strcmp (ent->model->name, "progs/jetpack.mdl") || 
+			!strcmp (ent->model->name, "progs/cube.mdl") ||
+			!strcmp (ent->model->name, "progs/suit.mdl") ||
+			!strcmp (ent->model->name, "progs/boots.mdl") ||
+			!strcmp (ent->model->name, "progs/end1.mdl") ||
+			!strcmp (ent->model->name, "progs/end2.mdl") ||
+			!strcmp (ent->model->name, "progs/end3.mdl") ||
+			!strcmp (ent->model->name, "progs/end4.mdl"))
+				ent->angles[1] = bobjrotate;
 
 		if (ent->effects & EF_BRIGHTFIELD)
 			R_EntityParticles (ent);
@@ -692,7 +714,77 @@ void CL_RelinkEntities (void)
 			dl->owner = ent;
 		}
 #endif
+		//Hack to give .md3 files renamed to .mdl their model flags - Eradicator
 
+		if (!strcmp (ent->model->name, "progs/lavaball.mdl")) //EF_ROCKET & lavaball cubemap
+		{
+			R_RocketTrail (oldorg, ent->origin, 0);
+			dl = CL_AllocDlight (i);
+			VectorCopy (ent->origin, dl->origin);
+			dl->radius = 200;
+			dl->die = cl.time + 0.01;
+			dl->color[0] = 1; dl->color[1] = 0.9; dl->color[2] = 0.7;
+			dl->owner = ent;
+			dl->filtercube = R_CubeMapLookup(17);
+			dl->color[0] = 1;
+			dl->color[1] = 1;
+			dl->color[2] = 1;
+			dl->radius = 270;
+		}
+		else if (!strcmp (ent->model->name, "progs/missile.mdl")) //EF_ROCKET
+		{
+			R_RocketTrail (oldorg, ent->origin, 0);
+			dl = CL_AllocDlight (i);
+			VectorCopy (ent->origin, dl->origin);
+			dl->radius = 200;
+			dl->die = cl.time + 0.01;
+			dl->color[0] = 1; dl->color[1] = 0.9; dl->color[2] = 0.7;
+			dl->owner = ent;
+		}
+		else if (!strcmp (ent->model->name, "progs/gib1.mdl") || //EF_GIB
+			!strcmp (ent->model->name, "progs/gib2.mdl") || 
+			!strcmp (ent->model->name, "progs/gib3.mdl") || 
+			!strcmp (ent->model->name, "progs/h_player.mdl") || 
+			!strcmp (ent->model->name, "progs/h_dog.mdl") || 
+			!strcmp (ent->model->name, "progs/h_mega.mdl") || 
+			!strcmp (ent->model->name, "progs/h_guard.mdl") || 
+			!strcmp (ent->model->name, "progs/h_wizard.mdl") || 
+			!strcmp (ent->model->name, "progs/h_knight.mdl") || 
+			!strcmp (ent->model->name, "progs/h_hellkn.mdl") || 
+			!strcmp (ent->model->name, "progs/h_zombie.mdl") || 
+			!strcmp (ent->model->name, "progs/h_shams.mdl") || 
+			!strcmp (ent->model->name, "progs/h_shal.mdl") || 
+			!strcmp (ent->model->name, "progs/h_ogre.mdl") ||
+			!strcmp (ent->model->name, "progs/h_demon.mdl"))
+				R_RocketTrail (oldorg, ent->origin, 2);
+		else if (!strcmp (ent->model->name, "progs/grenade.mdl")) //EF_GRENADE
+		{
+			R_RocketTrail (oldorg, ent->origin, 1);
+			dl = CL_AllocDlight (i);
+			VectorCopy (ent->origin, dl->origin);
+			dl->radius = 200;
+			dl->die = cl.time + 0.01;
+			dl->color[0] = 1; dl->color[1] = 0.9; dl->color[2] = 0.7;
+			dl->owner = ent;
+		}
+		else if (!strcmp (ent->model->name, "progs/w_spike.mdl")) //EF_TRACER
+		{
+			R_RocketTrail (oldorg, ent->origin, 3);
+		}
+		else if (!strcmp (ent->model->name, "progs/k_spike.mdl")) //EF_TRACER2
+		{
+			R_RocketTrail (oldorg, ent->origin, 5);
+		}
+		else if (!strcmp (ent->model->name, "progs/v_spike.mdl")) //EF_TRACER3
+		{
+			R_RocketTrail (oldorg, ent->origin, 6);
+		}
+		else if (!strcmp (ent->model->name, "progs/zom_gib.mdl")) //EF_ZOMGIB
+		{
+			R_RocketTrail (oldorg, ent->origin, 4);
+		}
+		else
+		{
 		if (ent->model->flags & EF_GIB)
 			R_RocketTrail (oldorg, ent->origin, 2);
 		else if (ent->model->flags & EF_ZOMGIB)
@@ -731,6 +823,7 @@ void CL_RelinkEntities (void)
 		}
 		else if (ent->model->flags & EF_TRACER3)
 			R_RocketTrail (oldorg, ent->origin, 6);
+		}
 
 		ent->forcelink = false;
 
