@@ -112,6 +112,14 @@ void Cvar_Set (char *var_name, char *value)
 		Con_Printf ("Cvar_Set: variable %s not found\n", var_name);
 		return;
 	}
+	
+	//START - coop and dm flag fix - Eradicator
+	if ( (var->value != 0) && (!Q_strcmp (var->name, deathmatch.name)) )
+		Cvar_Set ("coop", "0");
+
+	if ( (var->value != 0) && (!Q_strcmp (var->name, coop.name)) )
+		Cvar_Set ("deathmatch", "0");
+	//END - coop and dm flag fix - Eradicator
 
 	changed = Q_strcmp(var->string, value);
 
@@ -144,7 +152,11 @@ void Cvar_SetValue (char *var_name, float value)
 {
 	char	val[32];
 	
-	sprintf (val, "%f",value);
+	if (value == (int)value) //decimal fix - Eradicator
+		sprintf (val, "%d", (int)value);
+	else
+		sprintf (val, "%f",value);
+
 	Cvar_Set (var_name, val);
 }
 
@@ -228,5 +240,49 @@ void Cvar_WriteVariables (FILE *f)
 	for (var = cvar_vars ; var ; var = var->next)
 		if (var->archive)
 			fprintf (f, "%s \"%s\"\n", var->name, var->string);
+}
+
+/*
+=========
+Cvar_List
+
+Displays a list of all cvars similar to Quake3 cvarlist - Eradicator
+=========
+*/
+void Cvar_List_f (void)
+{
+	cvar_t		*cvar;
+	char 		*partial;
+	int		len;
+	int		count;
+
+	if (Cmd_Argc() > 1)
+	{
+		partial = Cmd_Argv (1);
+		len = Q_strlen(partial);
+	}
+	else
+	{
+		partial = NULL;
+		len = 0;
+	}
+
+	count=0;
+	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
+	{
+		if (partial && Q_strncmp (partial,cvar->name, len))
+		{
+			continue;
+		}
+		Con_Printf ("\"%s\" is \"%s\"\n", cvar->name, cvar->string);
+		count++;
+	}
+
+	Con_Printf ("%i cvar(s)", count);
+	if (partial)
+	{
+		Con_Printf (" beginning with \"%s\"", partial);
+	}
+	Con_Printf ("\n");
 }
 
