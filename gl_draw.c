@@ -1860,7 +1860,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	qboolean	noalpha;
 	int			p;
 	FILE		*f;
-	char filename[128];
+	char filename[MAX_OSPATH];
 	byte		r, g, b;
 	s = width*height;
 
@@ -1940,14 +1940,14 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 	if (!COM_CheckParm("-nobumpmaps") && ( sh_bumpmaps.value ) && bump )
 	{
 	    //upload bump map (if any)
-	    char filename[128];
+	    char filename[MAX_OSPATH];
 
 	    GL_Bind(texture_extension_number);
 	    // first check for normal map
 	    GL_GetOverrideName(identifier,"_norm",filename);
 	    if ( LoadTextureInPlace(filename, 4, (unsigned char*)&trans[0], &width, &height) )
 	    {
-		char filename[128];
+		char filename[MAX_OSPATH];
 		int gloss_width, gloss_height;
 		Con_DPrintf("Overriding normal map for %s\n",identifier);
 
@@ -1981,7 +1981,7 @@ static	unsigned char	glosspix[1024*1024];	// PENTA: bumped texture (it seems the
 		//See if we can override the bump map
 		if ( LoadTextureInPlace(filename, 1, &bumppix[0], &width, &height) )
 		{
-		    char filename[128];
+		    char filename[MAX_OSPATH];
 		    int gloss_width, gloss_height;
 		    Con_DPrintf("Overriding bumpmap for %s\n",identifier);
 		    GL_GetOverrideName(identifier,"_gloss",filename);
@@ -2067,7 +2067,7 @@ int GL_LoadLuma(char *identifier, qboolean mipmap)
 {
 	qboolean	alpha;
 	FILE		*f;
-	char filename[128];
+	char filename[MAX_OSPATH];
 	int			width, height;
 
         if ( willi_gray_colormaps.value )
@@ -2114,7 +2114,7 @@ int GL_LoadCubeMap (int identifier)
 	int			i, width, height;
 	gltexture_t	*glt;
 	FILE		*f;
-	char filename[128];
+	char filename[MAX_OSPATH];
         int			texturemode;
 
         if ( gl_texcomp && ((int)gl_compress_textures.value) & 4 )

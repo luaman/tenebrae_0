@@ -551,7 +551,7 @@ Mod_LoadEntities
 void Mod_LoadEntities (lump_t *l)
 {
 	FILE *f;
-	char	filename[128];
+	char	filename[MAX_OSPATH];
 	int     flength;
 
 	sprintf(filename,"maps/%s.edo",loadname);
@@ -1918,7 +1918,7 @@ void Mod_LoadSpriteModel (model_t *mod, void *buffer)
 	int					numframes;
 	int					size;
 	dspriteframetype_t	*pframetype;
-	char				stringbuff[128],filename[128];
+	char				stringbuff[MAX_OSPATH],filename[MAX_OSPATH];
 	FILE				*f;
 
 	pin = (dsprite_t *)buffer;

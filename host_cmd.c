@@ -957,7 +957,7 @@ void Host_Name_f (void)
 void Host_SaveProfile_f (void)
 {
 	FILE	*f;
-	char	filename[128];
+	char	filename[MAX_OSPATH];
 	int		i;
 
 	sprintf(filename, "%s/profiles/%s.cfg", com_gamedir, cl_name.string);
