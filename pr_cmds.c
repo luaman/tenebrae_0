@@ -505,6 +505,77 @@ void PF_particle (void)
 	SV_StartParticle (org, dir, color, count);
 }
 
+/*
+=================
+PF_BasicEmitter
+
+BasicEmitter(origin, count, effect)
+=================
+*/
+void PF_BasicEmitter(void)
+{
+	float		*org;
+	float		pcount;
+	char		*name;
+	int			size;
+			
+	org = G_VECTOR(OFS_PARM0);
+	pcount = G_FLOAT(OFS_PARM1);
+	name = G_STRING(OFS_PARM2);	
+
+	size = 8 + strlen(name) + 16;
+
+	//not engough space free in the packet
+	if (sv.datagram.cursize > MAX_DATAGRAM-size)
+		return;	
+
+	MSG_WriteByte(&sv.datagram, svc_basicemitter);
+	MSG_WriteCoord(&sv.datagram, org[0]);
+	MSG_WriteCoord(&sv.datagram, org[1]);
+	MSG_WriteCoord(&sv.datagram, org[2]);
+	MSG_WriteByte(&sv.datagram, pcount);
+	MSG_WriteString(&sv.datagram, name);
+}
+
+/*
+=================
+PF_ExtendedEmitter
+
+ExtendedEmitter(origin, velocity, count, tick, lifetime, effectname)
+=================
+*/
+void PF_ExtendedEmitter(void)
+{
+	float		*org, *vel;
+	float		pcount, tick, life;
+	char		*name;
+	int			size;
+	
+	org = G_VECTOR(OFS_PARM0);
+	vel = G_VECTOR(OFS_PARM1);
+	pcount = G_FLOAT(OFS_PARM2);
+	tick = G_FLOAT(OFS_PARM3);
+	life = G_FLOAT(OFS_PARM4);
+	name = G_STRING(OFS_PARM5);
+
+	size = 22 + strlen(name) + 16;
+
+	//not engough space free in the packet
+	if (sv.datagram.cursize > MAX_DATAGRAM-size)
+		return;	
+
+	MSG_WriteByte (&sv.datagram, svc_extendedemitter);
+	MSG_WriteCoord (&sv.datagram, org[0]);
+	MSG_WriteCoord (&sv.datagram, org[1]);
+	MSG_WriteCoord (&sv.datagram, org[2]);
+	MSG_WriteCoord (&sv.datagram, vel[0]);
+	MSG_WriteCoord (&sv.datagram, vel[1]);
+	MSG_WriteCoord (&sv.datagram, vel[2]);
+	MSG_WriteByte (&sv.datagram, pcount);
+	MSG_WriteLong (&sv.datagram, (life * 100));
+	MSG_WriteLong (&sv.datagram, (tick * 100));
+	MSG_WriteString (&sv.datagram, name);
+}
 
 /*
 =================
@@ -1628,16 +1699,16 @@ void PF_makestatic (void)
 	// but on the client side the same paring routine is used
 	// if you change anyting here don't forget to change the other too
 	// our you'll spend several hours debugging it
-	MSG_WriteByte (&sv.signon, (int)(ent->v.alpha*255));
-	MSG_WriteByte (&sv.signon, ent->v.style);
-	MSG_WriteShort (&sv.signon, ent->v.light_lev);
-	MSG_WriteByte (&sv.signon, ent->v.pflags);
+	MSG_WriteByte (&sv.signon, (int)(HACKY_GETFIELD(ent, eval_alpha, float, 0)*255));
+	MSG_WriteByte (&sv.signon, HACKY_GETFIELD(ent, eval_style, float, 0));
+	MSG_WriteShort (&sv.signon, HACKY_GETFIELD(ent, eval_light_lev, float, 300));
+	MSG_WriteByte (&sv.signon, HACKY_GETFIELD(ent, eval_pflags, float, 0));
 
 	for (i=0 ; i<3 ; i++)
 	{
 		MSG_WriteCoord(&sv.signon, ent->v.origin[i]);
 		MSG_WriteAngle(&sv.signon, ent->v.angles[i]);
-		MSG_WriteByte(&sv.signon, (int)(ent->v.color[i]*255));
+		MSG_WriteByte(&sv.signon, (int)(HACKY_GETFIELD(ent, eval_color, vec3_t, vec3_origin)[i]*255));
 	}
 
 // throw the entity away now
@@ -1965,7 +2036,11 @@ PF_precache_model,
 PF_precache_sound,		// precache_sound2 is different only for qcc
 PF_precache_file,
 
-PF_setspawnparms
+PF_setspawnparms,
+
+PF_BasicEmitter,
+PF_ExtendedEmitter,
+
 };
 
 builtin_t *pr_builtins = pr_builtin;
