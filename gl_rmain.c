@@ -1369,6 +1369,7 @@ void R_MarkEntitiesOnList (void)
 
 	if (mirror) return;
 	if (!cl_entities[cl.viewentity].model) return;
+	if (cl_entities[cl.viewentity].model->type != mod_alias) return;
 
 	angle = cl_entities[cl.viewentity].angles[0];
 	cl_entities[cl.viewentity].angles[0] = 0;
@@ -1579,6 +1580,7 @@ Gunnetje
 void R_DrawViewModel (void)
 {
 
+	/*
 	if (!r_drawviewmodel.value)
 		return;
 
@@ -1603,6 +1605,11 @@ void R_DrawViewModel (void)
 	currententity = &cl.viewent;
 	if (!currententity->model)
 		return;
+
+	if (currententity->model->type != mod_alias) return;
+	*/
+
+	if (!R_ShouldDrawViewModel()) return;
 
 	// hack the depth range to prevent view model from poking into walls
 	//PENTA: would this work with stencil shadows?
@@ -1637,6 +1644,7 @@ void R_DrawViewModelLight (void)
 	float		colorscale;
 	vec3_t		dist;
 
+	/*
 	if (!r_drawviewmodel.value)
 		return;
 	
@@ -1661,7 +1669,9 @@ void R_DrawViewModelLight (void)
 	currententity = &cl.viewent;
 	if (!currententity->model)
 		return;
-	
+	*/
+	if (!R_ShouldDrawViewModel()) return;
+
 	//We do attent instead of opengl since gl doesn't seem to do
 	//what we want, it never really gets to zero.
 	VectorSubtract (currententity->origin,currentshadowlight->origin,dist);
@@ -1702,6 +1712,9 @@ qboolean R_ShouldDrawViewModel (void)
 		return false;
 	currententity = &cl.viewent;
 	if (!currententity->model)
+		return false;
+
+	if (currententity->model->type != mod_alias)
 		return false;
 
 	return true;
@@ -2623,7 +2636,7 @@ void R_Mirror (mirrorplane_t *mir)
 		r_drawentities.value = 0;
 	} else {
 		//Hack add player to back of list	
-		if (drawplayer && cl_entities[cl.viewentity].model) {
+		if (drawplayer && cl_entities[cl.viewentity].model  && cl_entities[cl.viewentity].model->type == mod_alias) {
 			ent = &cl_entities[cl.viewentity];
 			if (cl_numvisedicts < MAX_VISEDICTS)
 			{

@@ -68,8 +68,16 @@ void *Mod_Extradata (model_t *mod)
 
 	Mod_LoadModel (mod, true);
 	
-	if (!mod->cache.data)
-		Sys_Error ("Mod_Extradata: caching failed");
+	if (!mod->cache.data) {
+
+		if (mod->type != mod_alias) {
+			Con_Printf ("Mod_Extradata: %s is not an alias model", mod->name);
+			return NULL;
+		}
+
+		Sys_Error ("Mod_Extradata: caching failed for %s", mod->name);
+	}
+
 	return mod->cache.data;
 }
 
@@ -1356,6 +1364,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 			loadmodel = Mod_FindName (name);
 			*loadmodel = *mod;
 			strcpy (loadmodel->name, name);
+			loadmodel->type = mod_brush;
 			mod = loadmodel;
 		}
 	}
