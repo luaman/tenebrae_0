@@ -153,7 +153,7 @@ cvar_t	fog_start = {"fog_start","256"};
 cvar_t	fog_end = {"fog_end","700"};
 cvar_t	fog_enabled = {"fog_enabled","1"};
 cvar_t  fog_waterfog = {"fog_waterfog","1"}; 
-vec3_t	fog_color;
+float fog_color[4];
 
 mirrorplane_t mirrorplanes[NUM_MIRROR_PLANES];
 int mirror_contents;
@@ -1879,7 +1879,7 @@ void R_RenderScene (void)
 {
 	int i, j;
 	shadowlight_t *l = NULL;
-	vec3_t color_black = {0.0, 0.0, 0.0};
+	float color_black[4] = {0.0, 0.0, 0.0, 0.0};
 
 	R_SetupFrame ();
 
@@ -2549,6 +2549,7 @@ void R_RenderView (void)
 	R_Clear ();
 
 	viewcont = CL_PointContents(r_origin);
+	fog_color[3] = 1.0;
 	if ((viewcont == CONTENTS_WATER) && (fog_waterfog.value)){
 		glFogi(GL_FOG_MODE, GL_LINEAR);
 		fog_color[0] = 50/255.0;

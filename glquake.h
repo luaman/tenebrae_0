@@ -293,7 +293,7 @@ extern  cvar_t	fog_b;
 extern  cvar_t	fog_start;
 extern  cvar_t	fog_end;
 extern  cvar_t	fog_enabled;
-extern	vec3_t	fog_color;
+extern	float	fog_color[4];
 
 extern	int			mirrortexturenum;	// quake texturenum, not gltexturenum
 extern	qboolean	mirror;
