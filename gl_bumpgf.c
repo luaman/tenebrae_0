@@ -35,7 +35,7 @@ If a light has a cubemap filter it requires 3 passes
 
 //<AWE> "diffuse_program_object" has to be defined static. Otherwise nameclash with "gl_bumpradeon.c".
 static GLuint diffuse_program_object;
-static GLuint specularaliasnopopping_program_object; //He he nice name to type a lot
+static GLuint specularalias_program_object; //He he nice name to type a lot
 
 /*
 Pixel shader for diffuse bump mapping when a light does have a cubemap filter
@@ -117,11 +117,11 @@ void GL_EnableDiffuseShaderGF3(qboolean world, vec3_t lightOrig) {
 
 
 	//combiner0 Alpha: store 8*expand(tang space light vect z comp) into Spare0 Alpha (this is the selfshadow term)
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_TEXTURE1_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
-	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
+	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_ZERO, GL_UNSIGNED_IDENTITY_NV, GL_BLUE);
 	qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
-	qglCombinerOutputNV(GL_COMBINER0_NV, GL_ALPHA, GL_DISCARD_NV, GL_DISCARD_NV, GL_SPARE0_NV, GL_SCALE_BY_FOUR_NV, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
+	qglCombinerOutputNV(GL_COMBINER0_NV, GL_ALPHA, GL_DISCARD_NV, GL_DISCARD_NV, GL_SPARE0_NV, GL_NONE, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
 	//Only if the light is not white we use a second combiner
 	//this is when the light is at its full brightness (for flickering lights)
@@ -159,7 +159,7 @@ void GL_EnableDiffuseShaderGF3(qboolean world, vec3_t lightOrig) {
     // Enable the vertex program.
     //qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, diffuse_program_object );
     //glEnable( GL_VERTEX_PROGRAM_ARB );
-    qglBindProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object );
+	qglBindProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object );
     glEnable( GL_VERTEX_PROGRAM_NV );
 
 }
@@ -249,7 +249,7 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_RGB, GL_SPARE0_NV, GL_SPARE1_NV, GL_DISCARD_NV, GL_NONE, GL_NONE, GL_TRUE, GL_FALSE, GL_FALSE);
 
 	//combiner0 Alpha: store 8*expand(tang space light vect z comp) into Spare1 Alpha (this is the selfshadow term)
-	if (sh_noshadowpopping.value && alias) {
+	if (alias) {
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_A_NV, GL_SECONDARY_COLOR_NV, GL_EXPAND_NORMAL_NV, GL_BLUE);
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_SECONDARY_COLOR_NV, GL_EXPAND_NORMAL_NV, GL_BLUE);
@@ -259,8 +259,8 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_B_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_C_NV, GL_TEXTURE0_ARB, GL_EXPAND_NORMAL_NV, GL_BLUE);
 		qglCombinerInputNV(GL_COMBINER0_NV, GL_ALPHA, GL_VARIABLE_D_NV, GL_ZERO, GL_UNSIGNED_INVERT_NV, GL_ALPHA);
-
 	}
+
 	qglCombinerOutputNV(GL_COMBINER0_NV, GL_ALPHA, GL_DISCARD_NV, GL_DISCARD_NV, GL_SPARE1_NV, GL_SCALE_BY_FOUR_NV, GL_NONE, GL_FALSE, GL_FALSE, GL_FALSE);
 
 	//rgb = multipy light with color
@@ -314,8 +314,11 @@ void GL_EnableSpecularShaderGF3(qboolean world, vec3_t lightOrig, qboolean alias
     // Enable the vertex program.
 //    qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, diffuse_program_object );
 //    glEnable( GL_VERTEX_PROGRAM_ARB );
-    qglBindProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object );
-    glEnable( GL_VERTEX_PROGRAM_NV );
+	if (alias)
+		qglBindProgramNV( GL_VERTEX_PROGRAM_NV, specularalias_program_object );
+	else
+		qglBindProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object );
+	glEnable( GL_VERTEX_PROGRAM_NV );
 
 }
 
@@ -631,9 +634,6 @@ void R_DrawAliasFrameGF3Specular (aliashdr_t *paliashdr, aliasframeinstant_t *in
 
 	VectorCopy(currentshadowlight->origin,lightOr);
 
-	if (sh_noshadowpopping.value)
-		qglBindProgramNV( GL_VERTEX_PROGRAM_NV, specularaliasnopopping_program_object);
-
 	//bind normal map
 	anim = (int)(cl.time*10) & 3;
 
@@ -656,11 +656,9 @@ void R_DrawAliasFrameGF3Specular (aliashdr_t *paliashdr, aliasframeinstant_t *in
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	//to to correct self shadowing on alias models send the light vectors an extra time...
-	if (sh_noshadowpopping.value) {
-		qglClientActiveTextureARB(GL_TEXTURE2_ARB);
-		glTexCoordPointer(3, GL_FLOAT, 0, linstant->tslights);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	}
+	qglClientActiveTextureARB(GL_TEXTURE2_ARB);
+	glTexCoordPointer(3, GL_FLOAT, 0, linstant->tslights);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
 
@@ -670,6 +668,10 @@ void R_DrawAliasFrameGF3Specular (aliashdr_t *paliashdr, aliasframeinstant_t *in
 		glDrawElements(GL_TRIANGLES,(paliashdr->numtris*3)-(linstant->numtris*3),GL_UNSIGNED_INT,&linstant->indecies[linstant->numtris*3]);
 		glStencilFunc(GL_EQUAL, 0, 0xffffffff);
 	}
+
+	//qglClientActiveTextureARB(GL_TEXTURE2_ARB);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	qglClientActiveTextureARB(GL_TEXTURE1_ARB);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -808,7 +810,7 @@ void R_DrawAliasBumpedGF3(aliashdr_t *paliashdr, aliasframeinstant_t *instant) {
 /*
 	Only used for specular on alias models when noshadowpopping is enabled...
 */ 
-  char vpSpecularAliasNoPoppingGF3 [] = 
+  char vpSpecularAliasGF3 [] = 
       "!!VP1.1 # Diffuse bumpmapping vetex program.\n"
 	  "OPTION NV_position_invariant;"
       // Generates a necessary input for the diffuse bumpmapping registers
@@ -862,10 +864,10 @@ void R_LoadVertexProgram() {
 	qglLoadProgramNV( GL_VERTEX_PROGRAM_NV, diffuse_program_object,
 					strlen(vpDiffuseGF3), (const GLubyte *) vpDiffuseGF3);
 
-	qglGenProgramsNV( 1, &specularaliasnopopping_program_object);
+	qglGenProgramsNV( 1, &specularalias_program_object);
 
-	qglLoadProgramNV( GL_VERTEX_PROGRAM_NV, specularaliasnopopping_program_object,
-					strlen(vpSpecularAliasNoPoppingGF3), (const GLubyte *) vpSpecularAliasNoPoppingGF3);
+	qglLoadProgramNV( GL_VERTEX_PROGRAM_NV, specularalias_program_object,
+					strlen(vpSpecularAliasGF3), (const GLubyte *) vpSpecularAliasGF3);
 
 	if ( (errCode = glGetError()) != GL_NO_ERROR ) {
 		errString = gluErrorString( errCode );
@@ -875,7 +877,7 @@ void R_LoadVertexProgram() {
 		Con_Printf("error is located at line: %d\n", errPos);
 		exit( -1 );
 	} else {
-		Con_Printf("VertexProgram loaded");
+		Con_Printf("VertexProgram loaded\n");
 	}
 
     
