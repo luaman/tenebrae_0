@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <time.h>
 
 #include "quakedef.h"
 
@@ -203,6 +204,19 @@ int Sys_FileTime (char *path)
 void Sys_mkdir (char *path)
 {
   mkdir (path, 0777);
+}
+
+
+void Sys_Strtime(char *buf)
+{
+  struct tm *tm_;
+  static time_t t_;
+  
+  time(&t_);
+  tm_=gmtime(&t_);
+  
+  sprintf(buf,"%02d:%02d:%02d",tm_->tm_hour,tm_->tm_min,tm_->tm_sec);
+  
 }
 
 int Sys_FileOpenRead (char *path, int *handle)
