@@ -579,6 +579,74 @@ void Mod_LoadMd3Model (model_t *mod, void *buffer)
 	Con_Printf("Load shader %s\n",shadername);
 #endif
 
+
+	if (!strcmp (mod->name, "progs/g_shot.mdl") || //Hack to give .md3 files renamed to .mdl rotate effects - Eradicator
+ 		!strcmp (mod->name, "progs/g_nail.mdl") ||
+ 		!strcmp (mod->name, "progs/g_nail2.mdl") ||
+ 		!strcmp (mod->name, "progs/g_rock.mdl") ||
+ 		!strcmp (mod->name, "progs/g_rock2.mdl") || 
+ 		!strcmp (mod->name, "progs/g_light.mdl") ||
+ 		!strcmp (mod->name, "progs/w_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/w_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/m_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/m_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/b_g_key.mdl") ||
+ 		!strcmp (mod->name, "progs/b_s_key.mdl") ||
+ 		!strcmp (mod->name, "progs/quaddama.mdl") ||
+ 		!strcmp (mod->name, "progs/invisibl.mdl") ||
+ 		!strcmp (mod->name, "progs/invulner.mdl") ||
+ 		!strcmp (mod->name, "progs/jetpack.mdl") || 
+ 		!strcmp (mod->name, "progs/cube.mdl") ||
+ 		!strcmp (mod->name, "progs/suit.mdl") ||
+ 		!strcmp (mod->name, "progs/boots.mdl") ||
+ 		!strcmp (mod->name, "progs/end1.mdl") ||
+ 		!strcmp (mod->name, "progs/end2.mdl") ||
+ 		!strcmp (mod->name, "progs/end3.mdl") ||
+		!strcmp (mod->name, "progs/end4.mdl")) {
+		mod->flags |= EF_ROTATE; 
+	}
+	else if (!strcmp (mod->name, "progs/missile.mdl")) {
+		mod->flags |= EF_ROCKET;
+	}
+	else if (!strcmp (mod->name, "progs/gib1.mdl") || //EF_GIB
+ 			!strcmp (mod->name, "progs/gib2.mdl") || 
+ 			!strcmp (mod->name, "progs/gib3.mdl") || 
+ 			!strcmp (mod->name, "progs/h_player.mdl") || 
+ 			!strcmp (mod->name, "progs/h_dog.mdl") || 
+ 			!strcmp (mod->name, "progs/h_mega.mdl") || 
+ 			!strcmp (mod->name, "progs/h_guard.mdl") || 
+ 			!strcmp (mod->name, "progs/h_wizard.mdl") || 
+ 			!strcmp (mod->name, "progs/h_knight.mdl") || 
+ 			!strcmp (mod->name, "progs/h_hellkn.mdl") || 
+ 			!strcmp (mod->name, "progs/h_zombie.mdl") || 
+ 			!strcmp (mod->name, "progs/h_shams.mdl") || 
+ 			!strcmp (mod->name, "progs/h_shal.mdl") || 
+ 			!strcmp (mod->name, "progs/h_ogre.mdl") ||
+ 			!strcmp (mod->name, "progs/armor.mdl") ||
+			!strcmp (mod->name, "progs/h_demon.mdl")) {
+		mod->flags |= EF_GIB;
+	}
+	else if (!strcmp (mod->name, "progs/grenade.mdl")) {
+		mod->flags |= EF_GRENADE;
+	}	
+	else if (!strcmp (mod->name, "progs/w_spike.mdl")) //EF_TRACER
+	{
+		mod->flags |= EF_TRACER;
+	}
+	else if (!strcmp (mod->name, "progs/k_spike.mdl")) //EF_TRACER2
+	{
+		mod->flags |= EF_TRACER2;
+	}
+	else if (!strcmp (mod->name, "progs/v_spike.mdl")) //EF_TRACER3
+	{
+		mod->flags |= EF_TRACER3;
+	}
+ 	else if (!strcmp (mod->name, "progs/zom_gib.mdl")) //EF_ZOMGIB
+ 	{
+ 		mod->flags |= EF_ZOMGIB;
+	}
+
+
 //
 // move the complete, relocatable alias model to the cache
 //	
