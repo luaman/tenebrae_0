@@ -182,7 +182,7 @@ typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
 
 // actually in gl_bumpradeon (duh...)
 extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
-extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesfATI;
+extern PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI;
 
 #define GL_INCR_WRAP_EXT                                        0x8507
 #define GL_DECR_WRAP_EXT                                        0x8508
@@ -925,9 +925,9 @@ void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_
 	if ( gl_truform.value )
 	{
 	    glEnable(GL_PN_TRIANGLES_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
-//	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
+	    qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
 	}
 
 

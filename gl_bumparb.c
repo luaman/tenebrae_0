@@ -29,6 +29,25 @@ All lights require 1 pass:
 
 #include "quakedef.h"
 
+// PN_triangles_ATI
+#define GL_PN_TRIANGLES_ATI                       0x87F0
+#define GL_MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI 0x87F1
+#define GL_PN_TRIANGLES_POINT_MODE_ATI            0x87F2
+#define GL_PN_TRIANGLES_NORMAL_MODE_ATI           0x87F3
+#define GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI     0x87F4
+#define GL_PN_TRIANGLES_POINT_MODE_LINEAR_ATI     0x87F5
+#define GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI      0x87F6
+#define GL_PN_TRIANGLES_NORMAL_MODE_LINEAR_ATI    0x87F7
+#define GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI 0x87F8
+
+typedef void (APIENTRY *PFNGLPNTRIANGLESIATIPROC)(GLenum pname, GLint param);
+typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
+
+// actually in gl_bumpradeon (duh...)
+extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
+extern PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI;
+
+
 // ARB_vertex_program
 
 typedef void (APIENTRY * glVertexAttrib1sARBPROC) (GLuint index, GLshort x);
@@ -494,6 +513,8 @@ void GL_CreateShadersARB()
     SAFE_GET_PROC(qglGetVertexAttribPointervARB,glGetVertexAttribPointervARBPROC,"glGetVertexAttribPointervARB");
     SAFE_GET_PROC(qglIsProgramARB,glIsProgramARBPROC,"glIsProgramARB");
 
+    SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
+    SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
 #endif /* !__APPLE__ && !MACOSX */
 
     glEnable(GL_VERTEX_PROGRAM_ARB);
@@ -860,10 +881,23 @@ void R_DrawBrushBumpedARB(entity_t *e)
 
 void R_DrawAliasBumpedARB(aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 {
+    if ( gl_truform.value )
+    {
+        glEnable(GL_PN_TRIANGLES_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
+    }
+
     GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
 
     GL_EnableDiffuseSpecularShaderARB(false,instant->lightinstant->lightpos);
     R_DrawAliasFrameARBDiffuseSpecular(paliashdr,instant);
     GL_DisableDiffuseShaderARB();
+
+    if ( gl_truform.value )
+    {
+        glDisable(GL_PN_TRIANGLES_ATI);
+    }
 }

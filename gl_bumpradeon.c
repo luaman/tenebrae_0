@@ -91,6 +91,9 @@ PFNGLGETLOCALCONSTANTBOOLEANVEXTPROC	qglGetLocalConstantBooleanvEXT = NULL;
 PFNGLGETLOCALCONSTANTINTEGERVEXTPROC	qglGetLocalConstantIntegervEXT = NULL;
 PFNGLGETLOCALCONSTANTFLOATVEXTPROC	qglGetLocalConstantFloatvEXT = NULL;
 
+PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI = NULL;
+PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI = NULL;
+
 static unsigned int fragment_shaders;
 static unsigned int vertex_shaders;
 
@@ -323,9 +326,10 @@ void GL_CreateShadersRadeon()
     SAFE_GET_PROC( qglGetLocalConstantBooleanvEXT, PFNGLGETLOCALCONSTANTBOOLEANVEXTPROC, "glGetLocalConstantBooleanvEXT");
     SAFE_GET_PROC( qglGetLocalConstantIntegervEXT, PFNGLGETLOCALCONSTANTINTEGERVEXTPROC, "glGetLocalConstantIntegervEXT");
     SAFE_GET_PROC( qglGetLocalConstantFloatvEXT, PFNGLGETLOCALCONSTANTFLOATVEXTPROC, "glGetLocalConstantFloatvEXT");
-#endif /* !__APPLE__ && !MACOSX */
 
-    glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu);
+    SAFE_GET_PROC( qglPNTrianglesiATI, PFNGLPNTRIANGLESIATIPROC, "glPNTrianglesiATI");
+    SAFE_GET_PROC( qglPNTrianglesfATI, PFNGLPNTRIANGLESFATIPROC, "glPNTrianglesfATI");
+#endif /* !__APPLE__ && !MACOSX */
 
     glEnable(GL_FRAGMENT_SHADER_ATI);
 
@@ -1003,6 +1007,8 @@ void R_DrawAliasFrameRadeonDiffuseSpecular (aliashdr_t *paliashdr, aliasframeins
 
     glVertexPointer(3, GL_FLOAT, 0, instant->vertices);
     glEnableClientState(GL_VERTEX_ARRAY);
+    glNormalPointer(GL_FLOAT, 0, instant->normals);
+    glEnableClientState(GL_NORMAL_ARRAY);
 
     qglClientActiveTextureARB(GL_TEXTURE0_ARB);
     glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
@@ -1020,6 +1026,7 @@ void R_DrawAliasFrameRadeonDiffuseSpecular (aliashdr_t *paliashdr, aliasframeins
     glDrawElements(GL_TRIANGLES,linstant->numtris*3,GL_UNSIGNED_INT,&linstant->indecies[0]);
 
     glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     qglClientActiveTextureARB(GL_TEXTURE0_ARB);
     GL_SelectTexture(GL_TEXTURE0_ARB);
@@ -1059,10 +1066,23 @@ void R_DrawBrushBumpedRadeon(entity_t *e)
 
 void R_DrawAliasBumpedRadeon(aliashdr_t *paliashdr, aliasframeinstant_t *instant)
 {
+    if ( gl_truform.value )
+    {
+        glEnable(GL_PN_TRIANGLES_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_POINT_MODE_ATI, GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_NORMAL_MODE_ATI, GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI);
+	qglPNTrianglesiATI(GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, gl_truform_tesselation.value);
+    }
+
     GL_AddColor();
     glColor3fv(&currentshadowlight->color[0]);
 
     GL_EnableDiffuseSpecularShaderRadeon(false,instant->lightinstant->lightpos);
     R_DrawAliasFrameRadeonDiffuseSpecular(paliashdr,instant);
     GL_DisableDiffuseShaderRadeon();
+
+    if ( gl_truform.value )
+    {
+        glDisable(GL_PN_TRIANGLES_ATI);
+    }
 }
