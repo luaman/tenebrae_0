@@ -190,11 +190,13 @@ void Cvar_Set (char *var_name, char *value)
 	}
 	
 	//START - coop and dm flag fix - Eradicator
+	/*PENTA: This is buggy: https://sourceforge.net/tracker/index.php?func=detail&aid=760120&group_id=62057&atid=499289
 	if ( (var->value != 0) && (!Q_strcmp (var->name, deathmatch.name)) )
 		Cvar_Set ("coop", "0");
 
 	if ( (var->value != 0) && (!Q_strcmp (var->name, coop.name)) )
 		Cvar_Set ("deathmatch", "0");
+	*/
 	//END - coop and dm flag fix - Eradicator
 
 	changed = Q_strcmp(var->string, value);
