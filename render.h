@@ -35,6 +35,7 @@ typedef struct efrag_s
 	struct efrag_s		*entnext;
 } efrag_t;
 
+#define MAX_CLIENT_ENT_LEAFS 128
 typedef struct entity_s
 {
 	qboolean				forcelink;		// model changed
@@ -84,6 +85,9 @@ typedef struct entity_s
     int                     pose1; 
     int                     pose2;
 	
+	//PENTA:
+	int			numleafs;
+	short		leafnums[MAX_CLIENT_ENT_LEAFS];
 } entity_t;
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
