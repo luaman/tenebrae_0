@@ -409,9 +409,10 @@ void Mod_LoadTextures (lump_t *l)
 			R_InitSky (tx);
 		else
 		{
+			/* Not really needed since I fixed the timeout timer
 			if (cls.state == ca_connected && cl.maxclients > 1) //Client has a netconnection?  We should keep it alive
 				CL_KeepaliveMessage ();
-			else if (cls.state == ca_dedicated)
+			else*/if (cls.state == ca_dedicated)
 				continue; //Don't load textures on a dedicated server
 
 			texture_mode = GL_LINEAR_MIPMAP_NEAREST; //_LINEAR;
@@ -1801,8 +1802,9 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		|| !strcmp (mod->name, "progs/bolt3.mdl"))
 	{
 		mod->flags |= EF_NOSHADOW;
+	} else {
+		mod->flags &= ~EF_NOSHADOW;
 	}
-
 //
 // move the complete, relocatable alias model to the cache
 //	
