@@ -762,6 +762,7 @@ void R_DrawAliasShadowVolume (entity_t *e)
 	paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
 
 	if (!aliasframeinstant) {
+	    glPopMatrix ();
             Con_Printf("R_DrawAliasShadowVolume: missing instant for ent %s\n", e->model->name);	
 	    return;
 	}
@@ -776,6 +777,7 @@ void R_DrawAliasShadowVolume (entity_t *e)
 
 	if ((e->frame >= paliashdr->numframes) || (e->frame < 0))
 	{
+	    glPopMatrix ();
 	    return;
 	}
 
@@ -1049,6 +1051,7 @@ void R_DrawAliasModel (float bright)
              paliashdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[i]);
               
              if (!aliasframeinstant) {
+                  glPopMatrix();
                   Con_Printf("R_DrawAliasModel: missing instant for ent %s\n", currententity->model->name);	
                   return;
              }
@@ -2582,8 +2585,8 @@ void R_DrawMirrorSurfaces()
 
 			glMatrixMode(GL_TEXTURE);
 
+			glPushMatrix();
 			if (mir_detail.value > 0) {
-				glPushMatrix();
 				glLoadIdentity();
 				glTranslatef(0.5, 0.5, 0);
 				glScalef(0.5, 0.5, 0);
@@ -2591,7 +2594,6 @@ void R_DrawMirrorSurfaces()
 				glMultMatrixf (r_world_matrix);
 			} else {
 				//glMultMatrixf (r_projection_matrix);
-				glPushMatrix();
 				glTranslatef(r_refdef.vieworg[0]/1000,r_refdef.vieworg[1]/1000,r_refdef.vieworg[2]/1000);
 				glTexGeni(GL_S,GL_TEXTURE_GEN_MODE,GL_SPHERE_MAP);
 				glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_SPHERE_MAP);
@@ -2619,9 +2621,8 @@ void R_DrawMirrorSurfaces()
 
 			R_DisableMirrorShader(mirrorplanes[i].chain,&mirrorplanes[i]);
 
-			if (mir_detail.value > 0) {
-				glPopMatrix();
-			} else {
+			glPopMatrix();
+        		if (mir_detail.value == 0) {
 				glPopMatrix();
 				glDisable(GL_TEXTURE_GEN_S);
 				glDisable(GL_TEXTURE_GEN_T);
