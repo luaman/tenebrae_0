@@ -448,6 +448,7 @@ void Con_DPrintf (char *fmt, ...)
 {
     va_list		argptr;
     char		msg[MAXPRINTMSG];
+    int			temp;
 		
     if (!developer.value)
 	return;			// don't confuse non-developers with techie stuff...
@@ -456,7 +457,10 @@ void Con_DPrintf (char *fmt, ...)
     vsprintf (msg,fmt,argptr);
     va_end (argptr);
 	
+    temp = scr_disabled_for_loading;
+    scr_disabled_for_loading = true;
     Con_Printf ("%s", msg);
+    scr_disabled_for_loading = temp;
 }
 
 
