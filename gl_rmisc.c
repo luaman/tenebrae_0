@@ -228,6 +228,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&gl_doubleeyes);
 
 	Cvar_RegisterVariable (&gl_watershader);//PENTA: register our vars.
+	Cvar_RegisterVariable (&gl_calcdepth);
 	Cvar_RegisterVariable (&sh_lightmapbright);
 	Cvar_RegisterVariable (&sh_radiusscale);
 	Cvar_RegisterVariable (&sh_visiblevolumes);

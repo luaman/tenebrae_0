@@ -254,6 +254,7 @@ extern	cvar_t	gl_max_size;
 extern	cvar_t	gl_playermip;
 
 extern  cvar_t	gl_watershader; //PENTA:
+extern  cvar_t	gl_calcdepth;
 
 extern  cvar_t	sh_lightmapbright; //PENTA:
 extern  cvar_t	sh_radiusscale;

@@ -118,6 +118,7 @@ cvar_t	gl_reporttjunctions = {"gl_reporttjunctions","0"};
 cvar_t	gl_doubleeyes = {"gl_doubleeys", "1"};
 
 cvar_t	gl_watershader = {"gl_watershader","1"};//PENTA: water shaders ON/OFF
+cvar_t	gl_calcdepth = {"gl_calcdepth","0"};
 
 cvar_t	sh_lightmapbright = {"sh_lightmapbright","0.5"};//PENTA: brightness of lightmaps
 cvar_t	sh_radiusscale = {"sh_radiusscale","0.5"};//PENTA: brightness of lightmaps
@@ -1365,9 +1366,14 @@ void R_DrawViewModel (void)
 
 	// hack the depth range to prevent view model from poking into walls
 	//PENTA: would this work with stencil shadows?
-	//glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
+	if ( gl_calcdepth.value ) //Calc Depth (disables shadows on v_ models, 
+							  //but they don't poke into walls) - Eradicator
+		glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
+
 	R_DrawAliasModel (currententity,0.1);
-	//glDepthRange (gldepthmin, gldepthmax);
+
+	if ( gl_calcdepth.value ) //Calc Depth - Eradicator
+		glDepthRange (gldepthmin, gldepthmax);
 }
 
 /*
@@ -1591,7 +1597,10 @@ void R_SetupFrame (void)
 
 // don't allow cheats in multiplayer
 	if (cl.maxclients > 1)
+	{
 		Cvar_Set ("r_fullbright", "0");
+		Cvar_Set ("gl_wireframe", "0"); //Disable this is multiplayer  - Eradicator
+	}
 
 	R_AnimateLight ();
 
