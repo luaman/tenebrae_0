@@ -85,8 +85,14 @@ qboolean SNDDMA_Init(void)
 	shm = &the_shm;
 	shm->splitbuffer = 0;
 	shm->samplebits = (obtained.format & 0xFF);
-	shm->speed = obtained.freq;
-	shm->channels = obtained.channels;
+	if (COM_CheckParm("-sndspeed")) //Better sample rate - Eradicator
+		shm->speed = Q_atoi(com_argv[COM_CheckParm("-sndspeed")+1]);
+	else
+		shm->speed = obtained.freq;
+	if (COM_CheckParm("-sndchannels")) //Better sound channels - Eradicator
+		shm->channels = Q_atoi(com_argv[COM_CheckParm("-sndchannels")+1]);
+	else
+		shm->channels = obtained.channels;
 	shm->samples = obtained.samples*shm->channels;
 	shm->samplepos = 0;
 	shm->submission_chunk = 1;
