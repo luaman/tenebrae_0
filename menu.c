@@ -1144,6 +1144,7 @@ again:
 
 //#if defined (_WIN32) || defined (__APPLE__) || defined (MACOSX)
 #define	OPTIONS_ITEMS	18
+#define	OPTIONS_POSTPROCESS_ITEMS	21
 //#else
 //#define	OPTIONS_ITEMS	17
 //#endif /* _WIN32 ||Ê__APPLE__ ||ÊMACOSX */
@@ -1172,6 +1173,8 @@ void M_Menu_Options_f (void)
 }
 
 extern cvar_t useprofiles;
+extern cvar_t gl_postprocess;
+
 void M_AdjustSliders (int dir)
 {
 	S_LocalSound ("misc/menu3.wav");
@@ -1265,10 +1268,35 @@ void M_AdjustSliders (int dir)
 		Cvar_SetValue ("chase_active", !chase_active.value);
 		break;
 	case 16:
-		Cvar_SetValue ("sh_glares", !sh_glares.value);
+		Cvar_SetValue ("useprofiles", !useprofiles.value);
 		break;
 	case 17:
-		Cvar_SetValue ("useprofiles", !useprofiles.value);
+		if ( R_CardCanDoPostprocess() )
+			Cvar_SetValue ("gl_postprocess", !gl_postprocess.value);
+		break;
+	case 18:	// brightness
+		post_brightness.value += dir * 0.1;
+		if (post_brightness.value < 0.0)
+			post_brightness.value = 0.0;
+		if (post_brightness.value > 5)
+			post_brightness.value = 5;
+		Cvar_SetValue ("post_brightness", post_brightness.value);
+		break;
+	case 19:	// saturation
+		post_saturation.value += dir * 0.1;
+		if (post_saturation.value < 0.0)
+			post_saturation.value = 0.0;
+		if (post_saturation.value > 5)
+			post_saturation.value = 5;
+		Cvar_SetValue ("post_saturation", post_saturation.value);
+		break;
+	case 20:	// contrast
+		post_contrast.value += dir * 0.1;
+		if (post_contrast.value < 0.0)
+			post_contrast.value = 0.0;
+		if (post_contrast.value > 5)
+			post_contrast.value = 5;
+		Cvar_SetValue ("post_contrast", post_contrast.value);
 		break;
 	}
 }
@@ -1320,7 +1348,7 @@ void M_Options_Draw (void)
 	r = (scr_viewsize.value - 30) / (120 - 30);
 	M_DrawSlider (220, 56, r);
 
-	M_Print (16, 64, "            Brightness");
+	M_Print (16, 64, "                 Gamma");
 	r = (1.0 - v_gamma.value) / 0.5;
 	M_DrawSlider (220, 64, r);
 
@@ -1368,17 +1396,32 @@ void M_Options_Draw (void)
 #endif /* _WIN32 ||Ê__APPLE__ ||ÊMACOSX */
 
 	//New Options - Eradicator
-	M_Print (16, 144,"		      Display FPS");
+	M_Print (16, 144,"           Display FPS");
 	M_DrawCheckbox (220, 144, sh_fps.value);
-
-	M_Print (16, 152,"		     Third Person");
+	M_Print (16, 152,"          Third Person");
 	M_DrawCheckbox (220, 152, chase_active.value);
+	M_Print (16, 160,"         Load Profiles");
+	M_DrawCheckbox (220, 160, useprofiles.value);
+	M_Print (16, 168,"       Post processing");
+	if ( R_CardCanDoPostprocess() ) {
+		M_DrawCheckbox (220, 168, gl_postprocess.value);
+	} else {
+		M_Print (220, 168,"Not supported!");
+	}
+	if ( gl_postprocess.value ) {
+		//Post processoptions
+		M_Print (16, 176, "            Brightness");
+		r = post_brightness.value / 5.0f;
+		M_DrawSlider (220, 176, r);
 
-	M_Print (16, 160,"		           Glares");
-	M_DrawCheckbox (220, 160, sh_glares.value);
+		M_Print (16, 184, "            Saturation");
+		r = post_saturation.value / 5.0f;
+		M_DrawSlider (220, 184, r);
 
-	M_Print (16, 168,"		    Load Profiles");
-	M_DrawCheckbox (220, 168, useprofiles.value);
+		M_Print (16, 192, "             Constrast");
+		r = post_contrast.value / 5.0f;
+		M_DrawSlider (220, 192, r);
+	}
 
 // cursor
 	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
@@ -1438,8 +1481,13 @@ void M_Options_Key (int k)
                     options_cursor = 13;
                 }
 #endif /* __APPLE__ || MACOSX */
-		if (options_cursor >= OPTIONS_ITEMS)
-			options_cursor = 0;
+		if ( gl_postprocess.value ) {
+			if (options_cursor >= OPTIONS_POSTPROCESS_ITEMS)
+				options_cursor = 0;
+		} else {
+			if (options_cursor >= OPTIONS_ITEMS)
+				options_cursor = 0;
+		}
 		break;
 
 	case K_LEFTARROW:

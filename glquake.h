@@ -199,7 +199,7 @@ typedef struct ParticleEffect_s {
 	int	numbounces; //number of bounces before particle is deleted
 	int	texture; //gl object of the texture	
 	align_t	align;//particle is aligned with its velocity
-	float	velscale;
+	float	velscale;	qboolean isPostProcess;
 	struct ParticleEffect_s *spawn; //particle effect to spawn on hit
 	struct ParticleEffect_s *next;
 } ParticleEffect_t;
@@ -212,10 +212,7 @@ typedef struct particle_s
 	vec3_t		color;
 // drivers never touch the following fields
 	struct particle_s	*next;
-	vec3_t		vel;
-        //float		ramp;
-	float		die, lifetime;
-        //ptype_t		type;
+	vec3_t		vel;	float		die, lifetime;
 //PENTA: Nicer particles (tm)
 	int			texture; //texture object of particle
 	int			numbounces; //number of bounces left before deletion set to zero for no bounce
@@ -223,14 +220,12 @@ typedef struct particle_s
 	float		rspeed;
 	float		size;
 	float		growspeed;
-	qboolean	velaligned;
-	//pblend_t	blendfunc;
-	vec3_t		startcolor, endcolor;
+	qboolean	velaligned;	vec3_t		startcolor, endcolor;
 	int			srcblend, dstblend;
 	vec3_t		gravity;
 	vec3_t		drag;
 	float		velscale;
-	ParticleEffect_t *spawn; 
+	ParticleEffect_t *spawn; 	qboolean	isPostProcess;
 } particle_t;
 
 typedef enum {
@@ -367,7 +362,10 @@ extern	cvar_t	sh_bumpmaps;//PENTA: enable disable bump mapping
 extern	cvar_t	sh_colormaps;//PENTA: enable disable textures on the world (light will remain)
 extern	cvar_t	sh_playershadow;//PENTA: the player casts a shadow (the one YOU are playing with, others always cast shadows)
 extern	cvar_t	sh_nocache;
-extern	cvar_t	sh_glares;
+extern	cvar_t	sh_glares;extern	cvar_t	post_brightness;
+extern	cvar_t	post_contrast;
+extern	cvar_t	post_saturation;
+
 extern	cvar_t	sh_noefrags;
 extern  cvar_t  sh_showtangent;
 extern  cvar_t	sh_noshadowpopping;
@@ -403,7 +401,7 @@ extern  mplane_t	mirror_far_plane;
 extern	int			mirror_clipside;
 extern  float vid_gamma;
 
-extern	float	r_world_matrix[16];
+extern	float	r_world_matrix[16];extern	float	r_projection_matrix[16];
 extern	double	r_Dproject_matrix[16];			//PENTA	<AWE> added "extern".
 extern	double	r_Dworld_matrix[16];			//PENTA	<AWE> added "extern".
 extern  int 	r_Iviewport[4];				//PENTA

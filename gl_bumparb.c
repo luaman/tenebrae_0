@@ -49,350 +49,74 @@ typedef void (APIENTRY *PFNGLPNTRIANGLESFATIPROC)(GLenum pname, GLfloat param);
 extern PFNGLPNTRIANGLESIATIPROC qglPNTrianglesiATI;
 extern PFNGLPNTRIANGLESFATIPROC qglPNTrianglesfATI;
 
+#include "gl_arbprograms.h"
+ glVertexAttrib1sARBPROC qglVertexAttrib1sARB = NULL;
+ glVertexAttrib1fARBPROC qglVertexAttrib1fARB = NULL;
+ glVertexAttrib1dARBPROC qglVertexAttrib1dARB = NULL;
+ glVertexAttrib2sARBPROC qglVertexAttrib2sARB = NULL;
+ glVertexAttrib2fARBPROC qglVertexAttrib2fARB = NULL;
+ glVertexAttrib2dARBPROC qglVertexAttrib2dARB = NULL;
+ glVertexAttrib3sARBPROC qglVertexAttrib3sARB = NULL;
+ glVertexAttrib3fARBPROC qglVertexAttrib3fARB = NULL;
+ glVertexAttrib3dARBPROC qglVertexAttrib3dARB = NULL;
+ glVertexAttrib4sARBPROC qglVertexAttrib4sARB = NULL;
+ glVertexAttrib4fARBPROC qglVertexAttrib4fARB = NULL;
+ glVertexAttrib4dARBPROC qglVertexAttrib4dARB = NULL;
+ glVertexAttrib4NubARBPROC qglVertexAttrib4NubARB = NULL;
+ glVertexAttrib1svARBPROC qglVertexAttrib1svARB = NULL;
+ glVertexAttrib1fvARBPROC qglVertexAttrib1fvARB = NULL;
+ glVertexAttrib1dvARBPROC qglVertexAttrib1dvARB = NULL;
+ glVertexAttrib2svARBPROC qglVertexAttrib2svARB = NULL;
+ glVertexAttrib2fvARBPROC qglVertexAttrib2fvARB = NULL;
+ glVertexAttrib2dvARBPROC qglVertexAttrib2dvARB = NULL;
+ glVertexAttrib3svARBPROC qglVertexAttrib3svARB = NULL;
+ glVertexAttrib3fvARBPROC qglVertexAttrib3fvARB = NULL;
+ glVertexAttrib3dvARBPROC qglVertexAttrib3dvARB = NULL;
+ glVertexAttrib4bvARBPROC qglVertexAttrib4bvARB = NULL;
+ glVertexAttrib4svARBPROC qglVertexAttrib4svARB = NULL;
+ glVertexAttrib4ivARBPROC qglVertexAttrib4ivARB = NULL;
+ glVertexAttrib4ubvARBPROC qglVertexAttrib4ubvARB = NULL;
+ glVertexAttrib4usvARBPROC qglVertexAttrib4usvARB = NULL;
+ glVertexAttrib4uivARBPROC qglVertexAttrib4uivARB = NULL;
+ glVertexAttrib4fvARBPROC qglVertexAttrib4fvARB = NULL;
+ glVertexAttrib4dvARBPROC qglVertexAttrib4dvARB = NULL;
+ glVertexAttrib4NbvARBPROC qglVertexAttrib4NbvARB = NULL;
+ glVertexAttrib4NsvARBPROC qglVertexAttrib4NsvARB = NULL;
+ glVertexAttrib4NivARBPROC qglVertexAttrib4NivARB = NULL;
+ glVertexAttrib4NubvARBPROC qglVertexAttrib4NubvARB = NULL;
+ glVertexAttrib4NusvARBPROC qglVertexAttrib4NusvARB = NULL;
+ glVertexAttrib4NuivARBPROC qglVertexAttrib4NuivARB = NULL;
+ glVertexAttribPointerARBPROC qglVertexAttribPointerARB = NULL;
+ glEnableVertexAttribArrayARBPROC qglEnableVertexAttribArrayARB = NULL;
+ glDisableVertexAttribArrayARBPROC qglDisableVertexAttribArrayARB = NULL;
+ glProgramStringARBPROC qglProgramStringARB = NULL;
+ glBindProgramARBPROC qglBindProgramARB = NULL;
+ glDeleteProgramsARBPROC qglDeleteProgramsARB = NULL;
+ glGenProgramsARBPROC qglGenProgramsARB = NULL;
+ glProgramEnvParameter4dARBPROC qglProgramEnvParameter4dARB = NULL;
+ glProgramEnvParameter4dvARBPROC qglProgramEnvParameter4dvARB = NULL;
+ glProgramEnvParameter4fARBPROC qglProgramEnvParameter4fARB = NULL;
+ glProgramEnvParameter4fvARBPROC qglProgramEnvParameter4fvARB = NULL;
+ glProgramLocalParameter4dARBPROC qglProgramLocalParameter4dARB = NULL;
+ glProgramLocalParameter4dvARBPROC qglProgramLocalParameter4dvARB = NULL;
+ glProgramLocalParameter4fARBPROC qglProgramLocalParameter4fARB = NULL;
+ glProgramLocalParameter4fvARBPROC qglProgramLocalParameter4fvARB = NULL;
+ glGetProgramEnvParameterdvARBPROC qglGetProgramEnvParameterdvARB = NULL;
+ glGetProgramEnvParameterfvARBPROC qglGetProgramEnvParameterfvARB = NULL;
+ glGetProgramLocalParameterdvARBPROC qglGetProgramLocalParameterdvARB = NULL;
+ glGetProgramLocalParameterfvARBPROC qglGetProgramLocalParameterfvARB = NULL;
+ glGetProgramivARBPROC qglGetProgramivARB = NULL;
+ glGetProgramStringARBPROC qglGetProgramStringARB = NULL;
+ glGetVertexAttribdvARBPROC qglGetVertexAttribdvARB = NULL;
+ glGetVertexAttribfvARBPROC qglGetVertexAttribfvARB = NULL;
+ glGetVertexAttribivARBPROC qglGetVertexAttribivARB = NULL;
+ glGetVertexAttribPointervARBPROC qglGetVertexAttribPointervARB = NULL;
+ glIsProgramARBPROC qglIsProgramARB = NULL;
 
-// ARB_vertex_program
+static GLuint gl_programs[16];
+static int numGlPrograms = 0;
 
-typedef void (APIENTRY * glVertexAttrib1sARBPROC) (GLuint index, GLshort x);
-typedef void (APIENTRY * glVertexAttrib1fARBPROC) (GLuint index, GLfloat x);
-typedef void (APIENTRY * glVertexAttrib1dARBPROC) (GLuint index, GLdouble x);
-typedef void (APIENTRY * glVertexAttrib2sARBPROC) (GLuint index, GLshort x, GLshort y);
-typedef void (APIENTRY * glVertexAttrib2fARBPROC) (GLuint index, GLfloat x, GLfloat y);
-typedef void (APIENTRY * glVertexAttrib2dARBPROC) (GLuint index, GLdouble x, GLdouble y);
-typedef void (APIENTRY * glVertexAttrib3sARBPROC) (GLuint index, GLshort x, GLshort y, GLshort z);
-typedef void (APIENTRY * glVertexAttrib3fARBPROC) (GLuint index, GLfloat x, GLfloat y, GLfloat z);
-typedef void (APIENTRY * glVertexAttrib3dARBPROC) (GLuint index, GLdouble x, GLdouble y, GLdouble z);
-typedef void (APIENTRY * glVertexAttrib4sARBPROC) (GLuint index, GLshort x, GLshort y, GLshort z, GLshort w);
-typedef void (APIENTRY * glVertexAttrib4fARBPROC) (GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-typedef void (APIENTRY * glVertexAttrib4dARBPROC) (GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w);
-typedef void (APIENTRY * glVertexAttrib4NubARBPROC) (GLuint index, GLubyte x, GLubyte y, GLubyte z, GLubyte w);
-typedef void (APIENTRY * glVertexAttrib1svARBPROC) (GLuint index, const GLshort *v);
-typedef void (APIENTRY * glVertexAttrib1fvARBPROC) (GLuint index, const GLfloat *v);
-typedef void (APIENTRY * glVertexAttrib1dvARBPROC) (GLuint index, const GLdouble *v);
-typedef void (APIENTRY * glVertexAttrib2svARBPROC) (GLuint index, const GLshort *v);
-typedef void (APIENTRY * glVertexAttrib2fvARBPROC) (GLuint index, const GLfloat *v);
-typedef void (APIENTRY * glVertexAttrib2dvARBPROC) (GLuint index, const GLdouble *v);
-typedef void (APIENTRY * glVertexAttrib3svARBPROC) (GLuint index, const GLshort *v);
-typedef void (APIENTRY * glVertexAttrib3fvARBPROC) (GLuint index, const GLfloat *v);
-typedef void (APIENTRY * glVertexAttrib3dvARBPROC) (GLuint index, const GLdouble *v);
-typedef void (APIENTRY * glVertexAttrib4bvARBPROC) (GLuint index, const GLbyte *v);
-typedef void (APIENTRY * glVertexAttrib4svARBPROC) (GLuint index, const GLshort *v);
-typedef void (APIENTRY * glVertexAttrib4ivARBPROC) (GLuint index, const GLint *v);
-typedef void (APIENTRY * glVertexAttrib4ubvARBPROC) (GLuint index, const GLubyte *v);
-typedef void (APIENTRY * glVertexAttrib4usvARBPROC) (GLuint index, const GLushort *v);
-typedef void (APIENTRY * glVertexAttrib4uivARBPROC) (GLuint index, const GLuint *v);
-typedef void (APIENTRY * glVertexAttrib4fvARBPROC) (GLuint index, const GLfloat *v);
-typedef void (APIENTRY * glVertexAttrib4dvARBPROC) (GLuint index, const GLdouble *v);
-typedef void (APIENTRY * glVertexAttrib4NbvARBPROC) (GLuint index, const GLbyte *v);
-typedef void (APIENTRY * glVertexAttrib4NsvARBPROC) (GLuint index, const GLshort *v);
-typedef void (APIENTRY * glVertexAttrib4NivARBPROC) (GLuint index, const GLint *v);
-typedef void (APIENTRY * glVertexAttrib4NubvARBPROC) (GLuint index, const GLubyte *v);
-typedef void (APIENTRY * glVertexAttrib4NusvARBPROC) (GLuint index, const GLushort *v);
-typedef void (APIENTRY * glVertexAttrib4NuivARBPROC) (GLuint index, const GLuint *v);
-typedef void (APIENTRY * glVertexAttribPointerARBPROC) (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
-typedef void (APIENTRY * glEnableVertexAttribArrayARBPROC) (GLuint index);
-typedef void (APIENTRY * glDisableVertexAttribArrayARBPROC) (GLuint index);
-typedef void (APIENTRY * glProgramStringARBPROC) (GLenum target, GLenum format, GLsizei len, const GLvoid *string); 
-typedef void (APIENTRY * glBindProgramARBPROC) (GLenum target, GLuint program);
-typedef void (APIENTRY * glDeleteProgramsARBPROC) (GLsizei n, const GLuint *programs);
-typedef void (APIENTRY * glGenProgramsARBPROC) (GLsizei n, GLuint *programs);
-typedef void (APIENTRY * glProgramEnvParameter4dARBPROC) (GLenum target, GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w);
-typedef void (APIENTRY * glProgramEnvParameter4dvARBPROC) (GLenum target, GLuint index, const GLdouble *params);
-typedef void (APIENTRY * glProgramEnvParameter4fARBPROC) (GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-typedef void (APIENTRY * glProgramEnvParameter4fvARBPROC) (GLenum target, GLuint index, const GLfloat *params);
-typedef void (APIENTRY * glProgramLocalParameter4dARBPROC) (GLenum target, GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w);
-typedef void (APIENTRY * glProgramLocalParameter4dvARBPROC) (GLenum target, GLuint index, const GLdouble *params);
-typedef void (APIENTRY * glProgramLocalParameter4fARBPROC) (GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-typedef void (APIENTRY * glProgramLocalParameter4fvARBPROC) (GLenum target, GLuint index, const GLfloat *params);
-typedef void (APIENTRY * glGetProgramEnvParameterdvARBPROC) (GLenum target, GLuint index, GLdouble *params);
-typedef void (APIENTRY * glGetProgramEnvParameterfvARBPROC) (GLenum target, GLuint index, GLfloat *params);
-typedef void (APIENTRY * glGetProgramLocalParameterdvARBPROC) (GLenum target, GLuint index, GLdouble *params);
-typedef void (APIENTRY * glGetProgramLocalParameterfvARBPROC) (GLenum target, GLuint index, GLfloat *params);
-typedef void (APIENTRY * glGetProgramivARBPROC) (GLenum target, GLenum pname, GLint *params);
-typedef void (APIENTRY * glGetProgramStringARBPROC) (GLenum target, GLenum pname, GLvoid *string);
-typedef void (APIENTRY * glGetVertexAttribdvARBPROC) (GLuint index, GLenum pname, GLdouble *params);
-typedef void (APIENTRY * glGetVertexAttribfvARBPROC) (GLuint index, GLenum pname, GLfloat *params);
-typedef void (APIENTRY * glGetVertexAttribivARBPROC) (GLuint index, GLenum pname, GLint *params);
-typedef void (APIENTRY * glGetVertexAttribPointervARBPROC) (GLuint index, GLenum pname, GLvoid **pointer);
-typedef GLboolean (APIENTRY * glIsProgramARBPROC) (GLuint program);
-
-static glVertexAttrib1sARBPROC qglVertexAttrib1sARB = NULL;
-static glVertexAttrib1fARBPROC qglVertexAttrib1fARB = NULL;
-static glVertexAttrib1dARBPROC qglVertexAttrib1dARB = NULL;
-static glVertexAttrib2sARBPROC qglVertexAttrib2sARB = NULL;
-static glVertexAttrib2fARBPROC qglVertexAttrib2fARB = NULL;
-static glVertexAttrib2dARBPROC qglVertexAttrib2dARB = NULL;
-static glVertexAttrib3sARBPROC qglVertexAttrib3sARB = NULL;
-static glVertexAttrib3fARBPROC qglVertexAttrib3fARB = NULL;
-static glVertexAttrib3dARBPROC qglVertexAttrib3dARB = NULL;
-static glVertexAttrib4sARBPROC qglVertexAttrib4sARB = NULL;
-static glVertexAttrib4fARBPROC qglVertexAttrib4fARB = NULL;
-static glVertexAttrib4dARBPROC qglVertexAttrib4dARB = NULL;
-static glVertexAttrib4NubARBPROC qglVertexAttrib4NubARB = NULL;
-static glVertexAttrib1svARBPROC qglVertexAttrib1svARB = NULL;
-static glVertexAttrib1fvARBPROC qglVertexAttrib1fvARB = NULL;
-static glVertexAttrib1dvARBPROC qglVertexAttrib1dvARB = NULL;
-static glVertexAttrib2svARBPROC qglVertexAttrib2svARB = NULL;
-static glVertexAttrib2fvARBPROC qglVertexAttrib2fvARB = NULL;
-static glVertexAttrib2dvARBPROC qglVertexAttrib2dvARB = NULL;
-static glVertexAttrib3svARBPROC qglVertexAttrib3svARB = NULL;
-static glVertexAttrib3fvARBPROC qglVertexAttrib3fvARB = NULL;
-static glVertexAttrib3dvARBPROC qglVertexAttrib3dvARB = NULL;
-static glVertexAttrib4bvARBPROC qglVertexAttrib4bvARB = NULL;
-static glVertexAttrib4svARBPROC qglVertexAttrib4svARB = NULL;
-static glVertexAttrib4ivARBPROC qglVertexAttrib4ivARB = NULL;
-static glVertexAttrib4ubvARBPROC qglVertexAttrib4ubvARB = NULL;
-static glVertexAttrib4usvARBPROC qglVertexAttrib4usvARB = NULL;
-static glVertexAttrib4uivARBPROC qglVertexAttrib4uivARB = NULL;
-static glVertexAttrib4fvARBPROC qglVertexAttrib4fvARB = NULL;
-static glVertexAttrib4dvARBPROC qglVertexAttrib4dvARB = NULL;
-static glVertexAttrib4NbvARBPROC qglVertexAttrib4NbvARB = NULL;
-static glVertexAttrib4NsvARBPROC qglVertexAttrib4NsvARB = NULL;
-static glVertexAttrib4NivARBPROC qglVertexAttrib4NivARB = NULL;
-static glVertexAttrib4NubvARBPROC qglVertexAttrib4NubvARB = NULL;
-static glVertexAttrib4NusvARBPROC qglVertexAttrib4NusvARB = NULL;
-static glVertexAttrib4NuivARBPROC qglVertexAttrib4NuivARB = NULL;
-static glVertexAttribPointerARBPROC qglVertexAttribPointerARB = NULL;
-static glEnableVertexAttribArrayARBPROC qglEnableVertexAttribArrayARB = NULL;
-static glDisableVertexAttribArrayARBPROC qglDisableVertexAttribArrayARB = NULL;
-static glProgramStringARBPROC qglProgramStringARB = NULL;
-static glBindProgramARBPROC qglBindProgramARB = NULL;
-static glDeleteProgramsARBPROC qglDeleteProgramsARB = NULL;
-static glGenProgramsARBPROC qglGenProgramsARB = NULL;
-static glProgramEnvParameter4dARBPROC qglProgramEnvParameter4dARB = NULL;
-static glProgramEnvParameter4dvARBPROC qglProgramEnvParameter4dvARB = NULL;
-static glProgramEnvParameter4fARBPROC qglProgramEnvParameter4fARB = NULL;
-static glProgramEnvParameter4fvARBPROC qglProgramEnvParameter4fvARB = NULL;
-static glProgramLocalParameter4dARBPROC qglProgramLocalParameter4dARB = NULL;
-static glProgramLocalParameter4dvARBPROC qglProgramLocalParameter4dvARB = NULL;
-static glProgramLocalParameter4fARBPROC qglProgramLocalParameter4fARB = NULL;
-static glProgramLocalParameter4fvARBPROC qglProgramLocalParameter4fvARB = NULL;
-static glGetProgramEnvParameterdvARBPROC qglGetProgramEnvParameterdvARB = NULL;
-static glGetProgramEnvParameterfvARBPROC qglGetProgramEnvParameterfvARB = NULL;
-static glGetProgramLocalParameterdvARBPROC qglGetProgramLocalParameterdvARB = NULL;
-static glGetProgramLocalParameterfvARBPROC qglGetProgramLocalParameterfvARB = NULL;
-static glGetProgramivARBPROC qglGetProgramivARB = NULL;
-static glGetProgramStringARBPROC qglGetProgramStringARB = NULL;
-static glGetVertexAttribdvARBPROC qglGetVertexAttribdvARB = NULL;
-static glGetVertexAttribfvARBPROC qglGetVertexAttribfvARB = NULL;
-static glGetVertexAttribivARBPROC qglGetVertexAttribivARB = NULL;
-static glGetVertexAttribPointervARBPROC qglGetVertexAttribPointervARB = NULL;
-static glIsProgramARBPROC qglIsProgramARB = NULL;
-
-#define GL_VERTEX_PROGRAM_ARB                                   0x8620
-#define GL_VERTEX_PROGRAM_POINT_SIZE_ARB                        0x8642
-#define GL_VERTEX_PROGRAM_TWO_SIDE_ARB                          0x8643
-#define GL_COLOR_SUM_ARB                                        0x8458
-#define GL_PROGRAM_FORMAT_ASCII_ARB                             0x8875
-#define GL_VERTEX_ATTRIB_ARRAY_ENABLED_ARB                      0x8622
-#define GL_VERTEX_ATTRIB_ARRAY_SIZE_ARB                         0x8623
-#define GL_VERTEX_ATTRIB_ARRAY_STRIDE_ARB                       0x8624
-#define GL_VERTEX_ATTRIB_ARRAY_TYPE_ARB                         0x8625
-#define GL_VERTEX_ATTRIB_ARRAY_NORMALIZED_ARB                   0x886A
-#define GL_CURRENT_VERTEX_ATTRIB_ARB                            0x8626
-#define GL_VERTEX_ATTRIB_ARRAY_POINTER_ARB                      0x8645
-#define GL_PROGRAM_LENGTH_ARB                                   0x8627
-#define GL_PROGRAM_FORMAT_ARB                                   0x8876
-#define GL_PROGRAM_BINDING_ARB                                  0x8677
-#define GL_PROGRAM_INSTRUCTIONS_ARB                             0x88A0
-#define GL_MAX_PROGRAM_INSTRUCTIONS_ARB                         0x88A1
-#define GL_PROGRAM_NATIVE_INSTRUCTIONS_ARB                      0x88A2
-#define GL_MAX_PROGRAM_NATIVE_INSTRUCTIONS_ARB                  0x88A3
-#define GL_PROGRAM_TEMPORARIES_ARB                              0x88A4
-#define GL_MAX_PROGRAM_TEMPORARIES_ARB                          0x88A5
-#define GL_PROGRAM_NATIVE_TEMPORARIES_ARB                       0x88A6
-#define GL_MAX_PROGRAM_NATIVE_TEMPORARIES_ARB                   0x88A7
-#define GL_PROGRAM_PARAMETERS_ARB                               0x88A8
-#define GL_MAX_PROGRAM_PARAMETERS_ARB                           0x88A9
-#define GL_PROGRAM_NATIVE_PARAMETERS_ARB                        0x88AA
-#define GL_MAX_PROGRAM_NATIVE_PARAMETERS_ARB                    0x88AB
-#define GL_PROGRAM_ATTRIBS_ARB                                  0x88AC
-#define GL_MAX_PROGRAM_ATTRIBS_ARB                              0x88AD
-#define GL_PROGRAM_NATIVE_ATTRIBS_ARB                           0x88AE
-#define GL_MAX_PROGRAM_NATIVE_ATTRIBS_ARB                       0x88AF
-#define GL_PROGRAM_ADDRESS_REGISTERS_ARB                        0x88B0
-#define GL_MAX_PROGRAM_ADDRESS_REGISTERS_ARB                    0x88B1
-#define GL_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB                 0x88B2
-#define GL_MAX_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB             0x88B3
-#define GL_MAX_PROGRAM_LOCAL_PARAMETERS_ARB                     0x88B4
-#define GL_MAX_PROGRAM_ENV_PARAMETERS_ARB                       0x88B5
-#define GL_PROGRAM_UNDER_NATIVE_LIMITS_ARB                      0x88B6
-#define GL_PROGRAM_STRING_ARB                                   0x8628
-#define GL_PROGRAM_ERROR_POSITION_ARB                           0x864B
-#define GL_CURRENT_MATRIX_ARB                                   0x8641
-#define GL_TRANSPOSE_CURRENT_MATRIX_ARB                         0x88B7
-#define GL_CURRENT_MATRIX_STACK_DEPTH_ARB                       0x8640
-#define GL_MAX_VERTEX_ATTRIBS_ARB                               0x8869
-#define GL_MAX_PROGRAM_MATRICES_ARB                             0x862F
-#define GL_MAX_PROGRAM_MATRIX_STACK_DEPTH_ARB                   0x862E
-#define GL_PROGRAM_ERROR_STRING_ARB                             0x8874
-#define GL_MATRIX0_ARB                                          0x88C0
-#define GL_MATRIX1_ARB                                          0x88C1
-#define GL_MATRIX2_ARB                                          0x88C2
-#define GL_MATRIX3_ARB                                          0x88C3
-#define GL_MATRIX4_ARB                                          0x88C4
-#define GL_MATRIX5_ARB                                          0x88C5
-#define GL_MATRIX6_ARB                                          0x88C6
-#define GL_MATRIX7_ARB                                          0x88C7
-#define GL_MATRIX8_ARB                                          0x88C8
-#define GL_MATRIX9_ARB                                          0x88C9
-#define GL_MATRIX10_ARB                                         0x88CA
-#define GL_MATRIX11_ARB                                         0x88CB
-#define GL_MATRIX12_ARB                                         0x88CC
-#define GL_MATRIX13_ARB                                         0x88CD
-#define GL_MATRIX14_ARB                                         0x88CE
-#define GL_MATRIX15_ARB                                         0x88CF
-#define GL_MATRIX16_ARB                                         0x88D0
-#define GL_MATRIX17_ARB                                         0x88D1
-#define GL_MATRIX18_ARB                                         0x88D2
-#define GL_MATRIX19_ARB                                         0x88D3
-#define GL_MATRIX20_ARB                                         0x88D4
-#define GL_MATRIX21_ARB                                         0x88D5
-#define GL_MATRIX22_ARB                                         0x88D6
-#define GL_MATRIX23_ARB                                         0x88D7
-#define GL_MATRIX24_ARB                                         0x88D8
-#define GL_MATRIX25_ARB                                         0x88D9
-#define GL_MATRIX26_ARB                                         0x88DA
-#define GL_MATRIX27_ARB                                         0x88DB
-#define GL_MATRIX28_ARB                                         0x88DC
-#define GL_MATRIX29_ARB                                         0x88DD
-#define GL_MATRIX30_ARB                                         0x88DE
-#define GL_MATRIX31_ARB                                         0x88DF
-
-// ARB_fragment_program
-#define GL_FRAGMENT_PROGRAM_ARB                                 0x8804
-
-static char vertexprogram[] =
-"!!ARBvp1.0\n"
-"OPTION ARB_position_invariant;\n"
-"ATTRIB iPos         = vertex.position;\n"
-"ATTRIB iNormal      = vertex.normal;\n"
-"ATTRIB iColor       = vertex.color;\n"
-"ATTRIB iTex0        = vertex.texcoord[0];\n"
-"ATTRIB iTex1        = vertex.texcoord[1];\n"
-"ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
-"TEMP   disttemp;\n"
-"OUTPUT oColor       = result.color;\n"
-"OUTPUT oTex0        = result.texcoord[0];\n"
-"OUTPUT oTex1        = result.texcoord[1];\n"
-"OUTPUT oTex2        = result.texcoord[2];\n"
-"OUTPUT oTex3        = result.texcoord[3];\n"
-"DP4   oTex3.x, texMatrix[0], iPos;\n"
-"DP4   oTex3.y, texMatrix[1], iPos;\n"
-"DP4   oTex3.z, texMatrix[2], iPos;\n"
-"DP4   oTex3.w, texMatrix[3], iPos;\n"
-"MOV   oTex0, iTex0;\n"
-"MOV   oTex1, iTex1;\n"
-"MOV   oTex2, iTex2;\n"
-"MOV   oColor, iColor;\n"
-"END";
-
-static char vertexprogram2[] =
-"!!ARBvp1.0\n"
-"OPTION ARB_position_invariant;\n"
-"ATTRIB iPos         = vertex.position;\n"
-"ATTRIB iNormal      = vertex.normal;\n"
-"ATTRIB iColor       = vertex.color;\n"
-"ATTRIB iTex0        = vertex.texcoord[0];\n"
-"ATTRIB iTex1        = vertex.texcoord[1];\n"
-"ATTRIB iTex2        = vertex.texcoord[2];\n"
-"PARAM  texMatrix[4] = { state.matrix.texture[2] };\n"
-"PARAM  texMatrix2[4]= { state.matrix.texture[3] };\n"
-"OUTPUT oColor       = result.color;\n"
-"OUTPUT oTex0        = result.texcoord[0];\n"
-"OUTPUT oTex1        = result.texcoord[1];\n"
-"OUTPUT oTex2        = result.texcoord[2];\n"
-"OUTPUT oTex3        = result.texcoord[3];\n"
-"OUTPUT oTex4        = result.texcoord[4];\n"
-"OUTPUT oFog         = result.fogcoord;\n"
-"DP4   oTex3.x, texMatrix[0], iPos;\n"
-"DP4   oTex3.y, texMatrix[1], iPos;\n"
-"DP4   oTex3.z, texMatrix[2], iPos;\n"
-"DP4   oTex3.w, texMatrix[3], iPos;\n"
-"DP4   oTex4.x, texMatrix2[0], iPos;\n"
-"DP4   oTex4.y, texMatrix2[1], iPos;\n"
-"DP4   oTex4.z, texMatrix2[2], iPos;\n"
-"DP4   oTex4.w, texMatrix2[3], iPos;\n"
-"MOV   oTex0, iTex0;\n"
-"MOV   oTex1, iTex1;\n"
-"MOV   oTex2, iTex2;\n"
-"MOV   oColor, iColor;\n"
-"END";
-
-static char fragmentprogram[] =
-"!!ARBfp1.0\n"
-"OPTION ARB_precision_hint_fastest;\n"
-"ATTRIB tex0 = fragment.texcoord[0];\n"
-"ATTRIB tex1 = fragment.texcoord[1];\n"
-"ATTRIB tex2 = fragment.texcoord[2];\n"
-"ATTRIB tex3 = fragment.texcoord[3];\n"
-"ATTRIB col = fragment.color.primary;\n"
-"PARAM scaler = { 16, 8, 2, -1 };\n"
-"OUTPUT outColor = result.color;\n"
-"TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
-"TEMP diffdot, specdot, selfshadow;\n"
-"TEX normalmap, tex0, texture[0], 2D;\n"
-"MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"DP3 lightvec.x, tex1, tex1;\n"
-"RSQ lightvec.x, lightvec.x;\n"
-"MUL lightvec, tex1, lightvec.x;\n"
-"TEX colormap, tex0, texture[1], 2D;\n"
-"DP3 halfvec.x, tex2, tex2;\n"
-"RSQ halfvec.x, halfvec.x;\n"
-"MUL halfvec, tex2, halfvec.x;\n"
-"TEX atten, tex3, texture[2], 3D;\n"
-"DP3_SAT diffdot, normalmap, lightvec;\n"
-"MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
-"DP3_SAT specdot.a, normalmap, halfvec;\n"
-"MUL diffdot, diffdot, colormap;\n"
-"POW specdot.a, specdot.a, scaler.r;\n"
-"MUL specdot.a, specdot.a, normalmap.a;\n"
-"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
-"MUL atten, col, atten;\n"
-"MUL_SAT outColor, diffdot, atten;\n"
-"END";
-
-static char fragmentprogram2[] =
-"!!ARBfp1.0\n"
-"OPTION ARB_precision_hint_fastest;\n"
-"ATTRIB tex0 = fragment.texcoord[0];\n"
-"ATTRIB tex1 = fragment.texcoord[1];\n"
-"ATTRIB tex2 = fragment.texcoord[2];\n"
-"ATTRIB tex3 = fragment.texcoord[3];\n"
-"ATTRIB tex4 = fragment.texcoord[4];\n"
-"ATTRIB col = fragment.color.primary;\n"
-"PARAM scaler = { 16, 8, 2, -1 };\n"
-"OUTPUT outColor = result.color;\n"
-"TEMP normalmap, lightvec, halfvec, colormap, atten;\n"
-"TEMP diffdot, specdot, selfshadow, filter;\n"
-"TEX normalmap, tex0, texture[0], 2D;\n"
-"MAD normalmap.rgb, normalmap, scaler.b, scaler.a;\n"
-"DP3 lightvec.x, tex1, tex1;\n"
-"RSQ lightvec.x, lightvec.x;\n"
-"MUL lightvec, tex1, lightvec.x;\n"
-"TEX colormap, tex0, texture[1], 2D;\n"
-"DP3 halfvec.x, tex2, tex2;\n"
-"RSQ halfvec.x, halfvec.x;\n"
-"MUL halfvec, tex2, halfvec.x;\n"
-"TEX atten, tex3, texture[2], 3D;\n"
-"DP3_SAT diffdot, normalmap, lightvec;\n"
-"MUL_SAT selfshadow.r, lightvec.z, scaler.g;\n"
-"DP3_SAT specdot.a, normalmap, halfvec;\n"
-"MUL diffdot, diffdot, colormap;\n"
-"POW specdot.a, specdot.a, scaler.r;\n"
-"TEX filter, tex4, texture[3], CUBE;\n"
-"MUL specdot.a, specdot.a, normalmap.a;\n"
-"MUL atten, atten, filter;\n"
-"MAD diffdot, diffdot, selfshadow.r, specdot.a;\n"
-"MUL atten, col, atten;\n"
-"MUL_SAT outColor, diffdot, atten;\n"
-"END";
-
-static GLuint fragment_programs[2];
-static GLuint vertex_programs[2];
-
-
-//#define ARBDEBUG
+#define ARBDEBUG
 
 #if defined(ARBDEBUG) && defined(_WIN32)
 static void checkerror()
@@ -414,6 +138,23 @@ static void checkerror()
 
 #endif
 
+static GLuint LoadProgram( int target, const char *fileName ) {
+	int identifier;
+	byte *buffer = COM_LoadTempFile (fileName);
+	
+	if (!buffer) {
+		Con_Printf("Can't load gl program from: %s\n",fileName);
+		return 0;
+	}
+	
+	qglGenProgramsARB(1, &identifier);
+	qglBindProgramARB( target, identifier );
+	checkerror();
+	qglProgramStringARB( target, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(buffer),  buffer );
+	checkerror();
+
+	return identifier;
+}
 
 void GL_CreateShadersARB()
 {
@@ -489,19 +230,8 @@ void GL_CreateShadersARB()
     glEnable(GL_VERTEX_PROGRAM_ARB);
     checkerror();
 
-    qglGenProgramsARB(2, &vertex_programs[0]);
-    checkerror();
-    qglBindProgramARB(GL_VERTEX_PROGRAM_ARB, vertex_programs[0]);
-    checkerror();
-    qglProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-		        sizeof(vertexprogram)-1, vertexprogram);
-    checkerror();
-
-    qglBindProgramARB(GL_VERTEX_PROGRAM_ARB, vertex_programs[1]);
-    checkerror();
-    qglProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-		        sizeof(vertexprogram2)-1, vertexprogram2);
-    checkerror();
+	gl_programs[numGlPrograms++] = LoadProgram( GL_VERTEX_PROGRAM_ARB, "glprogs/light_vp_1.txt" );
+	gl_programs[numGlPrograms++] = LoadProgram( GL_VERTEX_PROGRAM_ARB, "glprogs/light_vp_1.txt" );
 
     glDisable(GL_VERTEX_PROGRAM_ARB);
     checkerror();
@@ -509,23 +239,27 @@ void GL_CreateShadersARB()
     glEnable(GL_FRAGMENT_PROGRAM_ARB);
     checkerror();
 
-    qglGenProgramsARB(2, &fragment_programs[0]);
-    checkerror();
-    qglBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragment_programs[0]);
-    checkerror();
-    qglProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-		                sizeof(fragmentprogram)-1, fragmentprogram);
-    checkerror();
-
-    qglBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragment_programs[1]);
-    checkerror();
-    qglProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-		                sizeof(fragmentprogram2)-1, fragmentprogram2);
-    checkerror();
+	gl_programs[numGlPrograms++] = LoadProgram( GL_FRAGMENT_PROGRAM_ARB, "glprogs/light_fp_1.txt" );
+	gl_programs[numGlPrograms++] = LoadProgram( GL_FRAGMENT_PROGRAM_ARB, "glprogs/light_fp_1.txt" );
 
     glDisable(GL_FRAGMENT_PROGRAM_ARB);
     checkerror();
+
 }
+
+int GL_LoadShader( int target, const char *fileName ) {
+	
+	glEnable(target);
+	checkerror();
+
+	gl_programs[numGlPrograms++] = LoadProgram( target, fileName );
+
+	glDisable(target);
+	checkerror();
+
+	return gl_programs[numGlPrograms-1];
+}
+
 
 void GL_DisableDiffuseShaderARB()
 {
@@ -581,27 +315,24 @@ void GL_EnableDiffuseSpecularShaderARB(qboolean world, vec3_t lightOrig)
     glEnable(GL_FRAGMENT_PROGRAM_ARB);
     checkerror();
 
-    if (currentshadowlight->filtercube)
-    {
-	GL_SelectTexture(GL_TEXTURE3_ARB);
-	glMatrixMode(GL_TEXTURE);
-	glPushMatrix();
-	glLoadIdentity();
+    if (currentshadowlight->filtercube) {
+		GL_SelectTexture(GL_TEXTURE3_ARB);
+		glMatrixMode(GL_TEXTURE);
+		glPushMatrix();
+		glLoadIdentity();
 
-        glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, currentshadowlight->filtercube);
-        GL_SetupCubeMapMatrix(world);
+		glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, currentshadowlight->filtercube);
+		GL_SetupCubeMapMatrix(world);
 
-	qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, vertex_programs[1] );
-	checkerror();
-	qglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, fragment_programs[1] );
-	checkerror();
-    }
-    else
-    {
-	qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, vertex_programs[0] );
-	checkerror();
-	qglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, fragment_programs[0] );
-	checkerror();
+		qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, gl_programs[1] );
+		checkerror();
+		qglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, gl_programs[3] );
+		checkerror();
+    } else {
+		qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, gl_programs[0] );
+		checkerror();
+		qglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, gl_programs[2] );
+		checkerror();
     }
 
     GL_SelectTexture(GL_TEXTURE0_ARB);

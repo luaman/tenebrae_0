@@ -2942,7 +2942,7 @@ void R_RenderView (void)
 
 	R_ClearMirrorChains();
 
-	R_Glare ();
+	//R_Glare ();
 
 	R_ClearMirrorChains();
 
@@ -2955,7 +2955,7 @@ void R_RenderView (void)
 	particles. It is done right before and fixed after each particle draw function 
 	to avoid effection fog on the water. A particle draw is done after the water 
 	draw to make sure particles are rendered over the surface of the water. - Eradicator*/
-
+    
 	R_DrawWaterSurfaces ();
 	R_DrawMirrorSurfaces ();
 
@@ -2971,7 +2971,12 @@ void R_RenderView (void)
 	R_DrawParticles (); //Fixes particle & water bug
 	//glFogfv(GL_FOG_COLOR, fog_color); //Real fog colour
 
-	//Draw a poly over the screen (underwater, slime, blood hit)
-	R_DrawGlare() ;
+	// Post process effects are deferred untill last
+	R_PostProcessFase1();
+	R_DrawPostProcessQuads();
+
+	//Draw full screen post processing
+	R_PostProcessFase2();
 	R_PolyBlend ();
+
 }

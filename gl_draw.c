@@ -544,7 +544,8 @@ void Draw_Init (void)
 	//load mirror dummys
 	R_InitMirrorChains();
 
-	R_InitGlare();
+	R_InitPostProcess();
+	
 }
 
 
@@ -883,22 +884,26 @@ Draw_FadeScreen
 */
 void Draw_FadeScreen (void)
 {
-	glEnable (GL_BLEND);
-	glDisable (GL_TEXTURE_2D);
-	glColor4f (0, 0, 0, 0.8f);
-	glBegin (GL_QUADS);
+	if ( !R_UsePostprocess() ) {
+		glEnable (GL_BLEND);
+		glDisable (GL_TEXTURE_2D);
+		glColor4f (0, 0, 0, 0.8f);
+		glBegin (GL_QUADS);
 
-	glVertex2f (0,0);
-	glVertex2f (vid.width, 0);
-	glVertex2f (vid.width, vid.height);
-	glVertex2f (0, vid.height);
+		glVertex2f (0,0);
+		glVertex2f (vid.width, 0);
+		glVertex2f (vid.width, vid.height);
+		glVertex2f (0, vid.height);
 
-	glEnd ();
-	glColor4f (1,1,1,1);
-	glEnable (GL_TEXTURE_2D);
-	glDisable (GL_BLEND);
+		glEnd ();
+		glColor4f (1,1,1,1);
+		glEnable (GL_TEXTURE_2D);
+		glDisable (GL_BLEND);
 
-	Sbar_Changed();
+		Sbar_Changed();
+	} else {
+		R_DrawMenuPostProcess();
+	}
 }
 
 //=============================================================================

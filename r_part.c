@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "te_scripts.h"
+#include "gl_arbprograms.h"
 
 #define MAX_PARTICLES			2048	// default max # of particles at one
 										//  time
@@ -52,12 +53,17 @@ ParticleEffect_t *particleEffects;
 
 vec3_t			r_pright, r_pup, r_ppn;
 
+static int ppSpriteFp;
+static int ppSpriteVp;
+
 // <AWE> missing prototypes
 extern qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec3_t p1, vec3_t p2, trace_t *trace);
 
 
 ParticleEffect_t *ParticleEffectDefinedForName(const char *name);
 ParticleEffect_t *ParticleEffectForName(const char *name);
+void R_EmitPostProcessQuad( vec3_t points[4], float rot, int texNum, float fade ); 
+void R_DrawPostProcessQuads( void );
 
 //fill an effect with default values
 void DefaultEffect(ParticleEffect_t *eff) {
@@ -95,6 +101,7 @@ void DefaultEffect(ParticleEffect_t *eff) {
 	eff->next = 0;
 	eff->velscale = 1/64;
 	eff->spawn = NULL;
+	eff->isPostProcess = false;
 }
 /*
 =====================
@@ -213,8 +220,16 @@ void R_AddEffectsScript(const char *filename) {
 							effect->drag[i] = SC_ParseFloat();
 					break;
 					case TOK_BLENDFUNC:
-						effect->srcblend = SC_BlendModeForName(SC_ParseIdent());
-						effect->dstblend = SC_BlendModeForName(SC_ParseIdent());
+						str = SC_ParseIdent();
+						if ( !strcmpi(str, "postprocess" ) ) {
+							effect->isPostProcess = true;
+							effect->srcblend = GL_SRC_ALPHA;
+							effect->dstblend = GL_ONE_MINUS_SRC_ALPHA;
+						} else {
+							effect->isPostProcess = false;
+							effect->srcblend = SC_BlendModeForName(str);
+							effect->dstblend = SC_BlendModeForName(SC_ParseIdent());
+						}
 					break;
 					case TOK_BOUNCES:
 						effect->numbounces = (int)SC_ParseFloat();
@@ -341,6 +356,7 @@ particle_t *InitParticleFromEffect(ParticleEffect_t *effect, vec3_t org) {
 	p->velscale = effect->velscale;
 	p->texture = effect->texture;
 	p->spawn = effect->spawn;
+	p->isPostProcess = effect->isPostProcess;
 	VectorCopy(effect->gravity,p->gravity);
 	VectorCopy(effect->drag,p->drag);
 	return p;
@@ -373,6 +389,10 @@ void R_InitParticles (void)
 
 	emitters = (ParticleEmitter_t *)
 			Hunk_AllocName (MAX_EMITTERS * sizeof(ParticleEmitter_t), "emitters");
+
+
+	ppSpriteVp = GL_LoadShader( GL_VERTEX_PROGRAM_ARB, "glprogs/ppsprite_vp.txt" );
+	ppSpriteFp = GL_LoadShader( GL_FRAGMENT_PROGRAM_ARB, "glprogs/ppsprite_fp.txt" );
 }
 
 /*
@@ -459,13 +479,6 @@ void R_ParseExtendedEmitter (void)
 	emt->count = count;
 	emt->nexttick = 0;
 }
-
-
-
-
-
-
-
 
 /*
 ===============
@@ -1239,6 +1252,7 @@ void R_DrawParticles (void)
 	vec3_t			up, right, neworg;
 	float			scale, sscale;
 	ParticleEmitter_t *ekill, *emt;
+	float			fade;
 
 	if (gl_wireframe.value)
 		return;
@@ -1347,16 +1361,6 @@ void R_DrawParticles (void)
 			p->color[i] = p->startcolor[i] * blend + p->endcolor[i] * blend1;
 		}
 
-		if ((p->die - cl.time) < 0.5) {
-			float fade = 2*(p->die - cl.time);
-			glColor4f(p->color[0]*fade, p->color[1]*fade, p->color[2]*fade, fade);
-		} else {
-			glColor3fv(&p->color[0]);
-		}
-
-		GL_Bind(p->texture);
-		glBlendFunc (p->srcblend, p->dstblend);
-
 		//Align with velocity
 		if (p->velaligned){
 			float lscale;
@@ -1371,31 +1375,79 @@ void R_DrawParticles (void)
 			VectorCopy (vright, right);
 		}
 
-		glLoadIdentity();
-		glTranslatef(0.5,0.5,0);
-		glRotatef(p->rot,0,0,1);
-		glTranslatef(-0.5,-0.5,0);
+		fade = 2*(p->die - cl.time);
 
-		sscale = -scale/4;
-		VectorMA(p->org,sscale,up,neworg);
-		VectorMA(neworg,sscale,right,neworg);
+		if ( !p->isPostProcess ) {
+			if ((p->die - cl.time) < 0.5) {
+				glColor4f(p->color[0]*fade, p->color[1]*fade, p->color[2]*fade, fade);
+			} else {
+				glColor3fv(&p->color[0]);
+			}
 
-                // draw the particle as two triangles
-                scale /= 2;
-		glBegin(GL_TRIANGLE_FAN);
-		glTexCoord2f (0,0);
-		glVertex3fv (neworg);
-		glTexCoord2f (0,1);
-		glVertex3f (neworg[0] + up[0]*scale, neworg[1] + up[1]*scale,
-                            neworg[2] + up[2]*scale);
-		glTexCoord2f (1,1);
-		glVertex3f (neworg[0] + up[0]*scale + right[0]*scale, neworg[1] + up[1]*scale + right[1]*scale,
-                            neworg[2] + up[2]*scale + right[2]*scale);
-		glTexCoord2f (1,0);
-		glVertex3f (neworg[0] + right[0]*scale, neworg[1] + right[1]*scale,
-                            neworg[2] + right[2]*scale);
-		glEnd();
-                scale *= 2;
+			GL_Bind(p->texture);
+			glBlendFunc (p->srcblend, p->dstblend);
+
+			glLoadIdentity();
+			glTranslatef(0.5,0.5,0);
+			glRotatef(p->rot,0,0,1);
+			glTranslatef(-0.5,-0.5,0);
+
+			sscale = -scale/4;
+			VectorMA(p->org,sscale,up,neworg);
+			VectorMA(neworg,sscale,right,neworg);
+
+			// draw the particle as two triangles
+			scale /= 2;
+
+			glBegin(GL_TRIANGLE_FAN);
+			glTexCoord2f (0,0);
+			glVertex3fv (neworg);
+			glTexCoord2f (0,1);
+			glVertex3f (neworg[0] + up[0]*scale, neworg[1] + up[1]*scale,
+								neworg[2] + up[2]*scale);
+			glTexCoord2f (1,1);
+			glVertex3f (neworg[0] + up[0]*scale + right[0]*scale, neworg[1] + up[1]*scale + right[1]*scale,
+								neworg[2] + up[2]*scale + right[2]*scale);
+			glTexCoord2f (1,0);
+			glVertex3f (neworg[0] + right[0]*scale, neworg[1] + right[1]*scale,
+								neworg[2] + right[2]*scale);
+			glEnd();
+
+			scale *= 2;
+		} else {
+			vec3_t points[4];
+
+			sscale = -scale/4;
+			VectorMA(p->org,sscale,up,neworg);
+			VectorMA(neworg,sscale,right,neworg);
+
+			scale /= 2;
+			
+			points[0][0] = neworg[0];
+			points[0][1] = neworg[1];
+			points[0][2] = neworg[2];
+
+			points[1][0] = neworg[0] + up[0]*scale;
+			points[1][1] = neworg[1] + up[1]*scale;
+			points[1][2] = neworg[2] + up[2]*scale;
+
+			points[2][0] = neworg[0] + up[0]*scale + right[0]*scale;
+			points[2][1] = neworg[1] + up[1]*scale + right[1]*scale;
+			points[2][2] = neworg[2] + up[2]*scale + right[2]*scale;
+
+			points[3][0] = neworg[0] + right[0]*scale;
+			points[3][1] = neworg[1] + right[1]*scale;
+			points[3][2] = neworg[2] + right[2]*scale;
+
+			scale *= 2;
+
+			if ((p->die - cl.time) < 1.0) {
+				R_EmitPostProcessQuad( points, p->rot, p->texture, fade*0.5 );
+			} else {
+				R_EmitPostProcessQuad( points, p->rot, p->texture, 1.0 );
+			}
+		}
+		
 
 		//calculate new position/rotation
 		neworg[0] = p->org[0]+p->vel[0]*frametime;
@@ -1453,4 +1505,102 @@ void R_DrawParticles (void)
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
 	glFogfv(GL_FOG_COLOR, fog_color); //Done in actual function now (stops "triangle effect") - Eradicator
+}
+
+#define MAX_POSTPROCESS_QUADS 256
+
+typedef struct {
+	vec3_t points[4];
+	float rot;
+	int texNum;
+	float fade;
+} ppQuad_t;
+
+static int numPostProcessQuads = 0;
+static ppQuad_t postProcessQuads[MAX_POSTPROCESS_QUADS];
+
+void R_EmitPostProcessQuad( vec3_t points[4], float rot, int texNum, float fade ) {
+	int i,j;
+	if ( numPostProcessQuads >= MAX_POSTPROCESS_QUADS ) {
+		return;
+	}
+
+	for ( i=0; i<4; i++ ) {
+		for ( j=0; j<3; j++ ) {
+			postProcessQuads[numPostProcessQuads].points[i][j] = points[i][j];
+		}
+	}
+	postProcessQuads[numPostProcessQuads].rot = rot;
+	postProcessQuads[numPostProcessQuads].texNum = texNum;
+	postProcessQuads[numPostProcessQuads].fade = fade;
+
+	numPostProcessQuads += 1;
+}
+
+static float texconv_matrix[16] = {
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0
+};
+
+float *R_GetPostProcessMatrix( void );
+
+void R_DrawPostProcessQuads( void ) {
+	int i;
+
+	if (R_UsePostprocess() != 2) {
+		numPostProcessQuads = 0;
+		return;
+	}
+
+	glFogfv(GL_FOG_COLOR, color_black); //Done in actual function now (stops "triangle effect") - Eradicator
+	glMatrixMode(GL_TEXTURE);
+
+	glEnable( GL_VERTEX_PROGRAM_ARB );
+	glEnable( GL_FRAGMENT_PROGRAM_ARB );
+	qglBindProgramARB( GL_VERTEX_PROGRAM_ARB, ppSpriteVp );
+	qglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, ppSpriteFp );
+
+	GL_SelectTexture(GL_TEXTURE1_ARB);
+	GL_Bind( R_GetPostProcessTexture() );
+	glLoadIdentity();
+	glMultMatrixf( R_GetPostProcessMatrix() );
+	glMultMatrixf( texconv_matrix );
+	glMultMatrixf( r_projection_matrix );
+	glMultMatrixf( r_world_matrix );
+
+	GL_SelectTexture(GL_TEXTURE0_ARB);
+
+	for ( i=0; i<numPostProcessQuads; i++ ) {
+		GL_Bind(postProcessQuads[i].texNum);
+
+		glLoadIdentity();
+		glTranslatef(0.5,0.5,0);
+		glRotatef(postProcessQuads[i].rot,0,0,1);
+		glTranslatef(-0.5,-0.5,0);
+
+		glColor3f( postProcessQuads[i].fade, postProcessQuads[i].fade, postProcessQuads[i].fade ); 
+		glBegin(GL_TRIANGLE_FAN);
+		glTexCoord2f (0,0);
+		glVertex3fv (postProcessQuads[i].points[0]);
+		glTexCoord2f (0,1);
+		glVertex3fv (postProcessQuads[i].points[1]);
+		glTexCoord2f (1,1);
+		glVertex3fv (postProcessQuads[i].points[2]);
+		glTexCoord2f (1,0);
+		glVertex3fv (postProcessQuads[i].points[3]);
+		glEnd();
+	}
+
+	glDisable( GL_VERTEX_PROGRAM_ARB );
+	glDisable( GL_FRAGMENT_PROGRAM_ARB );
+
+	GL_SelectTexture(GL_TEXTURE1_ARB);
+	glLoadIdentity();
+	GL_SelectTexture(GL_TEXTURE0_ARB);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+
+	numPostProcessQuads = 0; // clear list for next frame
 }
