@@ -415,12 +415,13 @@ void SV_LinkEdict (edict_t *ent, qboolean touch_triggers)
 	
 	if ((int)ent->v.effects & EF_FULLDYNAMIC)
 	{
-		ent->v.absmin[0] = ent->v.origin[0] - ent->v.light_lev*0.5;
-		ent->v.absmin[1] = ent->v.origin[1] - ent->v.light_lev*0.5;
-		ent->v.absmin[2] = ent->v.origin[2] - ent->v.light_lev*0.5;
-		ent->v.absmax[0] = ent->v.origin[0] + ent->v.light_lev*0.5;
-		ent->v.absmax[1] = ent->v.origin[1] + ent->v.light_lev*0.5;
-		ent->v.absmax[2] = ent->v.origin[2] + ent->v.light_lev*0.5;
+		float radius = HACKY_GETFIELD(ent, eval_light_lev, float, 300);
+		ent->v.absmin[0] = ent->v.origin[0] - radius*0.5;
+		ent->v.absmin[1] = ent->v.origin[1] - radius*0.5;
+		ent->v.absmin[2] = ent->v.origin[2] - radius*0.5;
+		ent->v.absmax[0] = ent->v.origin[0] + radius*0.5;
+		ent->v.absmax[1] = ent->v.origin[1] + radius*0.5;
+		ent->v.absmax[2] = ent->v.origin[2] + radius*0.5;
 	}
 	
 
