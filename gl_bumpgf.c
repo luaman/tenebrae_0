@@ -378,10 +378,8 @@ void R_DrawWorldGF3Diffuse(lightcmd_t *lightCmds) {
 			lightPos+=2;
 
 			qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
-			qglMultiTexCoord3fARB(GL_TEXTURE1_ARB,
-					      lightCmds[lightPos++].asFloat,
-					      lightCmds[lightPos++].asFloat,
-					      lightCmds[lightPos++].asFloat);
+			qglMultiTexCoord3fvARB(GL_TEXTURE1_ARB,
+					      &lightCmds[lightPos].asFloat);
 			lightPos+=3;
 			//qglMultiTexCoord2fARB(GL_TEXTURE2_ARB, v[3], v[4]);
 			//qglMultiTexCoord3fvARB(GL_TEXTURE3_ARB,&v[0]);
@@ -398,7 +396,7 @@ void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 	int command, num, i;
 	int lightPos = 0;
 	vec3_t tsH,H;
-	float lightP[3];
+	float* lightP;
 	msurface_t *surf;
 	float		*v;
 	vec3_t lightDir;
@@ -435,10 +433,9 @@ void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 		v = surf->polys->verts[0];
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
-			lightP[0] = lightCmds[lightPos++].asFloat;
-			lightP[1] = lightCmds[lightPos++].asFloat;
-			lightP[2] = lightCmds[lightPos++].asFloat;
+			lightP = &lightCmds[lightPos].asFloat;
 
+                        VectorCopy(lightP, lightDir);
 			VectorNormalize(lightDir);
 			lightPos+=3;
 
