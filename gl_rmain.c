@@ -231,10 +231,10 @@ void R_RotateForEntity (entity_t *e)
 		return;
 	}
 
-	timepassed = realtime - e->translate_start_time; 
+    timepassed = realtime - e->translate_start_time; 
 
-	if (e->translate_start_time == 0 || timepassed > 1)
-	{
+    if (e->translate_start_time == 0 || timepassed > 1)
+    {
 		e->translate_start_time = realtime;
 		VectorCopy (e->origin, e->origin1);
 		VectorCopy (e->origin, e->origin2);
@@ -252,50 +252,54 @@ void R_RotateForEntity (entity_t *e)
 		blend =  timepassed / 0.1;
 
 		if (cl.paused || blend > 1) blend = 1;
-        }
-			VectorSubtract (e->origin2, e->origin1, d);
+	}
 
-            glTranslatef (
-                e->origin1[0] + (blend * d[0]),
-                e->origin1[1] + (blend * d[1]),
-                e->origin1[2] + (blend * d[2]));
-             timepassed = realtime - e->rotate_start_time; 
+	VectorSubtract (e->origin2, e->origin1, d);
 
-             if (e->rotate_start_time == 0 || timepassed > 1)
-             {
-                 e->rotate_start_time = realtime;
-                 VectorCopy (e->angles, e->angles1);
-                 VectorCopy (e->angles, e->angles2);
-             }
-             if (!VectorCompare (e->angles, e->angles2))
-             {
-                 e->rotate_start_time = realtime;
-                 VectorCopy (e->angles2, e->angles1);
-                 VectorCopy (e->angles,  e->angles2);
-                 blend = 0;
-             }
-             else
-             {
-                 blend = timepassed / 0.1;
-                 if (cl.paused || blend > 1) blend = 1;
-             }
-        VectorSubtract (e->angles2, e->angles1, d);
-		for (i = 0; i < 3; i++) 
-		{
-			if (d[i] > 180)
-		{
-			d[i] -= 360;
+	glTranslatef (
+		e->origin1[0] + (blend * d[0]),
+		e->origin1[1] + (blend * d[1]),
+		e->origin1[2] + (blend * d[2]));
+
+	timepassed = realtime - e->rotate_start_time; 
+
+	if (e->rotate_start_time == 0 || timepassed > 1)
+	{
+		e->rotate_start_time = realtime;
+		VectorCopy (e->angles, e->angles1);
+		VectorCopy (e->angles, e->angles2);
+	}
+
+	if (!VectorCompare (e->angles, e->angles2))
+	{
+		e->rotate_start_time = realtime;
+		VectorCopy (e->angles2, e->angles1);
+		VectorCopy (e->angles,  e->angles2);
+		blend = 0;
+	}
+	else
+	{
+		blend = timepassed / 0.1;
+ 
+		if (cl.paused || blend > 1) blend = 1;
 		}
-		else if (d[i] < -180)
-		{
-			d[i] += 360;
-        }
-    }
-	glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
-	glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
-	glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
-}
+			VectorSubtract (e->angles2, e->angles1, d);
 
+             for (i = 0; i < 3; i++) 
+             {
+                 if (d[i] > 180)
+                 {
+                     d[i] -= 360;
+                 }
+                 else if (d[i] < -180)
+                 {
+                     d[i] += 360;
+                 }
+			}
+		glRotatef ( e->angles1[1] + ( blend * d[1]),  0, 0, 1);
+		glRotatef (-e->angles1[0] + (-blend * d[0]),  0, 1, 0);
+		glRotatef ( e->angles1[2] + ( blend * d[2]),  1, 0, 0);
+	}
 
 void R_UnlerpedRotateForEntity (entity_t *e)
 {
