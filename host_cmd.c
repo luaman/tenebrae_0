@@ -1773,9 +1773,13 @@ void Host_Viewframe_f (void)
 void PrintFrameName (model_t *m, int frame)
 {
 	aliashdr_t 			*hdr;
+        alias3data_t		*data;        
 	maliasframedesc_t	*pframedesc;
 
-	hdr = (aliashdr_t *)Mod_Extradata (m);
+        // HACK HACK HACK -> should  change the function prototype ?
+        //                   or display frame name for all surfaces ?
+        data = (alias3data_t *)Mod_Extradata(m);
+	hdr = (aliashdr_t *)((char*)data + data->ofsSurfaces[0]);
 	if (!hdr)
 		return;
 	pframedesc = &hdr->frames[frame];
