@@ -557,8 +557,21 @@ int	NET_GetMessage (qsocket_t *sock)
 	// see if this connection has timed out
 	if (ret == 0 && sock->driver)
 	{
-		if (net_time - sock->lastMessageTime > net_messagetimeout.value)
+		/*
+		RFC: Why doesn't this work!!!  It's the same... or not??
+		Since when I compile it it evaluates the if body even if it's a smaller number...
+
+		if ((net_time - sock->lastMessageTime) > (double)net_messagetimeout.value)
 		{
+			Con_Printf("*** Connection timed out after %f s of inactivity (max is %f)\n",delta,net_messagetimeout.value);
+			//NET_Close(sock);
+			//return -1;
+		}
+		*/
+		float delta = (net_time - sock->lastMessageTime);
+		if (delta > net_messagetimeout.value)
+		{
+			Con_Printf("*** Connection timed out after %f s of inactivity (max is %f)\n",delta,net_messagetimeout.value);
 			NET_Close(sock);
 			return -1;
 		}
