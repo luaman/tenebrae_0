@@ -38,34 +38,6 @@ static GLuint diffuse_program_object;
 static GLuint specularalias_program_object; //He he nice name to type a lot
 
 /*
-Pixel shader for diffuse bump mapping when a light does have a cubemap filter
-(note the required texture coordinates are the same)
-*/
-
-void GL_EnableAttenShaderGF3 () {
-	//we use ordinary combiners, no fancy NVIDIA stuff
-
-	//texture coords for unit 0: Object space vertex position
-
-	//pass trough nomalization cubemap
-	GL_SelectTexture(GL_TEXTURE0_ARB);
-	glDisable(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE_3D);
-	glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, normcube_texture_object);
-	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_TEXTURE);
-    glTexEnvf (GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_REPLACE);
-}
-
-void GL_DisableAttenShaderGF3 () {
-
-	glEnable(GL_TEXTURE_2D);
-	glDisable(GL_TEXTURE_3D);
-
-}
-
-/*
 Pixel shader for diffuse bump mapping does diffuse bumpmapping with norm cube, self shadowing & dist attent in
 1 pass (thanx to the 4 texture units on a gf4)
 */
