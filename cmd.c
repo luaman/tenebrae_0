@@ -453,6 +453,8 @@ void Cmd_Init (void)
 	Cmd_AddCommand ("alias",Cmd_Alias_f);
 	Cmd_AddCommand ("cmd", Cmd_ForwardToServer);
 	Cmd_AddCommand ("wait", Cmd_Wait_f);
+	Cmd_AddCommand ("cmdlist", Cmd_List_f); //Cmdlist - Eradicator
+	Cmd_AddCommand ("cvarlist", Cvar_List_f); //Cvarlist - Eradicator
 }
 
 /*
@@ -719,4 +721,48 @@ int Cmd_CheckParm (char *parm)
 			return i;
 			
 	return 0;
+}
+
+/*
+========
+Cmd_List
+
+Displays a list of all the commands similar to the Quake3 cmdlist - Eradicator
+========
+*/
+void Cmd_List_f (void)
+{
+	cmd_function_t	*cmd;
+	char 		*partial;
+	int		len;
+	int		count;
+
+	if (Cmd_Argc() > 1)
+	{
+		partial = Cmd_Argv (1);
+		len = Q_strlen(partial);
+	}
+	else
+	{
+		partial = NULL;
+		len = 0;
+	}
+	
+	count=0;
+	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+	{
+		if (partial && Q_strncmp (partial,cmd->name, len))
+		{
+			continue;
+		}
+		Con_Printf ("\"%s\"\n", cmd->name);
+		count++;
+	}
+
+	Con_Printf ("%i command(s)", count);
+	if (partial)
+	{
+		Con_Printf (" beginning with \"%s\"", partial);
+	}
+	Con_Printf ("\n");
 }
