@@ -36,9 +36,9 @@ Alias instants
 
 #include "quakedef.h"
 
-#define NUM_ALIAS_INSTANTS 32
+#define NUM_ALIAS_INSTANTS 64
 
-#define NUM_ALIAS_LIGHT_INSTANTS 128
+#define NUM_ALIAS_LIGHT_INSTANTS 196
 
 aliasframeinstant_t InstantCache[NUM_ALIAS_INSTANTS];
 aliaslightinstant_t LightInstantCache[NUM_ALIAS_LIGHT_INSTANTS];
@@ -49,7 +49,7 @@ void R_SetupInstantForFrame(entity_t *e, qboolean forcevis);
 #define DIST_DELTA 0.1
 #define ANG_DELTA 0.5
 #define RADIUS_DELTA 0.1
-#define BLEND_DELTA 0.3333 //This lets the interpolation run at ~30fps this looks verry smooth
+#define BLEND_DELTA 0.0000001 //This lets the interpolation run at ~30fps this looks verry smooth
 						   //and makes our caches usefull
 							//BLEND_DELTA = 1 means 10 fps means no interpolation visible
 
@@ -188,6 +188,8 @@ void R_SetupInstants (void)
 		}
 	}
 
+	if (mirror) return;
+
 	//interpolate gun also
 	if (cl.viewent.model)
 		R_SetupInstantForFrame(&cl.viewent,true);
@@ -195,7 +197,7 @@ void R_SetupInstants (void)
 		cl.viewent.aliasframeinstant = NULL;
 
 	//for player
-	if ((!mirror) && cl_entities[cl.viewentity].model)
+	if (cl_entities[cl.viewentity].model)
 		R_SetupInstantForFrame(&cl_entities[cl.viewentity],true);
 	else
 		cl_entities[cl.viewentity].aliasframeinstant = NULL;
