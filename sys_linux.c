@@ -86,7 +86,7 @@ void Sys_Printf (char *fmt, ...)
 void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
-	char		text[1024];
+	char		text[4096];
 	unsigned char		*p;
 
 	va_start (argptr,fmt);
@@ -139,7 +139,7 @@ void Sys_Init(void)
 void Sys_Error (char *error, ...)
 { 
     va_list     argptr;
-    char        string[1024];
+    char        string[4096];
 
 // change stdin to non blocking
     fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
@@ -157,7 +157,7 @@ void Sys_Error (char *error, ...)
 void Sys_Warn (char *warning, ...)
 { 
     va_list     argptr;
-    char        string[1024];
+    char        string[4096];
     
     va_start (argptr,warning);
     vsprintf (string,warning,argptr);
@@ -243,7 +243,7 @@ int Sys_FileRead (int handle, void *dest, int count)
 void Sys_DebugLog(char *file, char *fmt, ...)
 {
     va_list argptr; 
-    static char data[1024];
+    static char data[4096];
     int fd;
     
     va_start(argptr, fmt);
