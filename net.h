@@ -28,7 +28,8 @@ struct qsockaddr
 
 #define	NET_NAMELEN			64
 
-#define NET_MAXMESSAGE		8192
+#define NET_MAXMESSAGE		16384 //PENTA: If you increase the packet size (MAX_DATAGRAM) you better increase this too
+									 // or you can't send those packets...
 #define NET_HEADERSIZE		(2 * sizeof(unsigned int))
 #define NET_DATAGRAMSIZE	(MAX_DATAGRAM + NET_HEADERSIZE)
 
