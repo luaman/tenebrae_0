@@ -531,7 +531,7 @@ void Draw_Init (void)
 
 	for (i=0; i<8; i++) {
 		char name[32];
-		sprintf(name,"penta/caust%2.2i.tga",i*4);
+		sprintf(name,"penta/caust%i.tga",i*4);
 		caustics_textures[i] = EasyTgaLoad(name);
 	}
 
