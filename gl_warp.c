@@ -40,6 +40,7 @@ msurface_t	*warpface;
 
 extern cvar_t gl_subdivide_size;
 
+
 void BoundPoly (int numverts, float *verts, vec3_t mins, vec3_t maxs)
 {
     int		i, j;
@@ -711,6 +712,8 @@ int LoadTexture(char* filename, int size)
         if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
+        png_set_gamma(png_ptr, 1.0, 1.0);
+
         if ( size == 4 )
 	{
             if ( color_type & PNG_COLOR_MASK_PALETTE )
@@ -719,19 +722,23 @@ int LoadTexture(char* filename, int size)
             if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
                 png_set_tRNS_to_alpha(png_ptr);
 
-            if ( (color_type & PNG_COLOR_MASK_COLOR == 0) )
+            if ( (color_type & PNG_COLOR_MASK_COLOR) == 0 )
                 png_set_gray_to_rgb(png_ptr);
 
-            if ( (color_type & PNG_COLOR_MASK_ALPHA == 0) )
+            if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
                 png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 	}
 	else
 	{          
-            if ( color_type & PNG_COLOR_MASK_ALPHA)
+            if ( color_type & PNG_COLOR_MASK_ALPHA )
                 png_set_strip_alpha(png_ptr);
 
-            if (( color_type & PNG_COLOR_MASK_COLOR ) &&
-                !(color_type & PNG_COLOR_MASK_PALETTE ))
+            if ( color_type & PNG_COLOR_MASK_PALETTE )
+            {
+                png_set_palette_to_rgb(png_ptr);   
+            }
+
+            if ( color_type & PNG_COLOR_MASK_COLOR )
                 png_set_rgb_to_gray_fixed(png_ptr, 1, -1, -1);
         }
 	
@@ -814,6 +821,8 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
         if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
+        png_set_gamma(png_ptr, 1.0, 1.0);
+
         if ( size == 4 )
 	{
             if ( color_type & PNG_COLOR_MASK_PALETTE )
@@ -833,8 +842,12 @@ int LoadTextureInPlace(char* filename, int size, byte* mem, int* width, int* hei
             if ( color_type & PNG_COLOR_MASK_ALPHA )
                 png_set_strip_alpha(png_ptr);
 
-            if (( color_type & PNG_COLOR_MASK_COLOR ) &&
-                !(color_type & PNG_COLOR_MASK_PALETTE ))
+            if ( color_type & PNG_COLOR_MASK_PALETTE )
+            {
+                png_set_palette_to_rgb(png_ptr);   
+            }
+
+            if ( color_type & PNG_COLOR_MASK_COLOR )
                 png_set_rgb_to_gray_fixed(png_ptr, 1, -1, -1);
         }
 	
@@ -1336,17 +1349,19 @@ int EasyTgaLoad(char *filename)
         if ( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
             png_set_gray_1_2_4_to_8(png_ptr);
 
-	if ( color_type & PNG_COLOR_MASK_PALETTE )
-	    png_set_palette_to_rgb(png_ptr);
+        png_set_gamma(png_ptr, 1.0, 1.0);
 
-	if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
-	    png_set_tRNS_to_alpha(png_ptr);
+        if ( color_type & PNG_COLOR_MASK_PALETTE )
+            png_set_palette_to_rgb(png_ptr);
 
-	if ( (color_type & PNG_COLOR_MASK_COLOR) == 0 )
-	    png_set_gray_to_rgb(png_ptr);
+        if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
+            png_set_tRNS_to_alpha(png_ptr);
 
-	if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
-	    png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+        if ( (color_type & PNG_COLOR_MASK_COLOR) == 0 )
+            png_set_gray_to_rgb(png_ptr);
+
+        if ( (color_type & PNG_COLOR_MASK_ALPHA) == 0 )
+            png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
 
 	for ( i = 0; i < height; i++ )
 	{
