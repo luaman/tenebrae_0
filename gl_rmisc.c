@@ -250,6 +250,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&sh_glares);
 	Cvar_RegisterVariable (&sh_noefrags);
 	Cvar_RegisterVariable (&sh_showtangent);
+	Cvar_RegisterVariable (&sh_noshadowpopping);
 
 	Cvar_RegisterVariable (&mir_detail);
 	Cvar_RegisterVariable (&mir_frameskip);
