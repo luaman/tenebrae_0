@@ -114,10 +114,18 @@ void Cvar_Set (char *var_name, char *value)
 	}
 
 	changed = Q_strcmp(var->string, value);
-	
-	Z_Free (var->string);	// free the old value string
-	
-	var->string = Z_Malloc (Q_strlen(value)+1);
+
+	if(!changed) //Cvar Speedup - Eradicator
+		return;
+	//Don't reallocate when the buffer is the same size
+	if (!var->string || strlen(var->string) != strlen(value))
+	{
+		Z_Free (var->string);
+		var->string = Z_Malloc (strlen(value)+1);
+	}
+	//Z_Free (var->string);	// free the old value string
+	//var->string = Z_Malloc (Q_strlen(value)+1);
+
 	Q_strcpy (var->string, value);
 	var->value = Q_atof (var->string);
 	if (var->server && changed)
