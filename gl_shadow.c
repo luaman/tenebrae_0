@@ -1492,7 +1492,8 @@ void R_RenderGlow (shadowlight_t *light)
 	int		ofsx, ofsy;
 	qboolean hitWorld;
 
-	if (!light->halo) return;
+	if (!light->halo || gl_wireframe.value) 
+		return;
 
 	//trace a from the eye to the light source
 	TraceLine (r_refdef.vieworg, light->origin, hit);
@@ -2229,4 +2230,3 @@ void R_AutomaticLightPos() {
 
 	LoadLightsFromFile(cl.worldmodel->entities);
 }
-
