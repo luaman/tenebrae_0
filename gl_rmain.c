@@ -490,44 +490,6 @@ GL_DrawAliasFrame
 =============
 */
 
-void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
-{
-	//Crappy
-}
-
-
-ftrivertx_t *apverts;
-void GL_DrawPentaAliasFrame (aliashdr_t *paliashdr, int posenum) {
-
-	mtriangle_t *ptri;
-	ftrivertx_t	*verts;
-	plane_t		*planes;
-	int i,j;
-
-	return;
-
-	//verts = apverts;
-	verts = (ftrivertx_t *)((byte *)paliashdr + paliashdr->posedata);
-	verts += posenum * paliashdr->poseverts;
-	ptri = (mtriangle_t *)((byte *)paliashdr + paliashdr->triangles);
-	planes = (plane_t *)((byte *)paliashdr + paliashdr->planes);
-	planes += posenum * paliashdr->numtris;
-
-	for (i=0 ; i<paliashdr->numtris ; i++, ptri++, planes++)
-	{
-		glBegin(GL_TRIANGLES);
-		//Con_Printf("%i %i %i\n", (int)ptri->vertindex[0], (int)ptri->vertindex[1], (int)ptri->vertindex[2]); 
-		glTexCoord2f(0.5, 0.5);
-		for (j=0; j<3; j++) {
-			glVertex3f(verts[ptri->vertindex[j]].v[0],
-					   verts[ptri->vertindex[j]].v[1],
-					   verts[ptri->vertindex[j]].v[2]);
-			//Con_Printf("%i \n",ptri->vertindex[j]); 
-		}
-		glEnd();
-	}
-
-}
 
 extern	vec3_t			lightspot;
 
@@ -772,41 +734,48 @@ R_DrawAliasShadowVolume
 
 void R_DrawAliasSurfaceShadowVolume (aliashdr_t	*paliashdr, aliasframeinstant_t *aliasframeinstant)
 {
-#if 1
-	//
-	//Pass 1 increase
-	//
-	glCullFace(GL_BACK);
-	glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
-	glCullFace(GL_FRONT);
+	switch(gl_twosidedstencil)
+	{
+	    case 0:
+			//
+			//Pass 1 increase
+			//
+			glCullFace(GL_FRONT);
+			glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
 
-	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
 
-	//
-	// Second Pass. Decrease Stencil Value In The Shadow
-	//
-	glCullFace(GL_FRONT);
-	glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
-	glCullFace(GL_BACK);
-	
-	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
-#else
-        glDisable(GL_CULL_FACE);
-	glCullFace(GL_FRONT_AND_BACK);
-        checkerror();
-	glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-        checkerror();
-	qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
-        checkerror();
-	qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
-        checkerror();
-	qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
-        checkerror();
-	R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+			//
+			// Second Pass. Decrease Stencil Value In The Shadow
+			//
+			glCullFace(GL_BACK);
+			glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
+			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+			break;
+		case 1:
+			// EXT_stencil_two_side
+	        glDisable(GL_CULL_FACE);
+			qglActiveStencilFaceEXT(GL_BACK);
+			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+			glStencilFunc(GL_ALWAYS, 0, ~0);
+			qglActiveStencilFaceEXT(GL_FRONT);
+			glStencilOp(GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+			glStencilFunc(GL_ALWAYS, 0, ~0);
+			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+			glEnable(GL_CULL_FACE);
+			break;
 
-        glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-#endif
+		case 2:
+			// ATI_separate_stencil
+	        glDisable(GL_CULL_FACE);
+			glStencilOp(GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+			qglStencilFuncSeparateATI(GL_ALWAYS, GL_ALWAYS, 0, ~0);
+			qglStencilOpSeparateATI(GL_FRONT, GL_KEEP, GL_DECR_WRAP_EXT, GL_KEEP);
+			qglStencilOpSeparateATI(GL_BACK, GL_KEEP, GL_INCR_WRAP_EXT, GL_KEEP);
+			R_DrawAliasFrameShadowVolume2 (paliashdr, aliasframeinstant);
+			glEnable(GL_CULL_FACE);
+			break;
+	}
 }
 
 
@@ -1124,7 +1093,6 @@ void R_DrawAliasModel (float bright)
 	aliashdr_t	*paliashdr;
         aliasframeinstant_t *aliasframeinstant;
         alias3data_t *data;
-	vec3_t	mins,maxs;
 
         //R_PrepareEntityForDraw (bright);
 
@@ -1621,11 +1589,11 @@ void R_DrawViewModel (void)
 	if (gl_transformlerp.value)
 	{
 		gl_transformlerp.value = 0;
-		R_DrawAliasModel (0.1);
+		R_DrawAliasModel (0.1f);
 		gl_transformlerp.value = 1;
 	}
 	else
-		R_DrawAliasModel (0.1);
+		R_DrawAliasModel (0.1f);
 
 	if ( gl_calcdepth.value ) //Calc Depth - Eradicator
 		glDepthRange (gldepthmin, gldepthmax);
@@ -1939,23 +1907,6 @@ void pentaGlFrustum( GLdouble xmin, GLdouble xmax, GLdouble ymin, GLdouble ymax,
     glLoadMatrixd(&p[0][0]);	
 }
 
-void MYgluPerspective( GLdouble fovy, GLdouble aspect,
-		     GLdouble zNear, GLdouble zFar )
-{
-/*
-<AWE> Unused. Can be removed.
-   GLdouble xmin, xmax, ymin, ymax;
-
-   ymax = zNear * tan (fovy * M_PI / 360.0);
-   ymin = -ymax;
-
-   xmin = ymin * aspect;
-   xmax = ymax * aspect;
-
-   pentaGlFrustum( xmin, xmax, ymin, ymax, zNear);
-*/
-   pentaGlPerspective(fovy * M_PI / 360.0, aspect, zNear);
-}
 
 /*
 PENTA:
@@ -2126,7 +2077,7 @@ void R_SetupGL (void)
 	//PENTA: decreased zfar from 4096 to reduce z-fighting on alias models
 	// is this ok for quake or do we need to be able to look that far??
 	// seems to work, I incr. znear to 5 instead of 4
-        MYgluPerspective (2.0 *atan((GLdouble) r_refdef.vrect.height / (GLdouble) r_refdef.vrect.width) * 180.0 / M_PI /* r_refdef.fov_y */,  screenaspect,  5.0,  2048.0); 
+    pentaGlPerspective(atan((GLdouble) r_refdef.vrect.height / (GLdouble) r_refdef.vrect.width) /* r_refdef.fov_y */,  screenaspect,  5.0);
 
 	if (mirror || glare)
 	{
@@ -2917,6 +2868,7 @@ void R_RenderView (void)
 
 	viewcont = CL_PointContents(r_origin);
 	fog_color[3] = 1.0;
+	oldfogen = fog_enabled.value;
 	if ((viewcont == CONTENTS_WATER) && (fog_waterfog.value)){
 		glFogi(GL_FOG_MODE, GL_LINEAR);
 		fog_color[0] = 64/255.0;

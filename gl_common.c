@@ -36,6 +36,7 @@ qboolean        gl_mtexable = false;
 qcardtype       gl_cardtype = GENERIC;
 qboolean        gl_var = false; //PENTA: vertex array range is available
 qboolean        gl_texcomp = false; // JP: texture compression available
+int             gl_twosidedstencil = 0; // none
 
 
 //void (*qglColorTableEXT) (int, int, int, int, int, const void*);
@@ -47,6 +48,13 @@ GLCOLORTABLEEXTPFN qglColorTableEXT;
 typedef void (*GL3DFXSETPALETTEEXTPFN) (GLuint *) ;
 GL3DFXSETPALETTEEXTPFN qgl3DfxSetPaletteEXT;
 
+
+// EXT_stencil_two_side
+PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
+
+// ATI_separate_stencil
+PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
+PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
 
 
 //int		texture_mode = GL_NEAREST;
@@ -557,10 +565,30 @@ qboolean gl_depthbounds;
 void CheckDepthBoundsExtension(void) {
 	SAFE_GET_PROC (qglDepthBoundsNV,PFNGLDEPTHBOUNDSNV,"glDepthBoundsNV");
 	if (qglDepthBoundsNV != NULL) {
-		Con_Printf("Using depth bounds extension.\n");
+		Con_Printf("Using depth bounds extension\n");
 		gl_depthbounds = true;
 	} else {
 		gl_depthbounds = false;
+	}
+}
+
+void CheckTwoSidedStencil(void)
+{
+	if (COM_CheckParm ("-notwosidedstencil"))
+		return;
+
+	if (strstr(gl_extensions, "GL_EXT_stencil_two_side"))
+	{
+        SAFE_GET_PROC( qglActiveStencilFaceEXT, PFNGLACTIVESTENCILFACEEXTPROC, "glActiveStencilFaceEXT");
+		gl_twosidedstencil = 1;
+		Con_Printf("Using EXT_stencil_two_side\n");
+	}
+	else if (strstr(gl_extensions, "GL_ATI_separate_stencil"))
+	{
+		SAFE_GET_PROC( qglStencilOpSeparateATI, PFNGLSTENCILOPSEPARATEATIPROC, "glStencilOpSeparateATI");
+		SAFE_GET_PROC( qglStencilFuncSeparateATI, PFNGLSTENCILFUNCSEPARATEATIPROC, "glStencilFuncSeparateATI");
+		gl_twosidedstencil = 2;
+		Con_Printf("Using ATI_separate_stencil\n");
 	}
 }
 
@@ -637,6 +665,8 @@ void GL_Init (void)
      CheckTextureCompressionExtension ();
 	 Con_Printf ("Checking DB\n");
 	 CheckDepthBoundsExtension ();
+	 Con_Printf ("Checking two-sided stencil\n");
+	 CheckTwoSidedStencil();
 
      switch (gl_cardtype)
      {

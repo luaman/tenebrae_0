@@ -730,6 +730,30 @@ typedef void (APIENTRY * PFNGLDEPTHBOUNDSNV)(GLclampd zmin, GLclampd zmax);
 
 extern PFNGLDEPTHBOUNDSNV qglDepthBoundsNV;
 
+// EXT_stencil_two_side
+#ifndef GL_EXT_stencil_two_side
+#define GL_STENCIL_TEST_TWO_SIDE_EXT      0x8910
+#define GL_ACTIVE_STENCIL_FACE_EXT        0x8911
+#endif
+
+#ifndef GL_EXT_stencil_two_side
+#define GL_EXT_stencil_two_side 1
+typedef void (APIENTRY * PFNGLACTIVESTENCILFACEEXTPROC) (GLenum face);
+#endif
+extern PFNGLACTIVESTENCILFACEEXTPROC qglActiveStencilFaceEXT;
+
+// ATI_separate_stencil
+#define GL_STENCIL_BACK_FUNC_ATI                    0x8800
+#define GL_STENCIL_BACK_FAIL_ATI                    0x8801
+#define GL_STENCIL_BACK_PASS_DEPTH_FAIL_ATI         0x8802
+#define GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI         0x8803
+
+typedef void (APIENTRY *PFNGLSTENCILOPSEPARATEATIPROC)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
+typedef void (APIENTRY *PFNGLSTENCILFUNCSEPARATEATIPROC)(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
+
+extern PFNGLSTENCILOPSEPARATEATIPROC qglStencilOpSeparateATI;
+extern PFNGLSTENCILFUNCSEPARATEATIPROC qglStencilFuncSeparateATI;
+
 
 
 // <AWE> : NV_vertex_program will never be supported under any other OS than Windows, because it got
@@ -1174,6 +1198,7 @@ typedef void (APIENTRY *lpSelTexFUNC) (GLenum);
 extern qboolean gl_mtexable;
 extern qboolean gl_palettedtex; // <AWE>: true if EXT_paletted_texture present [for GL_Upload8_EXT ()].
 extern qboolean gl_texturefilteranisotropic; // <AWE> true if anisotropic texture filtering available.
+extern int      gl_twosidedstencil;
 
 typedef enum
 {
