@@ -930,7 +930,7 @@ void Sbar_Draw (void)
 		return;		// console is full screen
 
 	//Made cvar to toggle this. Defautly HUD now updates every frame to stop 2D bugs. - Eradicator
-	if (sb_updates >= vid.numpages && sbar_updateperframe.value == 0)
+	if ((sb_updates >= vid.numpages && sbar_updateperframe.value == 0) || gl_wireframe.value)
 		return;
 
 	glEnable(GL_BLEND);
