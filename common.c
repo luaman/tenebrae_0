@@ -2031,26 +2031,24 @@ COM_AddGameDirectory
 
 
 Sets com_gamedir, adds the directory to the head of the path,
-then loads and adds pak1.pak pak2.pak ... 
+then loads and adds pak1.pak, pak2.pak, *.pak ... 
 ================
 */
 void COM_AddGameDirectory (char *dir)
 {
 	int                             i;
-	searchpath_t    *search;
+	searchpath_t    *search,*orig_pak;
 	pack_t                  *pak;
 	char                    pakfile[MAX_OSPATH];
-	
-	char dirstring[1024]; //Any Pak File - Eradicator
-	
+	char      *filename;        
 	dirdata_t dirdata;
+
+// update current gamedir
 	strcpy (com_gamedir, dir);
 //
-// add any pak files in the format pak0.pak pak1.pak, ...
+// add any pak files , pak*.pak first 
 //
-        //Any Pak File - Eradicator 
-        sprintf (dirstring, "%s/*.pak", dir);
-
+        orig_pak=com_searchpaths;
         if (Sys_Findfirst (dir, "*.pak", &dirdata))
 	{
 	        do
@@ -2058,13 +2056,22 @@ void COM_AddGameDirectory (char *dir)
 		        pak = COM_LoadPackFile (dirdata.entry);
 			if (!pak)
 				break;
-			search = Hunk_Alloc (sizeof(searchpath_t));
-			search->pack = pak;
-			search->next = com_searchpaths;
-			com_searchpaths = search;
+                        filename=COM_SkipPath(dirdata.entry);
+                        search = Hunk_Alloc (sizeof(searchpath_t));
+                        search->pack = pak;
+                        if (Q_strncasecmp(filename,"pak",3)) {
+                             // pak*.pak
+                             search->next = orig_pak;
+                             orig_pak=search;                             
+                        } 
+                        else {
+                             // *.pak
+                             search->next = com_searchpaths;
+                             com_searchpaths = search;
+                        }
+                        
                 }
 		while (Sys_Findnext( &dirdata ) != NULL);
-
 	}
 
 //
