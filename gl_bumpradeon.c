@@ -762,10 +762,10 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
     vec3_t lightOr;
     msurface_t *surf;
     float               *v;
-    float *lightP;
+    float lightP[3];
     vec3_t lightDir;
     vec3_t tsH,H;
-    float  
+
 	texture_t	*t;//XYZ
 
     //support flickering lights
@@ -776,7 +776,7 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
         command = lightCmds[lightPos++].asInt;
         if (command == 0) break; //end of list
 
-        surf = (void *)lightCmds[lightPos++].asVoid;
+        surf = lightCmds[lightPos++].asVoid;
 
         if (surf->visframe != r_framecount) {
             lightPos+=(4+surf->polys->numverts*(2+3));
@@ -801,9 +801,9 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
             //skip attent texture coord.
             lightPos+=2;
 
-            lightP[0] = lightCmds[lightPos++].asVec;
-            lightP[1] = lightCmds[lightPos++].asVec;
-            lightP[2] = lightCmds[lightPos++].asVec;
+            lightP[0] = lightCmds[lightPos++].asFloat;
+            lightP[1] = lightCmds[lightPos++].asFloat;
+            lightP[2] = lightCmds[lightPos++].asFloat;
 
             VectorNormalize(lightDir);
 
@@ -832,9 +832,9 @@ void R_DrawWorldRadeonDiffuseSpecular(lightcmd_t *lightCmds)
             qglMultiTexCoord2fARB(GL_TEXTURE0_ARB, v[3], v[4]);
 	    
             qglMultiTexCoord3fARB(GL_TEXTURE1_ARB,
-				  lightCmds[lightPos++]
-				  lightCmds[lightPos++],
-				  lightCmds[lightPos++]);
+				  lightCmds[lightPos++].asFloat,
+				  lightCmds[lightPos++].asFloat,
+				  lightCmds[lightPos++].asFloat);
             // half vector for specular
             qglMultiTexCoord3fvARB(GL_TEXTURE2_ARB,&tsH[0]);
 

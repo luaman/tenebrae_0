@@ -398,7 +398,7 @@ void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 	int command, num, i;
 	int lightPos = 0;
 	vec3_t tsH,H;
-	float *lightP;
+	float lightP[3];
 	msurface_t *surf;
 	float		*v;
 	vec3_t lightDir;
@@ -435,9 +435,9 @@ void R_DrawWorldGF3Specular(lightcmd_t *lightCmds) {
 		v = surf->polys->verts[0];
 		for (i=0; i<num; i++, v+= VERTEXSIZE) {
 			lightPos+=2;//skip texcoords
-			lightP = lightCmds[lightPos++].asVec;
-			lightP = lightCmds[lightPos++].asVec;
-			lightP = lightCmds[lightPos++].asVec;
+			lightP[0] = lightCmds[lightPos++].asFloat;
+			lightP[1] = lightCmds[lightPos++].asFloat;
+			lightP[2] = lightCmds[lightPos++].asFloat;
 
 			VectorNormalize(lightDir);
 			lightPos+=3;
