@@ -1177,7 +1177,8 @@ typedef enum
 	RADEON,
 	PARHELIA,
 	ARB,
-        NV3x
+    NV3x,
+	GL2
 } qcardtype;
 extern qcardtype gl_cardtype;
 
@@ -1411,6 +1412,8 @@ void		R_DrawAliasBumpedARB(aliashdr_t *paliashdr, aliasframeinstant_t *instant);
 void		R_DrawBrushBumpedARB(entity_t *e);//PA:
 void		R_DrawAliasBumpedNV3x(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
 void		R_DrawBrushBumpedNV3x(entity_t *e);//PA:
+void		R_DrawAliasBumpedGL2(aliashdr_t *paliashdr, aliasframeinstant_t *instant);//PA:
+void		R_DrawBrushBumpedGL2(entity_t *e);//PA:
 void		R_DrawAliasFrameWV (aliashdr_t *paliashdr, aliasframeinstant_t *instant, qboolean specular);
 void		R_DrawAliasObjectLight (entity_t *e, void (*AliasGeoSender) (aliashdr_t *paliashdr,
                                                                              aliasframeinstant_t* instant));
@@ -1439,6 +1442,8 @@ void		R_DrawWorldBumpedGF3 (void);
 void		R_DrawWorldBumpedRadeon (void);
 void		R_DrawWorldBumpedParhelia (void);
 void		R_DrawWorldBumpedARB (void);
+void		R_DrawWorldBumpedNV3x (void);
+void		R_DrawWorldBumpedGL2 (void);
 void		R_DrawWorldWV (lightcmd_t *lightCmds, qboolean specular);
 qboolean	R_FillShadowChain (shadowlight_t *light);
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity);
@@ -1546,4 +1551,6 @@ void Sys_Strtime(char *buf);
 void GL_CreateShadersARB(void);
 void GL_CreateShadersRadeon(void);
 void GL_CreateShadersParhelia(void);
+void GL_CreateShadersNV3x(void);
+void GL_CreateShadersGL2(void);
 

@@ -46,6 +46,7 @@ void R_DrawLightEntitiesRadeon (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesParhelia (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesARB (shadowlight_t *l); //PA:
 void R_DrawLightEntitiesNV3x (shadowlight_t *l); //PA:
+void R_DrawLightEntitiesGL2 (shadowlight_t *l); //PA:
 
 void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not have parameters.
 {
@@ -72,6 +73,9 @@ void R_DrawWorldBumped (/* shadowlight_t *l */)  // <AWE> Function should not ha
 	break;
     case NV3x:
 	R_DrawWorldBumpedNV3x(/* l */);
+	break;
+    case GL2:
+	R_DrawWorldBumpedGL2(/* l */);
 	break;
     default:
 	R_DrawWorldBumpedGEN(/* l */);
@@ -104,6 +108,9 @@ void R_DrawLightEntities (shadowlight_t *l)
 	break;
     case NV3x:
 	R_DrawLightEntitiesNV3x( l );
+	break;
+    case GL2:
+	R_DrawLightEntitiesGL2( l );
 	break;
     default:
 	R_DrawLightEntitiesGEN( l );
@@ -488,6 +495,64 @@ void R_DrawLightEntitiesNV3x (shadowlight_t *l)
 	    if (!currententity->brushlightinstant) continue;
 	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
 	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedNV3x);
+	}
+
+    }
+
+    //Cleanup state
+    glColor3f (1,1,1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask (1);
+}
+
+void R_DrawLightEntitiesGL2 (shadowlight_t *l)
+{
+    int		i;
+    (void)l;
+
+    if (!r_drawentities.value)
+	return;
+
+    if (!currentshadowlight->visible)
+	return;
+
+    glDepthMask (0);
+    glShadeModel (GL_SMOOTH);
+
+    //Alias models
+
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_alias)
+	{
+	    //these models are full bright 
+	    if (currententity->model->flags & EF_FULLBRIGHT) continue;
+	    if (!currententity->aliasframeinstant) continue;
+	    if ( ((aliasframeinstant_t *)currententity->aliasframeinstant)->shadowonly) continue;
+
+	    R_DrawAliasObjectLight(currententity, R_DrawAliasBumpedGL2);
+	}
+    }
+
+    if (R_ShouldDrawViewModel())
+    {
+	R_DrawAliasObjectLight(&cl.viewent, R_DrawAliasBumpedGL2);
+    }
+
+    //Brush models
+    for (i=0 ; i<cl_numlightvisedicts ; i++)
+    {
+	currententity = cl_lightvisedicts[i];
+
+	if (currententity->model->type == mod_brush)
+	{
+	    if (!currententity->brushlightinstant) continue;
+	    if ( ((brushlightinstant_t *)currententity->brushlightinstant)->shadowonly) continue;
+	    R_DrawBrushObjectLight(currententity, R_DrawBrushBumpedGL2);
 	}
 
     }

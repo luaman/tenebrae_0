@@ -494,6 +494,31 @@ void CheckNV3xFragmentExtensions(void)
      }
 }
 
+void CheckGL2FragmentExtensions(void) 
+{
+     int supportedTmu;
+     glGetIntegerv(GL_MAX_ACTIVE_TEXTURES_ARB,&supportedTmu); 
+
+     if (strstr(gl_extensions, "GL_EXT_texture3D")
+         && (!COM_CheckParm ("-forcegeneric"))
+         && (COM_CheckParm ("-gl2"))
+         && strstr(gl_extensions, "GL_ARB_shader_objects")
+         && strstr(gl_extensions, "GL_ARB_vertex_shader")
+         && strstr(gl_extensions, "GL_ARB_fragment_shader")
+         && strstr(gl_extensions, "GL_ARB_shading_language_100"))
+     {
+          gl_cardtype = GL2;
+
+          //get TEX3d poiters                   wlgGetProcAddress
+          SAFE_GET_PROC (qglTexImage3DEXT,PFNGLTEXIMAGE3DEXT,"glTexImage3DEXT");
+
+          //default to trilinear filtering
+          gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
+          gl_filter_max = GL_LINEAR;
+          GL_CreateShadersGL2();
+     }
+}
+
 
 void CheckAnisotropicExtension(void)
 {
@@ -575,16 +600,24 @@ void GL_Init (void)
      Con_Printf ("Checking diffuse bumpmap extensions\n");
      CheckDiffuseBumpMappingExtensions ();
 
-     Con_Printf ("Checking NV3x extensions\n");
-     CheckNV3xFragmentExtensions ();
+     gl_cardtype = GENERIC;
 
-     if ( gl_cardtype != NV3x )
+     Con_Printf ("Checking GL2 extensions\n");
+     CheckGL2FragmentExtensions ();
+
+     if ( gl_cardtype == GENERIC )
+     {
+         Con_Printf ("Checking NV3x extensions\n");
+         CheckNV3xFragmentExtensions ();
+     }
+
+     if ( gl_cardtype == GENERIC )
      {
         Con_Printf ("Checking ARB extensions\n");
         CheckARBFragmentExtensions ();
      }
 
-     if ( gl_cardtype != ARB && gl_cardtype != NV3x )
+     if ( gl_cardtype == GENERIC )
      {
           Con_Printf ("Checking GeForce 1/2/4-MX\n");
           CheckSpecularBumpMappingExtensions (); 
@@ -627,6 +660,9 @@ void GL_Init (void)
           break;
      case NV3x:
           Con_Printf ("Using NV3x GeForce FX path.\n");
+          break;
+     case GL2:
+          Con_Printf ("Using GL2 path.\n");
           break;
      }
             
