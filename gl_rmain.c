@@ -978,7 +978,7 @@ void R_DrawAliasSurface (aliashdr_t *paliashdr, float bright, aliasframeinstant_
 
 	c_alias_polys += paliashdr->numtris;
 
-	glPopMatrix ();
+
 	if ( gl_truform.value )
 	{
 	    glDisable(GL_PN_TRIANGLES_ATI);
