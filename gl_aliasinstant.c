@@ -107,7 +107,7 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 
 	int i, oldest, oindex;
 	/*
-	if (InstantsUsed < NUM_ALIAS_INSTANTS ) {
+	if (InstantsUsed < NUM_ALIAS_LIGHT_INSTANTS ) {
 		return &InstantCache[InstantsUsed++];
 	} else {
 		return NULL;
@@ -134,11 +134,16 @@ aliaslightinstant_t *R_AllocateLightInstant(entity_t *e) {
 	if (oindex == -1) {
 		//find an instant of an other light
 		for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
-			if (LightInstantCache[i].lastlight != currentshadowlight)
-				return &LightInstantCache[i];
+			if (LightInstantCache[i].lastlight != currentshadowlight) {
+				oindex = i;
+				break;
+			}
 		}
 	}
 
+	LightInstantCache[oindex].lastent = NULL;
+	LightInstantCache[oindex].lastframeinstant = NULL;
+	LightInstantCache[oindex].lastlight = NULL;
 	return &LightInstantCache[oindex];
 }
 
@@ -157,6 +162,8 @@ void R_ClearInstantCaches() {
 	for (i=0; i<NUM_ALIAS_LIGHT_INSTANTS; i++) {
 		LightInstantCache[i].lockframe = 0;
 		LightInstantCache[i].lastent = NULL;
+		LightInstantCache[i].lastlight = NULL;
+		LightInstantCache[i].lastframeinstant = NULL;
 	}
 }
 
@@ -680,6 +687,7 @@ qboolean CheckLightUpdate(entity_t *e, aliaslightinstant_t *ins) {
 		(dist(ins->lasteorg,e->origin) < DIST_DELTA) &&
 		(dist(ins->lasteangles,e->angles) < ANG_DELTA) &&
 		(abs(ins->lastlradius - currentshadowlight->radius) <= RADIUS_DELTA) &&
+		(ins->lastframeinstant == e->aliasframeinstant) &&
 		(((aliasframeinstant_t *)e->aliasframeinstant)->updateframe != r_framecount))
 	{
 		return false;
@@ -703,12 +711,19 @@ void R_SetupInstantForLight(entity_t *e)
 	qboolean update;
 	aliasframeinstant_t *aliasframeinstant;
 	aliaslightinstant_t *aliaslightinstant;
+	aliashdr_t * test;
 
 	if (!e->aliasframeinstant) {
 		//no error here error was already printed in SetupInstantForFrame
 		return;
 	}
+
 	aliasframeinstant = (aliasframeinstant_t *)e->aliasframeinstant;
+	//PENTA: guard agains model removed from cache
+	test = (aliashdr_t *)Mod_Extradata (e->model);
+	if (test != aliasframeinstant->paliashdr) {
+		Sys_Error("Cache Trashed");
+	}
 
 	aliaslightinstant = R_AllocateLightInstant(e);
 	aliasframeinstant->lightinstant = aliaslightinstant;
@@ -732,6 +747,7 @@ void R_SetupInstantForLight(entity_t *e)
 			VectorCopy(e->angles, aliaslightinstant->lasteangles);
 			aliaslightinstant->lastlradius = currentshadowlight->radius;
 			aliaslightinstant->lastlight = currentshadowlight;
+			aliaslightinstant->lastframeinstant = e->aliasframeinstant;
 			aliaslightinstant->lastent = e;
 		}
 	}
