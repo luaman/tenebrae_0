@@ -933,7 +933,7 @@ int SV_ModelIndex (char *name)
 	int		i;
 	
 	if (!name || !name[0])
-             Sys_Error ("SV_ModelIndex: anonymous model\n", name);
+             return 0;        
 
 	for (i=0 ; i<MAX_MODELS && sv.model_precache[i] ; i++)
 		if (!strcmp(sv.model_precache[i], name))
